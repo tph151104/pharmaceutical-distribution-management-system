@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('so_lo_sx', 100);
             $table->date('han_su_dung');
             $table->integer('so_luong_nhap');
+            $table->integer('so_luong_thuc_te')->default(0);
             $table->decimal('don_gia_nhap', 15, 2);
             $table->decimal('thanh_tien', 15, 2);
             $table->timestamps();
@@ -27,6 +28,7 @@ return new class extends Migration
 
         // Ràng buộc miền giá trị
         DB::statement('ALTER TABLE chi_tiet_phieu_nhap ADD CONSTRAINT chk_so_luong_nhap CHECK (so_luong_nhap > 0)');
+        DB::statement('ALTER TABLE chi_tiet_phieu_nhap ADD CONSTRAINT chk_so_luong_thuc_te CHECK (so_luong_thuc_te >= 0)');
         DB::statement('ALTER TABLE chi_tiet_phieu_nhap ADD CONSTRAINT chk_don_gia_nhap CHECK (don_gia_nhap >= 0)');
         DB::statement('ALTER TABLE chi_tiet_phieu_nhap ADD CONSTRAINT chk_thanh_tien_nhap CHECK (thanh_tien >= 0)');
     }

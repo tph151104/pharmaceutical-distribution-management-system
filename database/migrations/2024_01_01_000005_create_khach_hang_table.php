@@ -16,8 +16,8 @@ return new class extends Migration
             $table->enum('loai_kh', ['nha_thuoc', 'dai_ly', 'phong_kham', 'benh_vien']);
             $table->string('dia_chi', 255);
             $table->string('ma_so_thue', 50)->nullable();
-            $table->string('giay_phep_hoat_dong', 255)->nullable()->comment('Số giấy phép kinh doanh dược');
-            $table->string('nguoi_dai_dien', 255)->nullable()->comment('Tên người đại diện');
+            $table->string('giay_phep_hd_image', 255)->nullable()->comment('Ảnh giấy phép hoạt động');
+            $table->string('hinh_dai_dien', 255)->nullable()->comment('Hình đại diện');
             $table->enum('trang_thai_tk', ['cho_duyet', 'hoat_dong', 'vo_hieu_hoa'])->default('cho_duyet');
             $table->string('dien_thoai', 20)->nullable();
             $table->string('email', 191)->nullable();

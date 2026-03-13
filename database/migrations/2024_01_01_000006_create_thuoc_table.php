@@ -21,7 +21,10 @@ return new class extends Migration
             $table->text('bao_quan')->nullable();
             $table->text('chong_chi_dinh')->nullable();
             $table->string('dang_bao_che', 100)->nullable();
-            $table->decimal('gia_ban', 15, 2)->nullable();
+            $table->decimal('gia_ban_de_xuat', 15, 2)->nullable();
+            $table->string('image1', 255)->comment('Hình ảnh thuốc 1');
+            $table->string('image2', 255)->comment('Hình ảnh thuốc 2');
+            $table->string('image3', 255)->comment('Hình ảnh thuốc 3');
             $table->timestamps();
 
             $table->foreign('ma_nhom')->references('ma_nhom')->on('nhom_thuoc')->onDelete('restrict');

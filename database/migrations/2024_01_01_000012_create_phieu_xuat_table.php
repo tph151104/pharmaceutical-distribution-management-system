@@ -17,6 +17,10 @@ return new class extends Migration
             $table->decimal('tong_tien', 15, 2);
             $table->enum('trang_thai_tt', ['chua_tt', 'mot_phan', 'da_tt'])->default('chua_tt');
             $table->enum('trang_thai_phieu_xuat', ['dang_chuan_bi', 'da_xuat_kho', 'da_van_chuyen', 'da_huy'])->default('dang_chuan_bi');
+            $table->string('image1', 255)->comment('Hình ảnh phiếu xuất 1');
+            $table->string('image2', 255)->comment('Hình ảnh phiếu xuất 2');
+            $table->string('giay_to_an_toan', 255)->comment('giấy tờ an toàn về thuốc');
+            $table->string('tai_lieu_lien_quan', 255)->comment('tài liệu liên quan');
             $table->timestamps();
 
             $table->foreign('ma_kh')->references('ma_kh')->on('khach_hang')->onDelete('restrict');

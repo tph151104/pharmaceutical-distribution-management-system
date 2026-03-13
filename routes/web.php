@@ -37,16 +37,33 @@ Route::prefix('sales')->name('sales.')->group(function () {
     })->name('create');
 });
 
+use App\Http\Controllers\TonKhoController;
+use App\Http\Controllers\PhieuNhapController;
+
 Route::prefix('batches')->name('batches.')->group(function () {
-    Route::get('/', function () {
-        return view('inventory.batches.index');
-    })->name('index');
+    Route::get('/', [TonKhoController::class, 'index'])->name('index');
+    Route::put('/update-status', [TonKhoController::class, 'updateStatus'])->name('updateStatus');
 });
 
+Route::prefix('imports')->name('imports.')->group(function () {
+    Route::get('/', [PhieuNhapController::class, 'index'])->name('index');
+    Route::get('/create', [PhieuNhapController::class, 'create'])->name('create');
+    Route::post('/', [PhieuNhapController::class, 'store'])->name('store');
+    Route::get('/{id}/edit', [PhieuNhapController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [PhieuNhapController::class, 'update'])->name('update');
+    Route::get('/{id}/inspect', [PhieuNhapController::class, 'show'])->name('inspect');
+    Route::post('/{id}/inspect', [PhieuNhapController::class, 'saveDraft'])->name('saveDraft');
+    Route::post('/{id}/arrived', [PhieuNhapController::class, 'markArrived'])->name('markArrived');
+    Route::delete('/{id}', [PhieuNhapController::class, 'destroy'])->name('destroy');
+});
+
+use App\Http\Controllers\ThuocController;
+
 Route::prefix('products')->name('products.')->group(function () {
-    Route::get('/', function () {
-        return view('inventory.products.index');
-    })->name('index');
+    Route::get('/', [ThuocController::class, 'index'])->name('index');
+    Route::post('/', [ThuocController::class, 'store'])->name('store');
+    Route::put('/{id}', [ThuocController::class, 'update'])->name('update');
+    Route::delete('/{id}', [ThuocController::class, 'destroy'])->name('destroy');
 });
 
 Route::prefix('suppliers')->name('suppliers.')->group(function () {

@@ -15,13 +15,18 @@ class TonKho extends Model
         'ma_thuoc',
         'ma_phieu_nhap',
         'so_lo',
+        'ngay_nhap_lo',
         'han_su_dung',
         'so_luong_ton',
         'so_luong_da_xuat',
         'trang_thai_lo',
+        'image1',
+        'image2',
+        'image3',
     ];
 
     protected $casts = [
+        'ngay_nhap_lo' => 'date',
         'han_su_dung' => 'date',
         'so_luong_ton' => 'integer',
         'so_luong_da_xuat' => 'integer',
@@ -39,6 +44,14 @@ class TonKho extends Model
     public function phieuNhap()
     {
         return $this->belongsTo(PhieuNhap::class, 'ma_phieu_nhap', 'ma_phieu_nhap');
+    }
+
+    public function chiTietPhieuNhap()
+    {
+        // Custom relation vì khoá chính phức tạp. Tạm thời dùng hasOne nhưng cần query thêm điều kiện ở nơi gọi
+        return $this->hasOne(ChiTietPhieuNhap::class, 'ma_phieu_nhap', 'ma_phieu_nhap')
+                    ->where('ma_thuoc', $this->ma_thuoc)
+                    ->where('so_lo', $this->so_lo);
     }
 
     // ==========================================

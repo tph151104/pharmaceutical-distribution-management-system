@@ -13,10 +13,14 @@ return new class extends Migration
             $table->string('ma_thuoc', 50);
             $table->string('ma_phieu_nhap', 50);
             $table->string('so_lo', 100);
+            $table->date('ngay_nhap_lo')->nullable();
             $table->date('han_su_dung');
             $table->integer('so_luong_ton')->default(0);
             $table->integer('so_luong_da_xuat')->default(0);
-            $table->enum('trang_thai_lo', ['cho_duyet', 'dang_ban', 'het_han', 'thu_hoi', 'ngung_ban'])->default('cho_duyet');
+            $table->enum('trang_thai_lo', ['cho_duyet', 'dang_ban', 'het_han', 'ngung_ban'])->default('cho_duyet');
+            $table->string('image1', 255)->comment('Hình ảnh tồn kho 1');
+            $table->string('image2', 255)->comment('Hình ảnh tồn kho 2');
+            $table->string('image3', 255)->comment('Hình ảnh tồn kho 3');
             $table->timestamps();
             $table->primary(['ma_thuoc', 'ma_phieu_nhap', 'so_lo']);
             $table->foreign('ma_thuoc')->references('ma_thuoc')->on('thuoc')->onDelete('restrict');

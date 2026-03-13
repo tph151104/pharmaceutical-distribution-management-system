@@ -206,7 +206,7 @@
 
         <li class="sidebar-section-title">Kho hàng</li>
         <li>
-            <a href="{{ route('purchases.index') }}" class="sidebar-link {{ request()->routeIs('purchases.*') ? 'active' : '' }}">
+            <a href="{{ route('imports.index') }}" class="sidebar-link {{ request()->routeIs('imports.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-box-arrow-in-down"></i></span>
                 <span>Nhập kho (mua hàng)</span>
             </a>

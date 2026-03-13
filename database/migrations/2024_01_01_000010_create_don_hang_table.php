@@ -14,6 +14,9 @@ return new class extends Migration
             $table->date('ngay_dat');
             $table->enum('trang_thai_dh', ['cho_xu_ly', 'da_duyet', 'dang_xuat_kho', 'da_hoan_thanh', 'da_huy'])->default('cho_xu_ly');
             $table->decimal('tong_tien', 15, 2);
+            $table->string('image1', 255)->comment('Hình ảnh đơn hàng 1');
+            $table->string('image2', 255)->comment('Hình ảnh đơn hàng 2');
+            $table->string('image3', 255)->comment('Hình ảnh đơn hàng 3');
             $table->timestamps();
 
             $table->foreign('ma_kh')->references('ma_kh')->on('khach_hang')->onDelete('restrict');
