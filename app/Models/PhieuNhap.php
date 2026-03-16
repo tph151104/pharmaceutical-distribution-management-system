@@ -39,4 +39,11 @@ class PhieuNhap extends Model
     {
         return $this->hasMany(ChiTietPhieuNhap::class, 'ma_phieu_nhap', 'ma_phieu_nhap');
     }
+    /**
+     * Chi tiết các lần thanh toán của phiếu nhập này.
+     */
+    public function cacThanhToan()
+    {
+        return $this->hasMany(ThanhToan::class, 'ma_phieu_nhap', 'ma_phieu_nhap');
+    }
 }

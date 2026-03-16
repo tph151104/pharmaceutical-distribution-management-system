@@ -240,7 +240,13 @@
         <li>
             <a href="{{ route('customers.index') }}" class="sidebar-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-people"></i></span>
-                <span>Khách hàng (bán sỉ)</span>
+                <span>Quản lý khách hàng</span>
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('payments.index') }}" class="sidebar-link">
+                <span class="sidebar-link-icon"><i class="bi bi-cash-coin"></i></span>
+                <span>Xử lý thanh toán</span>
             </a>
         </li>
 
@@ -249,13 +255,6 @@
             <a href="{{ route('reports.stock') }}" class="sidebar-link {{ request()->routeIs('reports.stock') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-clipboard-data"></i></span>
                 <span>Báo cáo tồn kho</span>
-            </a>
-        </li>
-        <li>
-            <a href="{{ route('reports.expiry') }}" class="sidebar-link {{ request()->routeIs('reports.expiry') ? 'active' : '' }}">
-                <span class="sidebar-link-icon"><i class="bi bi-alarm"></i></span>
-                <span>Hàng sắp hết hạn</span>
-                <span class="badge bg-warning-subtle text-warning-emphasis sidebar-badge">!</span>
             </a>
         </li>
         <li>

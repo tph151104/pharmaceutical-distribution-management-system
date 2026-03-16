@@ -17,9 +17,8 @@ class NhaCungCap extends Model
         'dia_chi',
         'dien_thoai',
         'email',
-        'nguoi_lien_he',
+        'ma_so_thue',
         'ghi_chu',
-        'trang_thai_ncc',
     ];
 
     public function cacPhieuNhap()

@@ -14,7 +14,11 @@ return new class extends Migration
             $table->enum('loai_thanh_toan', ['nhap', 'xuat']);
             $table->string('ma_phieu_nhap', 50)->nullable();
             $table->string('ma_phieu_xuat', 50)->nullable();
+            $table->decimal('tong_tien', 15, 2);
             $table->decimal('so_tien_tt', 15, 2);
+            $table->decimal('so_tien_con_no', 15, 2);
+            $table->enum('trang_thai_tt', ['da_du', 'con_no'])->default('con_no');
+            $table->string('phuong_thuc_tt', 50)->nullable();
             $table->date('ngay_thanh_toan');
             $table->text('ghi_chu')->nullable();
             $table->timestamps();
@@ -25,7 +29,7 @@ return new class extends Migration
 
         // Ràng buộc: phải có ít nhất 1 trong 2 mã phiếu
         DB::statement('ALTER TABLE thanh_toan ADD CONSTRAINT chk_phieu_thanh_toan CHECK (ma_phieu_nhap IS NOT NULL OR ma_phieu_xuat IS NOT NULL)');
-        DB::statement('ALTER TABLE thanh_toan ADD CONSTRAINT chk_so_tien_tt CHECK (so_tien_tt > 0)');
+        DB::statement('ALTER TABLE thanh_toan ADD CONSTRAINT chk_so_tien_tt_positive CHECK (so_tien_tt > 0)');
     }
 
     public function down()

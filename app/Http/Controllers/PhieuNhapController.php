@@ -339,15 +339,15 @@ class PhieuNhapController extends Controller
             if ($request->hasFile('giay_to_lien_quan')) {
                 $file1 = $request->file('giay_to_lien_quan');
                 $name1 = time() . '_giayto.' . $file1->extension();
-                $file1->move(public_path('uploads/imports'), $name1);
-                $phieuNhap->giay_to_lien_quan = 'uploads/imports/' . $name1;
+                $file1->move(public_path('uploads/batches'), $name1);
+                $phieuNhap->giay_to_lien_quan = 'uploads/batches/' . $name1;
             }
 
             if ($request->hasFile('tieu_lieu_lien_quan')) {
                 $file2 = $request->file('tieu_lieu_lien_quan');
                 $name2 = time() . '_tieulieu.' . $file2->extension();
-                $file2->move(public_path('uploads/imports'), $name2);
-                $phieuNhap->tieu_lieu_lien_quan = 'uploads/imports/' . $name2;
+                $file2->move(public_path('uploads/batches'), $name2);
+                $phieuNhap->tieu_lieu_lien_quan = 'uploads/batches/' . $name2;
             }
 
             // Đổi trạng thái từ "Đợi hàng về" -> "Chờ nhập kho" (Đã nhận hàng, đang kiểm/đã lưu nháp kiểm)

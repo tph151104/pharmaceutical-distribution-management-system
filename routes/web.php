@@ -66,16 +66,22 @@ Route::prefix('products')->name('products.')->group(function () {
     Route::delete('/{id}', [ThuocController::class, 'destroy'])->name('destroy');
 });
 
+use App\Http\Controllers\NhaCungCapController;
+
 Route::prefix('suppliers')->name('suppliers.')->group(function () {
-    Route::get('/', function () {
-        return view('inventory.suppliers.index');
-    })->name('index');
+    Route::get('/', [NhaCungCapController::class, 'index'])->name('index');
+    Route::post('/', [NhaCungCapController::class, 'store'])->name('store');
+    Route::put('/{id}', [NhaCungCapController::class, 'update'])->name('update');
+    Route::delete('/{id}', [NhaCungCapController::class, 'destroy'])->name('destroy');
 });
 
+use App\Http\Controllers\KhachHangController;
+
 Route::prefix('customers')->name('customers.')->group(function () {
-    Route::get('/', function () {
-        return view('inventory.customers.index');
-    })->name('index');
+    Route::get('/', [KhachHangController::class, 'index'])->name('index');
+    Route::put('/{id}', [KhachHangController::class, 'update'])->name('update');
+    Route::put('/{id}/status', [KhachHangController::class, 'updateStatus'])->name('updateStatus');
+    Route::delete('/{id}', [KhachHangController::class, 'destroy'])->name('destroy');
 });
 
 Route::prefix('reports')->name('reports.')->group(function () {
@@ -106,15 +112,26 @@ Route::prefix('account')->name('account.')->group(function () {
     })->name('password');
 });
 
-Route::get('/login', function () {
-    return view('auth.login');
-})->name('login');
+use App\Http\Controllers\ThanhToanController;
 
-Route::get('/register', function () {
-    return view('auth.register');
-})->name('register');
+Route::prefix('payments')->name('payments.')->group(function () {
+    Route::get('/', [ThanhToanController::class, 'index'])->name('index');
+    Route::post('/', [ThanhToanController::class, 'store'])->name('store');
+    Route::get('/history', [ThanhToanController::class, 'history'])->name('history');
+    Route::get('/{id}', [ThanhToanController::class, 'show'])->name('show');
+});
 
-Route::prefix('wholesale')->name('wholesale.')->group(function () {
+use App\Http\Controllers\Auth\CustomerAuthController;
+
+Route::get('/login', [CustomerAuthController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [CustomerAuthController::class, 'login']);
+
+Route::get('/register', [CustomerAuthController::class, 'showRegisterForm'])->name('register');
+Route::post('/register', [CustomerAuthController::class, 'register']);
+
+Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
+
+Route::prefix('wholesale')->name('wholesale.')->middleware('auth:customer')->group(function () {
     Route::get('/catalog', function () {
         return view('wholesale.catalog');
     })->name('catalog');
