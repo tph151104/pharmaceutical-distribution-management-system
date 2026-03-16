@@ -29,7 +29,9 @@
                             <th class="border-bottom-0">Loại Phiếu / Mã Phiếu</th>
                             <th class="border-bottom-0">Phương thức TT</th>
                             <th class="border-bottom-0 text-end">Số Tiền (VNĐ)</th>
-                            <th class="pe-3 border-bottom-0 text-center">Trạng Thái Dư Nợ</th>
+                            <th class="border-bottom-0 text-center">Trạng Thái Dư Nợ</th>
+                            <th class="border-bottom-0 text-center">Hình ảnh thanh toán</th>
+                            <th class="pe-3 border-bottom-0 text-end">Chi Tiết</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -55,17 +57,31 @@
                                 <td class="text-end fw-bold {{ $tx->loai_thanh_toan == 'nhap' ? 'text-danger' : 'text-success' }}">
                                     {{ $tx->loai_thanh_toan == 'nhap' ? '-' : '+' }}{{ number_format($tx->so_tien_tt) }}
                                 </td>
-                                <td class="pe-3 text-center">
+                                <td class="text-center">
                                     @if($tx->trang_thai_tt == 'da_du')
                                         <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Hết nợ</span>
                                     @else
                                         <div class="small fw-medium text-warning">Còn nợ: {{ number_format($tx->so_tien_con_no) }}</div>
                                     @endif
                                 </td>
+                                <td>
+                                    @if($tx->giay_phep_tt_image)
+                                        <a href="{{ asset($tx->giay_phep_tt_image) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            Xem ảnh
+                                        </a>
+                                    @else
+                                        <span class="text-muted">Không có ảnh</span>
+                                    @endif
+                                </td>
+                                <td class="pe-3 text-end">
+                                    <a href="{{ route('payments.show', $tx->ma_thanh_toan) }}" class="btn btn-sm btn-outline-primary">
+                                        Chi tiết
+                                    </a>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4 text-muted">Không có lịch sử giao dịch thanh toán nào.</td>
+                                <td colspan="7" class="text-center py-4 text-muted">Không có lịch sử giao dịch thanh toán nào.</td>
                             </tr>
                         @endforelse
                     </tbody>

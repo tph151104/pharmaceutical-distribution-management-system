@@ -55,6 +55,11 @@
                 
                 <!-- THU NỢ NHÀ CUNG CẤP (PHẢI TRẢ) -->
                 <div class="tab-pane fade show active" id="supplier-pane" role="tabpanel" aria-labelledby="supplier-tab" tabindex="0">
+                    <div class="d-flex justify-content-end p-2 border-bottom text-bg-light">
+                        <a href="{{ route('payments.export.suppliers') }}" class="btn btn-sm btn-success">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Xuất Excel
+                        </a>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
@@ -81,9 +86,9 @@
                                         <td class="text-danger fw-bold">{{ number_format($pn->so_tien_con_no) }}</td>
                                         <td>
                                             @if($pn->trang_thai_tt == 'chua_tt')
-                                                <span class="badge bg-danger-subtle text-danger-emphasis">Chưa thanh toán</span>
+                                                <span class="badge bg-danger shadow-sm"><i class="bi bi-x-circle me-1"></i>Chưa thanh toán</span>
                                             @else
-                                                <span class="badge bg-warning-subtle text-warning-emphasis">Một phần</span>
+                                                <span class="badge bg-warning text-dark shadow-sm"><i class="bi bi-hourglass-split me-1"></i>Thanh toán một phần</span>
                                             @endif
                                         </td>
                                         <td class="text-end pe-3">
@@ -91,9 +96,9 @@
                                                 loai: 'nhap',
                                                 ma_phieu: '{{ $pn->ma_phieu_nhap }}',
                                                 doituong: '{{ $pn->nhaCungCap->ten_ncc ?? "N/A" }}',
-                                                tong_tien: {{ $pn->tong_tien }},
-                                                da_tra: {{ $pn->so_tien_da_tra }},
-                                                con_no: {{ $pn->so_tien_con_no }}
+                                                tong_tien: {{ $pn->tong_tien ?? 0 }},
+                                                da_tra: {{ $pn->so_tien_da_tra ?? 0 }},
+                                                con_no: {{ $pn->so_tien_con_no ?? 0 }}
                                             })">
                                                 <i class="bi bi-wallet2 me-1"></i>Thanh toán
                                             </button>
@@ -114,6 +119,11 @@
 
                 <!-- THU NỢ KHÁCH HÀNG (PHẢI THU) -->
                 <div class="tab-pane fade" id="customer-pane" role="tabpanel" aria-labelledby="customer-tab" tabindex="0">
+                    <div class="d-flex justify-content-end p-2 border-bottom text-bg-light">
+                        <a href="{{ route('payments.export.customers') }}" class="btn btn-sm btn-success">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Xuất Excel
+                        </a>
+                     </div>
                      <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
@@ -140,9 +150,9 @@
                                         <td class="text-danger fw-bold">{{ number_format($px->so_tien_con_no) }}</td>
                                         <td>
                                             @if($px->trang_thai_tt == 'chua_tt')
-                                                <span class="badge bg-danger-subtle text-danger-emphasis">Chưa thanh toán</span>
+                                                <span class="badge bg-danger shadow-sm"><i class="bi bi-x-circle me-1"></i>Chưa thu tiền</span>
                                             @else
-                                                <span class="badge bg-warning-subtle text-warning-emphasis">Một phần</span>
+                                                <span class="badge bg-warning text-dark shadow-sm"><i class="bi bi-hourglass-split me-1"></i>Thu nợ một phần</span>
                                             @endif
                                         </td>
                                         <td class="text-end pe-3">
@@ -150,9 +160,9 @@
                                                 loai: 'xuat',
                                                 ma_phieu: '{{ $px->ma_phieu_xuat }}',
                                                 doituong: '{{ $px->khachHang->ten_kh ?? "N/A" }}',
-                                                tong_tien: {{ $px->tong_tien }},
-                                                da_tra: {{ $px->so_tien_da_tra }},
-                                                con_no: {{ $px->so_tien_con_no }}
+                                                tong_tien: {{ $px->tong_tien ?? 0 }},
+                                                da_tra: {{ $px->so_tien_da_tra ?? 0 }},
+                                                con_no: {{ $px->so_tien_con_no ?? 0 }}
                                             })">
                                                 <i class="bi bi-wallet2 me-1"></i>Thu tiền
                                             </button>
@@ -179,7 +189,7 @@
     <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form action="{{ route('payments.store') }}" method="POST">
+                <form action="{{ route('payments.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-header border-bottom-0">
                         <h5 class="modal-title fw-bold text-primary" id="paymentModalLabel">Thanh Toán / Thu Tiền</h5>
@@ -230,6 +240,11 @@
                             </select>
                         </div>
                         
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Minh chứng thanh toán (Tùy chọn)</label>
+                            <input type="file" name="giay_phep_tt_image" class="form-control" accept="image/*">
+                        </div>
+
                         <div class="mb-1">
                             <label class="form-label fw-semibold">Ghi chú (Tùy chọn)</label>
                             <textarea name="ghi_chu" class="form-control" rows="2" placeholder="Nội dung/mã GD..."></textarea>

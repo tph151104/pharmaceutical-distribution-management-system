@@ -118,6 +118,8 @@ Route::prefix('payments')->name('payments.')->group(function () {
     Route::get('/', [ThanhToanController::class, 'index'])->name('index');
     Route::post('/', [ThanhToanController::class, 'store'])->name('store');
     Route::get('/history', [ThanhToanController::class, 'history'])->name('history');
+    Route::get('/export/suppliers', [ThanhToanController::class, 'exportSuppliers'])->name('export.suppliers');
+    Route::get('/export/customers', [ThanhToanController::class, 'exportCustomers'])->name('export.customers');
     Route::get('/{id}', [ThanhToanController::class, 'show'])->name('show');
 });
 
