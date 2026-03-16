@@ -53,7 +53,7 @@ class ThanhToanController extends Controller
             'ma_phieu' => 'required|string',
             'so_tien_tt' => 'required|numeric|min:1',
             'phuong_thuc_tt' => 'required|string',
-            'giay_phep_tt_image' => 'nullable|image|max:2048',
+            'minh_chung_tt_image' => 'nullable|image|max:2048',
         ]);
 
         DB::beginTransaction();
@@ -76,23 +76,25 @@ class ThanhToanController extends Controller
             $soTienConNoHienTai = $tongTienCT - $tongDaTra;
 
             // Kiểm tra ràng buộc: không vượt quá số nợ
-            if ($soTienTT > $soTienConNoHienTai + 0.01) { // Thêm sai số nhỏ cho float
+            if ($soTienTT > $soTienConNoHienTai + 0.01) { 
                 return back()->withInput()->withErrors(['error' => 'Số tiền thanh toán (' . number_format($soTienTT) . ') không được lớn hơn số tiền còn nợ (' . number_format($soTienConNoHienTai) . ').']);
             }
 
             // Sinh mã thanh toán
             $prefix = $loai == 'nhap' ? 'TTN' : 'TTX';
-            $lastTT = ThanhToan::where('ma_thanh_toan', 'like', $prefix . '%')->orderBy('ma_thanh_toan', 'desc')->first();
+            $lastTT = ThanhToan::where('ma_thanh_toan', 'like', $prefix . '%')->orderBy('ma_thanh_toan', 'desc')->first();//tìm mã thanh toán cuối cùng
+
             $nextId = 1;
             if ($lastTT && preg_match('/' . $prefix . '(\d+)/', $lastTT->ma_thanh_toan, $matches)) {
-                $nextId = intval($matches[1]) + 1;
+                $nextId = intval($matches[1]) + 1; //tự động tăng mã thanh toán lên 1
             }
-            $maTT = $prefix . str_pad($nextId, 5, '0', STR_PAD_LEFT);
+
+            $maTT = $prefix . str_pad($nextId, 5, '0', STR_PAD_LEFT);//tạo mã thanh toán mới
 
             // Xử lý ảnh
             $imagePath = null;
-            if ($request->hasFile('giay_phep_tt_image')) {
-                $imagePath = $request->file('giay_phep_tt_image')->store('payments', 'public');
+            if ($request->hasFile('minh_chung_tt_image')) {
+                $imagePath = $request->file('minh_chung_tt_image')->store('payments', 'public');
             }
 
             $conNoMoi = $soTienConNoHienTai - $soTienTT;
@@ -109,7 +111,7 @@ class ThanhToanController extends Controller
                 'trang_thai_tt' => $conNoMoi <= 0.01 ? 'da_du' : 'con_no',
                 'phuong_thuc_tt' => $request->phuong_thuc_tt,
                 'ngay_thanh_toan' => now(),
-                'giay_phep_tt_image' => $imagePath,
+                'minh_chung_tt_image' => $imagePath,
                 'ghi_chu' => $request->ghi_chu,
             ]);
 

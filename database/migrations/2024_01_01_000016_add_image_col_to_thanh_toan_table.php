@@ -14,8 +14,8 @@ return new class extends Migration
     public function up()
     {
         Schema::table('thanh_toan', function (Blueprint $table) {
-            if (!Schema::hasColumn('thanh_toan', 'giay_phep_tt_image')) {
-                $table->string('giay_phep_tt_image', 255)->nullable()->after('ngay_thanh_toan');
+            if (!Schema::hasColumn('thanh_toan', 'minh_chung_tt_image')) {
+                $table->string('minh_chung_tt_image', 255)->nullable()->after('ngay_thanh_toan');
             }
         });
     }
@@ -28,7 +28,7 @@ return new class extends Migration
     public function down()
     {
         Schema::table('thanh_toan', function (Blueprint $table) {
-            $table->dropColumn('giay_phep_tt_image');
+            $table->dropColumn('minh_chung_tt_image');
         });
     }
 };
