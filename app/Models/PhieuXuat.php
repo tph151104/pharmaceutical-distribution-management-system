@@ -43,6 +43,14 @@ class PhieuXuat extends Model
     }
 
     /**
+     * Thuộc về Người dùng (Người tạo phiếu)
+     */
+    public function nguoiDung()
+    {
+        return $this->belongsTo(NguoiDung::class, 'nguoi_tao_phieu', 'ma_nguoi_dung');
+    }
+
+    /**
      * Chi tiết các lần thanh toán của phiếu xuất này.
      */
     public function cacThanhToan()
@@ -64,6 +72,7 @@ class PhieuXuat extends Model
             'dang_chuan_bi' => 'Đang chuẩn bị',
             'da_xuat_kho' => 'Đã xuất kho',
             'da_van_chuyen' => 'Đã vận chuyển',
+            'da_hoan_thanh' => 'Đã hoàn thành',
             'da_huy' => 'Đã hủy',
         ];
 
@@ -75,7 +84,8 @@ class PhieuXuat extends Model
         $colors = [
             'dang_chuan_bi' => 'warning',
             'da_xuat_kho' => 'primary',
-            'da_van_chuyen' => 'success',
+            'da_van_chuyen' => 'info',
+            'da_hoan_thanh' => 'success',
             'da_huy' => 'danger',
         ];
 

@@ -53,6 +53,7 @@ class DonHang extends Model
             'cho_xu_ly' => 'Chờ xử lý',
             'da_duyet' => 'Đã duyệt',
             'dang_xuat_kho' => 'Đang xuất kho',
+            'dang_van_chuyen' => 'Đang vận chuyển',
             'da_hoan_thanh' => 'Đã hoàn thành',
             'da_huy' => 'Đã hủy',
         ][$this->trang_thai_dh] ?? $this->trang_thai_dh;
@@ -64,6 +65,7 @@ class DonHang extends Model
             'cho_xu_ly' => 'warning',
             'da_duyet' => 'info',
             'dang_xuat_kho' => 'primary',
+            'dang_van_chuyen' => 'info',
             'da_hoan_thanh' => 'success',
             'da_huy' => 'danger',
         ][$this->trang_thai_dh] ?? 'secondary';

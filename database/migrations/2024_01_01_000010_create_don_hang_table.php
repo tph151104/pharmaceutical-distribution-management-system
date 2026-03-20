@@ -12,7 +12,7 @@ return new class extends Migration
             $table->string('ma_don_hang', 50)->primary();
             $table->string('ma_kh', 50);
             $table->date('ngay_dat');
-            $table->enum('trang_thai_dh', ['cho_xu_ly', 'da_duyet', 'dang_xuat_kho', 'da_hoan_thanh', 'da_huy'])->default('cho_xu_ly');
+            $table->enum('trang_thai_dh', ['cho_xu_ly', 'da_duyet', 'dang_xuat_kho', 'da_hoan_thanh', 'da_huy','dang_van_chuyen'])->default('cho_xu_ly');
             $table->decimal('tong_tien', 15, 2);
             $table->string('image1', 255)->comment('Hình ảnh đơn hàng 1');
             $table->string('image2', 255)->comment('Hình ảnh đơn hàng 2');

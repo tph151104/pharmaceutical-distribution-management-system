@@ -213,13 +213,8 @@ class PhieuXuatController extends Controller
             $phieuXuat->save();
 
             // 4. Cập nhật đơn hàng (nếu có)
-            if ($phieuXuat->ma_don_hang) {
-                $donHang = DonHang::find($phieuXuat->ma_don_hang);
-                if ($donHang) {
-                    $donHang->trang_thai_dh = 'da_hoan_thanh';
-                    $donHang->save();
-                }
-            }
+            // Không đổi trạng thái Đơn Hàng ở bước xuất kho, vẫn giữ 'dang_xuat_kho'
+            // Chờ đến khi nhân viên kho bấm chuyển Vận chuyển thì mới đổi trạng thái.
 
             // 5. Sinh công nợ thanh toán (nếu tổng tiền > 0)
             if ($phieuXuat->tong_tien > 0) {
@@ -261,5 +256,99 @@ class PhieuXuatController extends Controller
         }
 
         return view('admin.inventory.sales.print', compact('phieuXuat'));
+    }
+
+    /**
+     * Chuyển trạng thái sang Đang vận chuyển
+     */
+    public function markAsShipping($id)
+    {
+        $phieuXuat = PhieuXuat::findOrFail($id);
+        
+        if ($phieuXuat->trang_thai_phieu_xuat !== 'da_xuat_kho') {
+            return back()->withErrors(['error' => 'Chỉ phiếu "Đã xuất kho" mới có thể chuyển trạng thái vận chuyển.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            $phieuXuat->trang_thai_phieu_xuat = 'da_van_chuyen';
+            $phieuXuat->save();
+
+            if ($phieuXuat->ma_don_hang) {
+                $donHang = DonHang::find($phieuXuat->ma_don_hang);
+                if ($donHang) {
+                    $donHang->trang_thai_dh = 'dang_van_chuyen';
+                    $donHang->save();
+                }
+            }
+
+            DB::commit();
+            return back()->with('success', 'Đã chuyển trạng thái Đang vận chuyển thành công.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Lỗi: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Xác nhận giao hàng hoàn thành
+     */
+    public function markAsCompleted($id)
+    {
+        $phieuXuat = PhieuXuat::findOrFail($id);
+        
+        if ($phieuXuat->trang_thai_phieu_xuat !== 'da_van_chuyen') {
+            return back()->withErrors(['error' => 'Chỉ phiếu "Đang vận chuyển" mới có thể xác nhận hoàn thành.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            $phieuXuat->trang_thai_phieu_xuat = 'da_hoan_thanh';
+            $phieuXuat->save();
+
+            if ($phieuXuat->ma_don_hang) {
+                $donHang = DonHang::find($phieuXuat->ma_don_hang);
+                if ($donHang) {
+                    $donHang->trang_thai_dh = 'da_hoan_thanh';
+                    $donHang->save();
+                }
+            }
+
+            DB::commit();
+            return back()->with('success', 'Đã xác nhận Giao hàng hoàn thành.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Lỗi: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Hủy / Xóa phiếu nháp
+     */
+    public function destroy($id)
+    {
+        $phieuXuat = PhieuXuat::findOrFail($id);
+
+        if ($phieuXuat->trang_thai_phieu_xuat !== 'dang_chuan_bi') {
+            return back()->withErrors(['error' => 'Chỉ phiếu nháp đang chuẩn bị mới được xóa.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            if ($phieuXuat->ma_don_hang) {
+                $donHang = DonHang::find($phieuXuat->ma_don_hang);
+                if ($donHang && $donHang->trang_thai_dh === 'dang_xuat_kho') {
+                    $donHang->trang_thai_dh = 'da_duyet';
+                    $donHang->save();
+                }
+            }
+            $phieuXuat->delete();
+
+            DB::commit();
+            return redirect()->route('sales.index')->with('success', 'Đã xóa phiếu xuất nháp.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Lỗi: ' . $e->getMessage()]);
+        }
     }
 }

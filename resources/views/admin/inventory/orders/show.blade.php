@@ -106,13 +106,6 @@
                             </button>
                         </form>
                     @endif
-                    @if($donHang->trang_thai_dh == 'da_hoan_thanh')
-                        <a href="{{ route('admin.orders.print', $donHang->ma_don_hang) }}" class="btn btn-outline-primary w-100" target="_blank">
-                            <i class="bi bi-printer me-1"></i>In đơn hàng
-                        </a>
-                    @elseif(in_array($donHang->trang_thai_dh, ['da_huy']))
-                        <div class="text-center text-muted small py-2">Không có thao tác khả dụng.</div>
-                    @endif
                 </div>
             </div>
         </div>

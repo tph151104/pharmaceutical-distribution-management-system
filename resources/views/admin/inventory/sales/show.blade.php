@@ -14,8 +14,27 @@
                 <span class="badge bg-{{ $phieuXuat->mauTrangThai }} fs-6">{{ $phieuXuat->tenTrangThai }}</span>
             </h1>
         </div>
-        <div>
-            @if($phieuXuat->trang_thai_phieu_xuat === 'da_xuat_kho' || $phieuXuat->trang_thai_phieu_xuat === 'da_van_chuyen')
+        <div class="d-flex gap-2">
+            @if($phieuXuat->trang_thai_phieu_xuat === 'dang_chuan_bi')
+                <form action="{{ route('sales.destroy', $phieuXuat->ma_phieu_xuat) }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa phiếu nháp này? Đơn hàng sẽ trở lại trạng thái Đã duyệt.')">
+                        <i class="bi bi-trash"></i> Xóa phiếu nháp
+                    </button>
+                </form>
+            @endif
+
+            @if($phieuXuat->trang_thai_phieu_xuat === 'da_xuat_kho')
+                <form action="{{ route('sales.shipping', $phieuXuat->ma_phieu_xuat) }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-primary" onclick="return confirm('Xác nhận chuyển hàng này đi giao / gửi đơn vị vận chuyển?')">
+                        <i class="bi bi-truck"></i> Bắt đầu vận chuyển
+                    </button>
+                </form>
+            @endif
+
+            @if(in_array($phieuXuat->trang_thai_phieu_xuat, ['da_xuat_kho', 'da_van_chuyen', 'da_hoan_thanh']))
                 <a href="{{ route('sales.print', $phieuXuat->ma_phieu_xuat) }}" target="_blank" class="btn btn-outline-secondary">
                     <i class="bi bi-printer"></i> In phiếu xuất
                 </a>
@@ -58,6 +77,10 @@
                                     N/A
                                 @endif
                             </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted w-25">Người tạo:</td>
+                            <td class="fw-medium">{{ $phieuXuat->nguoiDung->ho_ten_nd ?? $phieuXuat->nguoi_tao_phieu }}</td>
                         </tr>
                         <tr>
                             <td class="text-muted">Ngày xuất:</td>
@@ -261,12 +284,13 @@
             </div>
         </div>
 
-        @if($phieuXuat->image1 || $phieuXuat->image2 || $phieuXuat->giay_to_an_toan || $phieuXuat->tai_lieu_lien_quan)
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white border-bottom-0 pt-4 pb-2">
-                    <h5 class="mb-0 fw-bold text-primary">Hồ sơ giao hàng</h5>
-                </div>
-                <div class="card-body">
+        <!-- HỒ SƠ GIAO HÀNG (LUÔN HIỂN THỊ ĐỂ BIẾT CÓ HAY KHÔNG) -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-2">
+                <h5 class="mb-0 fw-bold text-primary">Hồ sơ giao hàng đính kèm</h5>
+            </div>
+            <div class="card-body">
+                @if($phieuXuat->image1 || $phieuXuat->image2 || $phieuXuat->giay_to_an_toan || $phieuXuat->tai_lieu_lien_quan)
                     <div class="row g-4">
                         @if($phieuXuat->image1)
                             <div class="col-md-3">
@@ -303,9 +327,14 @@
                             </div>
                         @endif
                     </div>
-                </div>
+                @else
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-folder-x fs-1 opacity-50 mb-2 d-block"></i>
+                        Không có hình ảnh hoặc tài liệu nào được đính kèm lúc xuất kho.
+                    </div>
+                @endif
             </div>
-        @endif
+        </div>
     @endif
 </div>
 @endsection
