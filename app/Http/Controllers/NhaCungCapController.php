@@ -27,7 +27,7 @@ class NhaCungCapController extends Controller
 
         $nhaCungCaps = $query->orderBy('created_at', 'desc')->paginate(15);
         
-        return view('inventory.suppliers.index', compact('nhaCungCaps'));
+        return view('admin.inventory.suppliers.index', compact('nhaCungCaps'));
     }
 
     /**

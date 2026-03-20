@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('email', 191)->unique();
             $table->string('sdt', 20);
             $table->enum('trang_thai', ['cho_phep_hd', 'vo_hieu_hoa'])->default('cho_phep_hd');
+            $table->string('ho_ten_nd', 255);
             $table->rememberToken();
             $table->timestamps();
         });

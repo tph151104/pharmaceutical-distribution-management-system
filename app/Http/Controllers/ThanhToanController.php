@@ -40,7 +40,7 @@ class ThanhToanController extends Controller
                 return $px;
             });
 
-        return view('payments.index', compact('phieuNhaps', 'phieuXuats'));
+        return view('admin.inventory.payments.index', compact('phieuNhaps', 'phieuXuats'));
     }
 
     /**
@@ -141,7 +141,7 @@ class ThanhToanController extends Controller
             $thanhToan->load('phieuXuat.khachHang');
         }
 
-        return view('payments.show', compact('thanhToan'));
+        return view('admin.inventory.payments.show', compact('thanhToan'));
     }
 
     /**
@@ -150,6 +150,6 @@ class ThanhToanController extends Controller
     public function history()
     {
         $transactions = ThanhToan::orderBy('created_at', 'desc')->paginate(20);
-        return view('payments.history', compact('transactions'));
+        return view('admin.inventory.payments.history', compact('transactions'));
     }
 }

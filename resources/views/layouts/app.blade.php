@@ -249,6 +249,12 @@
                 <span>Xử lý thanh toán</span>
             </a>
         </li>
+        <li>
+            <a href="{{ route('admin.orders.index') }}" class="sidebar-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
+                <span class="sidebar-link-icon"><i class="bi bi-box-seam"></i></span>
+                <span>Quản lý Đơn hàng</span>
+            </a>
+        </li>
 
         <li class="sidebar-section-title">Báo cáo & Công nợ</li>
         <li>

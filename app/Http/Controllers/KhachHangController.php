@@ -40,7 +40,7 @@ class KhachHangController extends Controller
 
         $khachHangs = $query->orderBy('created_at', 'desc')->paginate(15);
         
-        return view('inventory.customers.index', compact('khachHangs'));
+        return view('admin.inventory.customers.index', compact('khachHangs'));
     }
 
     /**

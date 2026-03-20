@@ -35,10 +35,50 @@ class PhieuXuat extends Model
     }
 
     /**
+     * Thuộc về Đơn hàng
+     */
+    public function donHang()
+    {
+        return $this->belongsTo(DonHang::class, 'ma_don_hang', 'ma_don_hang');
+    }
+
+    /**
      * Chi tiết các lần thanh toán của phiếu xuất này.
      */
     public function cacThanhToan()
     {
         return $this->hasMany(ThanhToan::class, 'ma_phieu_xuat', 'ma_phieu_xuat');
+    }
+
+    /**
+     * Chi tiết phiếu xuất
+     */
+    public function chiTiet()
+    {
+        return $this->hasMany(ChiTietPhieuXuat::class, 'ma_phieu_xuat', 'ma_phieu_xuat');
+    }
+
+    public function getTenTrangThaiAttribute()
+    {
+        $status = [
+            'dang_chuan_bi' => 'Đang chuẩn bị',
+            'da_xuat_kho' => 'Đã xuất kho',
+            'da_van_chuyen' => 'Đã vận chuyển',
+            'da_huy' => 'Đã hủy',
+        ];
+
+        return $status[$this->trang_thai_phieu_xuat] ?? $this->trang_thai_phieu_xuat;
+    }
+
+    public function getMauTrangThaiAttribute()
+    {
+        $colors = [
+            'dang_chuan_bi' => 'warning',
+            'da_xuat_kho' => 'primary',
+            'da_van_chuyen' => 'success',
+            'da_huy' => 'danger',
+        ];
+
+        return $colors[$this->trang_thai_phieu_xuat] ?? 'secondary';
     }
 }

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->date('ngay_nhap');
             $table->decimal('tong_tien', 15, 2);
             $table->enum('trang_thai_tt', ['chua_tt', 'mot_phan', 'da_tt'])->default('chua_tt');
-            $table->enum('trang_thai_phieu_nhap', ['cho_nhap_kho', 'da_nhap_kho', 'da_huy', 'doi_hang_ve'])->default('cho_nhap_kho');
+            $table->enum('trang_thai_phieu_nhap', ['cho_nhap_kho', 'da_nhap_kho', 'da_huy', 'doi_hang_ve'])->default('doi_hang_ve');
             $table->string('image1', 255)->comment('Hình ảnh phiếu nhập 1');
             $table->string('image2', 255)->comment('Hình ảnh phiếu nhập 2');
             $table->string('giay_to_lien_quan', 255)->comment('giấy tờ liên quan');

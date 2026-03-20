@@ -75,7 +75,7 @@ class TonKhoController extends Controller
         // Ưu tiên hiển thị lô gần hết hạn lên trên, rồi đến lượt lô mới
         $ton_khos = $query->orderBy('han_su_dung', 'asc')->paginate(15);
 
-        return view('inventory.batches.index', compact(
+        return view('admin.inventory.batches.index', compact(
             'ton_khos', 
             'tongSoLo', 
             'loSapHetHan', 

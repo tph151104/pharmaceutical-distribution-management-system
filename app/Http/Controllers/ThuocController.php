@@ -33,7 +33,7 @@ class ThuocController extends Controller
         $nhom_thuocs = NhomThuoc::all();
         $don_vi_tinhs = DonViTinh::all();
 
-        return view('inventory.products.index', compact('thuocs', 'nhom_thuocs', 'don_vi_tinhs'));
+        return view('admin.inventory.products.index', compact('thuocs', 'nhom_thuocs', 'don_vi_tinhs'));
     }
 
     /**

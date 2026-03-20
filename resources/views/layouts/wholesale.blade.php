@@ -50,22 +50,29 @@
                 </li>
             </ul>
             <div class="d-flex align-items-center gap-3">
+                @php $cartCount = count(session('cart', [])); @endphp
                 <a href="{{ route('wholesale.cart') }}" class="btn btn-outline-secondary btn-sm position-relative">
                     <i class="bi bi-cart3 me-1"></i>Giỏ hàng
+                    @if($cartCount > 0)
                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                        0
+                        {{ $cartCount }}
                     </span>
+                    @endif
                 </a>
                 <div class="dropdown">
                     <button class="btn btn-light btn-sm border-0 dropdown-toggle" data-bs-toggle="dropdown">
                         <i class="bi bi-person-circle me-1"></i>
-                        Khách hàng
+                        {{ auth('customer')->user()->ten_kh ?? 'Khách hàng' }}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end small">
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Thông tin tài khoản</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-clock-history me-2"></i>Lịch sử đơn hàng</a></li>
+                        <li><a class="dropdown-item" href="{{ route('wholesale.orders.index') }}"><i class="bi bi-bag me-2"></i>Đơn hàng của tôi</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{{ route('login') }}"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+                        <li>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</button>
+                            </form>
+                        </li>
                     </ul>
                 </div>
             </div>

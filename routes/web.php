@@ -19,22 +19,23 @@ Route::get('/', function () {
 
 Route::prefix('purchases')->name('purchases.')->group(function () {
     Route::get('/', function () {
-        return view('inventory.purchases.index');
+        return view('admin.inventory.purchases.index');
     })->name('index');
 
     Route::get('/create', function () {
-        return view('inventory.purchases.create');
+        return view('admin.inventory.purchases.create');
     })->name('create');
 });
 
-Route::prefix('sales')->name('sales.')->group(function () {
-    Route::get('/', function () {
-        return view('inventory.sales.index');
-    })->name('index');
+use App\Http\Controllers\PhieuXuatController;
 
-    Route::get('/create', function () {
-        return view('inventory.sales.create');
-    })->name('create');
+Route::prefix('sales')->name('sales.')->group(function () {
+    Route::get('/', [PhieuXuatController::class, 'index'])->name('index');
+    Route::get('/create', [PhieuXuatController::class, 'create'])->name('create');
+    Route::post('/', [PhieuXuatController::class, 'store'])->name('store');
+    Route::get('/{id}', [PhieuXuatController::class, 'show'])->name('show');
+    Route::post('/{id}/confirm', [PhieuXuatController::class, 'confirm'])->name('confirm');
+    Route::get('/{id}/print', [PhieuXuatController::class, 'print'])->name('print');
 });
 
 use App\Http\Controllers\TonKhoController;
@@ -86,29 +87,25 @@ Route::prefix('customers')->name('customers.')->group(function () {
 
 Route::prefix('reports')->name('reports.')->group(function () {
     Route::get('/stock', function () {
-        return view('reports.stock');
+        return view('admin.inventory.reports.stock');
     })->name('stock');
 
-    Route::get('/expiry', function () {
-        return view('reports.expiry');
-    })->name('expiry');
-
     Route::get('/movements', function () {
-        return view('reports.movements');
+        return view('admin.inventory.reports.movements');
     })->name('movements');
 
     Route::get('/debts', function () {
-        return view('reports.debts');
+        return view('admin.inventory.reports.debts');
     })->name('debts');
 });
 
 Route::prefix('account')->name('account.')->group(function () {
     Route::get('/profile', function () {
-        return view('account.profile');
+        return view('admin.account.profile');
     })->name('profile');
 
     Route::get('/password', function () {
-        return view('account.password');
+        return view('admin.account.password');
     })->name('password');
 });
 
@@ -133,23 +130,33 @@ Route::post('/register', [CustomerAuthController::class, 'register']);
 
 Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
 
+use App\Http\Controllers\WholesaleController;
+use App\Http\Controllers\DonHangController;
+
 Route::prefix('wholesale')->name('wholesale.')->middleware('auth:customer')->group(function () {
-    Route::get('/catalog', function () {
-        return view('wholesale.catalog');
-    })->name('catalog');
+    Route::get('/catalog', [WholesaleController::class, 'catalog'])->name('catalog');
+    Route::post('/cart/add', [WholesaleController::class, 'addToCart'])->name('cart.add');
+    Route::get('/cart', [WholesaleController::class, 'cart'])->name('cart');
+    Route::post('/cart/update', [WholesaleController::class, 'updateCart'])->name('cart.update');
+    Route::post('/cart/remove', [WholesaleController::class, 'removeFromCart'])->name('cart.remove');
+    Route::post('/order', [WholesaleController::class, 'placeOrder'])->name('order.place');
+    Route::get('/orders', [WholesaleController::class, 'orders'])->name('orders.index');
+    Route::get('/orders/{id}', [WholesaleController::class, 'orderDetail'])->name('orders.show');
+    Route::post('/orders/{id}/cancel', [WholesaleController::class, 'cancelOrder'])->name('orders.cancel');
+    Route::post('/orders/{id}/edit', [WholesaleController::class, 'editOrder'])->name('orders.edit');
 
     Route::get('/product/{id?}', function ($id = null) {
         return view('wholesale.product', compact('id'));
     })->name('product');
-
-    Route::get('/cart', function () {
-        return view('wholesale.cart');
-    })->name('cart');
-
-    Route::get('/orders', function () {
-        return view('wholesale.orders');
-    })->name('orders.index');
 });
 
+Route::prefix('admin/orders')->name('admin.orders.')->group(function () {
+    Route::get('/', [DonHangController::class, 'index'])->name('index');
+    Route::get('/export', [DonHangController::class, 'export'])->name('export');
+    Route::get('/{id}', [DonHangController::class, 'show'])->name('show');
+    Route::get('/{id}/print', [DonHangController::class, 'print'])->name('print');
+    Route::post('/{id}/approve', [DonHangController::class, 'approve'])->name('approve');
+    Route::post('/{id}/cancel', [DonHangController::class, 'cancel'])->name('cancel');
+});
 
 // });

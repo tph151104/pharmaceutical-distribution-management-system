@@ -40,4 +40,20 @@ class Thuoc extends Model
     {
         return $this->belongsTo(DonViTinh::class, 'ma_dvt', 'ma_dvt');
     }
+
+    public function tonKho()
+    {
+        return $this->hasMany(TonKho::class, 'ma_thuoc', 'ma_thuoc');
+    }
+
+    /**
+     * Tổng tồn kho khả dụng (tất cả các lô đang bán, chưa hết hạn)
+     */
+    public function getTongTonKhoAttribute()
+    {
+        return $this->tonKho()
+            ->where('trang_thai_lo', 'dang_ban')
+            ->where('han_su_dung', '>=', now()->toDateString())
+            ->sum('so_luong_ton');
+    }
 }

@@ -1,0 +1,311 @@
+@extends('layouts.app')
+
+@section('title', 'Chi tiết Phiếu xuất kho - FEFO')
+
+@section('content')
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="{{ route('sales.index') }}" class="text-decoration-none text-muted mb-2 d-inline-block">
+                <i class="bi bi-arrow-left me-1"></i> Trở về danh sách
+            </a>
+            <h1 class="h3 mb-0 text-gray-800 d-flex align-items-center gap-2">
+                Chi tiết Phiếu xuất: {{ $phieuXuat->ma_phieu_xuat }}
+                <span class="badge bg-{{ $phieuXuat->mauTrangThai }} fs-6">{{ $phieuXuat->tenTrangThai }}</span>
+            </h1>
+        </div>
+        <div>
+            @if($phieuXuat->trang_thai_phieu_xuat === 'da_xuat_kho' || $phieuXuat->trang_thai_phieu_xuat === 'da_van_chuyen')
+                <a href="{{ route('sales.print', $phieuXuat->ma_phieu_xuat) }}" target="_blank" class="btn btn-outline-secondary">
+                    <i class="bi bi-printer"></i> In phiếu xuất
+                </a>
+            @endif
+        </div>
+    </div>
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <ul class="mb-0">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h6 class="mb-0 fw-bold text-primary">Thông tin phiếu & Đơn hàng</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tr>
+                            <td class="text-muted w-25">Mã đơn hàng:</td>
+                            <td class="fw-medium">
+                                @if($phieuXuat->ma_don_hang)
+                                    <a href="{{ route('admin.orders.show', $phieuXuat->ma_don_hang) }}">{{ $phieuXuat->ma_don_hang }}</a>
+                                @else
+                                    N/A
+                                @endif
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Ngày xuất:</td>
+                            <td class="fw-medium">{{ \Carbon\Carbon::parse($phieuXuat->ngay_xuat)->format('d/m/Y') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Tổng tiền:</td>
+                            <td class="fw-bold text-danger">{{ number_format($phieuXuat->tong_tien) }}đ</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h6 class="mb-0 fw-bold text-primary">Thông tin Khách hàng</h6>
+                </div>
+                <div class="card-body">
+                    @if($phieuXuat->khachHang)
+                        <table class="table table-borderless table-sm mb-0">
+                            <tr>
+                                <td class="text-muted w-25">Mã KH:</td>
+                                <td class="fw-medium">{{ $phieuXuat->khachHang->ma_kh }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Tên Cơ sở:</td>
+                                <td class="fw-medium">{{ $phieuXuat->khachHang->ten_kh }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Địa chỉ:</td>
+                                <td class="fw-medium">{{ $phieuXuat->khachHang->dia_chi }}</td>
+                            </tr>
+                        </table>
+                    @else
+                        <div class="text-muted">Không có thông tin khách hàng.</div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if($phieuXuat->trang_thai_phieu_xuat === 'dang_chuan_bi')
+        <!-- FORMS CHO THỦ KHO -->
+        <form action="{{ route('sales.confirm', $phieuXuat->ma_phieu_xuat) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-2 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-primary">Phân bổ xuất kho (FEFO)</h5>
+                    <span class="badge bg-info-subtle text-info border border-info-subtle">Hệ thống gợi ý ưu tiên xuất lô cận date</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4" style="width: 30%;">Sản phẩm</th>
+                                    <th class="text-center" style="width: 10%;">Yêu cầu</th>
+                                    <th style="width: 60%;">Phân bổ Lô (FEFO)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($fefoAllocation as $maThuoc => $item)
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="fw-bold text-dark">{{ $item['thuoc']->ten_thuoc }}</div>
+                                            <div class="small text-muted">{{ $maThuoc }} - ĐVT: {{ $item['thuoc']->don_vi_tinh }}</div>
+                                            @if($item['thieu_hang'])
+                                                <div class="text-danger small mt-1">
+                                                    <i class="bi bi-exclamation-triangle"></i> Thiếu {{ $item['so_luong_thieu'] }} {{ $item['thuoc']->don_vi_tinh }}
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td class="text-center fw-bold fs-5">
+                                            {{ $item['so_luong_can_xuat'] }}
+                                        </td>
+                                        <td>
+                                            @if(empty($item['allocated']))
+                                                <div class="text-muted small fst-italic py-2">Không còn lô nào đủ điều kiện bán.</div>
+                                            @else
+                                                <table class="table table-sm table-bordered border-light mb-0 bg-light">
+                                                    <thead>
+                                                        <tr class="text-muted" style="font-size: 0.8rem;">
+                                                            <th>Số lô</th>
+                                                            <th>Hạn SD</th>
+                                                            <th class="text-end" title="Tồn kho hiện tại của lô">Tồn lô</th>
+                                                            <th style="width: 120px;" title="Số lượng sẽ xuất từ lô này">SL xuất thực tế</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($item['allocated'] as $al)
+                                                            <tr>
+                                                                <td class="align-middle fw-medium">{{ $al['so_lo'] }}</td>
+                                                                <td class="align-middle text-primary">
+                                                                    {{ \Carbon\Carbon::parse($al['han_su_dung'])->format('d/m/Y') }}
+                                                                    @if(\Carbon\Carbon::parse($al['han_su_dung'])->isPast())
+                                                                        <span class="badge bg-danger ms-1">Đã hết hạn</span>
+                                                                    @endif
+                                                                </td>
+                                                                <td class="align-middle text-end">{{ number_format($al['so_luong_ton']) }}</td>
+                                                                <td>
+                                                                    <div class="input-group input-group-sm">
+                                                                        <!-- Ẩn các trường không cần chỉnh sửa tay, truyền data lên server -->
+                                                                        <input type="hidden" name="allocations[{{$maThuoc}}][{{$al['so_lo']}}][ma_phieu_nhap]" value="{{ $al['ma_phieu_nhap'] }}">
+                                                                        <input type="hidden" name="allocations[{{$maThuoc}}][{{$al['so_lo']}}][don_gia]" value="{{ $item['don_gia'] }}">
+                                                                        
+                                                                        <input type="number" class="form-control form-control-sm text-end border-primary fw-bold text-primary" 
+                                                                               name="allocations[{{$maThuoc}}][{{$al['so_lo']}}][so_luong_xuat]" 
+                                                                               value="{{ $al['so_luong_xuat'] }}" 
+                                                                               min="0" max="{{ $al['so_luong_ton'] }}" required>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-2">
+                    <h5 class="mb-0 fw-bold text-primary">Hồ sơ giao hàng đính kèm</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Ảnh minh chứng 1 (Bắt buộc/Tùy chọn)</label>
+                            <input class="form-control" type="file" name="image1" accept="image/*">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Ảnh minh chứng 2</label>
+                            <input class="form-control" type="file" name="image2" accept="image/*">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Giấy tờ chứng minh an toàn (PDF/Word/Ảnh)</label>
+                            <input class="form-control" type="file" name="giay_to_an_toan">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Tài liệu tham chiếu khác</label>
+                            <input class="form-control" type="file" name="tai_lieu_lien_quan">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-3 pb-5">
+                <a href="{{ route('sales.index') }}" class="btn btn-light px-4">Hủy bỏ</a>
+                <button type="submit" class="btn btn-primary px-5" onclick="return confirm('Khi xác nhận, số lượng hàng này sẽ bị trừ khỏi kho thực tế và công nợ sẽ được ghi nhận. Bạn có chắc chắn?')">
+                    <i class="bi bi-box-seam me-2"></i> Xác nhận xuất kho
+                </button>
+            </div>
+        </form>
+
+    @else
+        <!-- CHẾ ĐỘ CHỈ XEM CHO PHIẾU ĐÃ XUẤT -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-2">
+                <h5 class="mb-0 fw-bold text-primary">Chi tiết hàng xuất</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Sản phẩm</th>
+                                <th>Số lô</th>
+                                <th>Hạn SD</th>
+                                <th class="text-end">Đơn giá</th>
+                                <th class="text-center">Số lượng</th>
+                                <th class="text-end pe-4">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($phieuXuat->chiTiet as $ct)
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-bold">{{ $ct->thuoc->ten_thuoc ?? $ct->ma_thuoc }}</div>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border">{{ $ct->so_lo }}</span></td>
+                                    <td>{{ \Carbon\Carbon::parse($ct->han_su_dung)->format('d/m/Y') }}</td>
+                                    <td class="text-end">{{ number_format($ct->don_gia_ban) }}đ</td>
+                                    <td class="text-center fw-bold">{{ $ct->so_luong_xuat }}</td>
+                                    <td class="text-end pe-4 fw-medium">{{ number_format($ct->thanh_tien) }}đ</td>
+                                </tr>
+                            @endforeach
+                            <tr class="table-light">
+                                <td colspan="5" class="text-end fw-bold ps-4">Tổng cộng:</td>
+                                <td class="text-end pe-4 fw-bold text-danger fs-5">{{ number_format($phieuXuat->tong_tien) }}đ</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @if($phieuXuat->image1 || $phieuXuat->image2 || $phieuXuat->giay_to_an_toan || $phieuXuat->tai_lieu_lien_quan)
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-2">
+                    <h5 class="mb-0 fw-bold text-primary">Hồ sơ giao hàng</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        @if($phieuXuat->image1)
+                            <div class="col-md-3">
+                                <a href="{{ Storage::url($phieuXuat->image1) }}" target="_blank">
+                                    <img src="{{ Storage::url($phieuXuat->image1) }}" class="img-thumbnail" alt="Image 1">
+                                </a>
+                            </div>
+                        @endif
+                        @if($phieuXuat->image2)
+                            <div class="col-md-3">
+                                <a href="{{ Storage::url($phieuXuat->image2) }}" target="_blank">
+                                    <img src="{{ Storage::url($phieuXuat->image2) }}" class="img-thumbnail" alt="Image 2">
+                                </a>
+                            </div>
+                        @endif
+                        @if($phieuXuat->giay_to_an_toan)
+                            <div class="col-md-3">
+                                <div class="card bg-light border-0 text-center py-4 h-100">
+                                    <a href="{{ Storage::url($phieuXuat->giay_to_an_toan) }}" target="_blank" class="text-decoration-none text-dark">
+                                        <i class="bi bi-file-earmark-pdf fs-1 text-danger"></i>
+                                        <div class="mt-2 fw-medium">Giấy tờ an toàn</div>
+                                    </a>
+                                </div>
+                            </div>
+                        @endif
+                        @if($phieuXuat->tai_lieu_lien_quan)
+                            <div class="col-md-3">
+                                <div class="card bg-light border-0 text-center py-4 h-100">
+                                    <a href="{{ Storage::url($phieuXuat->tai_lieu_lien_quan) }}" target="_blank" class="text-decoration-none text-dark">
+                                        <i class="bi bi-file-earmark-text fs-1 text-primary"></i>
+                                        <div class="mt-2 fw-medium">Tài liệu khác</div>
+                                    </a>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endif
+</div>
+@endsection

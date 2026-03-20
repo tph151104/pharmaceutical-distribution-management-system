@@ -29,7 +29,7 @@ class PhieuNhapController extends Controller
         }
 
         $phieuNhaps = $query->paginate(15);
-        return view('inventory.imports.index', compact('phieuNhaps'));
+        return view('admin.inventory.imports.index', compact('phieuNhaps'));
     }
 
     /**
@@ -39,7 +39,7 @@ class PhieuNhapController extends Controller
     {
         $nhaCungCaps = NhaCungCap::all();
         $thuocs = Thuoc::all();
-        return view('inventory.imports.create', compact('nhaCungCaps', 'thuocs'));
+        return view('admin.inventory.imports.create', compact('nhaCungCaps', 'thuocs'));
     }
 
     /**
@@ -150,7 +150,7 @@ class PhieuNhapController extends Controller
 
         $nhaCungCaps = NhaCungCap::all();
         $thuocs = Thuoc::all();
-        return view('inventory.imports.edit', compact('phieuNhap', 'nhaCungCaps', 'thuocs'));
+        return view('admin.inventory.imports.edit', compact('phieuNhap', 'nhaCungCaps', 'thuocs'));
     }
 
     /**
@@ -244,7 +244,7 @@ class PhieuNhapController extends Controller
             return $item->ma_thuoc . '_' . $item->so_lo;
         });
 
-        return view('inventory.imports.inspect', compact('phieuNhap', 'tonKhos'));
+        return view('admin.inventory.imports.inspect', compact('phieuNhap', 'tonKhos'));
     }
 
     /**
