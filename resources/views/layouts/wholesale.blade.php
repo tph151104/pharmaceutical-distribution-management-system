@@ -59,12 +59,14 @@
                     </span>
                     @endif
                 </a>
+                
                 <div class="dropdown">
                     <button class="btn btn-light btn-sm border-0 dropdown-toggle" data-bs-toggle="dropdown">
                         <i class="bi bi-person-circle me-1"></i>
                         {{ auth('customer')->user()->ten_kh ?? 'Khách hàng' }}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end small">
+                        <li><a class="dropdown-item" href="{{ route('wholesale.profile') }}"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a></li>
                         <li><a class="dropdown-item" href="{{ route('wholesale.orders.index') }}"><i class="bi bi-bag me-2"></i>Đơn hàng của tôi</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>

@@ -100,8 +100,25 @@ class TonKhoController extends Controller
                         ->where('so_lo', $request->so_lo)
                         ->firstOrFail();
                         
+        $oldStatus = $tonKho->trang_thai_lo;
         $tonKho->trang_thai_lo = $request->trang_thai_lo;
         $tonKho->save();
+
+        if ($oldStatus != $tonKho->trang_thai_lo) {
+            \App\Services\InventoryLogService::logMovement(
+                $tonKho->ma_thuoc,
+                $tonKho->so_lo,
+                'NV001', // Tạm fix
+                $tonKho->ma_phieu_nhap,
+                'dieu_chinh',
+                'kiem_kho',
+                0,
+                $tonKho->so_luong_ton,
+                $tonKho->so_luong_ton,
+                0,
+                "Trạng thái lô thay đổi từ {$oldStatus} sang {$tonKho->trang_thai_lo}"
+            );
+        }
 
         return back()->with('success', 'Kho cập nhật trạng thái lô thành công.');
     }

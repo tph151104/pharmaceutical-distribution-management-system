@@ -117,14 +117,75 @@ class KhachHangController extends Controller
     {
         $khachHang = KhachHang::findOrFail($id);
         
-        // TODO: Kiểm tra xem KH đã có Đơn hàng/Công nợ hay chưa (khi nào làm module Bán hàng thì ghép vào)
-        // Hiện tại cho xóa tự do nếu như chưa có Transaction nào để demo
-        
         try {
             $khachHang->delete();
             return redirect()->route('customers.index')->with('success', 'Đã xoá khách hàng thành công!');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => 'Lỗi khi xoá khách hàng: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * [Wholesale] Xem trang thông tin cá nhân của khách hàng
+     */
+    public function profile()
+    {
+        $customer = auth('customer')->user();
+        return view('wholesale.profile', compact('customer'));
+    }
+
+    /**
+     * [Wholesale] Cập nhật thông tin cá nhân của khách hàng
+     */
+    public function updateProfile(Request $request)
+    {
+        $customer = auth('customer')->user();
+
+        $request->validate([
+            'ten_kh'             => 'required|string|max:255',
+            'dia_chi'            => 'required|string|max:255',
+            'dien_thoai'         => 'nullable|string|max:20',
+            'email'              => 'nullable|email|max:191',
+            'ma_so_thue'         => 'nullable|string|max:50',
+            'loai_kh'            => 'required|in:nha_thuoc,dai_ly,phong_kham,benh_vien',
+            'ghi_chu'            => 'nullable|string',
+            'giay_phep_hd_image' => 'nullable|image|max:2048',
+            'hinh_dai_dien'      => 'nullable|image|max:2048',
+            'mat_khau_moi'       => 'nullable|string|min:6|confirmed',
+            'mat_khau_moi_confirmation' => 'nullable|string',
+        ]);
+
+        $data = $request->only([
+            'ten_kh', 'dia_chi', 'dien_thoai', 'email',
+            'ma_so_thue', 'loai_kh', 'ghi_chu'
+        ]);
+
+        // Đổi mật khẩu
+        if ($request->filled('mat_khau_cu') && $request->filled('mat_khau_moi')) {
+            if (!Hash::check($request->mat_khau_cu, $customer->mat_khau)) {
+                return back()->withErrors(['mat_khau_cu' => 'Mật khẩu cũ không đúng.'])->withInput();
+            }
+            $data['mat_khau'] = Hash::make($request->mat_khau_moi);
+        }
+
+        // Upload giấy phép hoạt động
+        if ($request->hasFile('giay_phep_hd_image')) {
+            $file = $request->file('giay_phep_hd_image');
+            $filename = time() . '_giayphep_' . $customer->ma_kh . '.' . $file->extension();
+            $file->move(public_path('uploads/customers'), $filename);
+            $data['giay_phep_hd_image'] = 'uploads/customers/' . $filename;
+        }
+
+        // Upload ảnh đại diện
+        if ($request->hasFile('hinh_dai_dien')) {
+            $file2 = $request->file('hinh_dai_dien');
+            $filename2 = time() . '_avatar_' . $customer->ma_kh . '.' . $file2->extension();
+            $file2->move(public_path('uploads/customers'), $filename2);
+            $data['hinh_dai_dien'] = 'uploads/customers/' . $filename2;
+        }
+
+        $customer->update($data);
+
+        return back()->with('success', 'Đã cập nhật thông tin thành công!');
     }
 }

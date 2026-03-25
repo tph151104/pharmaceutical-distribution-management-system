@@ -401,10 +401,26 @@ class PhieuNhapController extends Controller
                     $hangMoiVe = $chiTiet->so_luong_thuc_te - $tongDaVaoKho;
 
                     if ($hangMoiVe > 0) {
+                        $tonTruoc = $tonKho->so_luong_ton;
                         $tonKho->so_luong_ton += $hangMoiVe;
                         $tonKho->trang_thai_lo = 'dang_ban';
                         $tonKho->ngay_nhap_lo = Carbon::now();
                         $tonKho->save();
+
+                        // Ghi log nhập kho
+                        \App\Services\InventoryLogService::logMovement(
+                            $chiTiet->ma_thuoc,
+                            $chiTiet->so_lo,
+                            'USR001', // Tạm fix cứng vì chưa có Auth admin form
+                            $id, // Mã phiếu nhập
+                            'nhap',
+                            'phieu_nhap',
+                            $hangMoiVe,
+                            $tonTruoc,
+                            $tonKho->so_luong_ton,
+                            $chiTiet->don_gia_nhap,
+                            'Xác nhận hàng về kho từ phiếu nhập'
+                        );
                     }
                 }
             }

@@ -284,4 +284,60 @@ class WholesaleController extends Controller
             return back()->withErrors(['error' => 'Lỗi khi sửa đơn hàng: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * Khách hàng xác nhận đã nhận được hàng
+     */
+    public function completeOrder($id)
+    {
+        $customer = auth('customer')->user();
+        $donHang  = DonHang::where('ma_kh', $customer->ma_kh)
+                            ->where('ma_don_hang', $id)
+                            ->firstOrFail();
+
+        if ($donHang->trang_thai_dh !== 'dang_van_chuyen') {
+            return back()->withErrors(['error' => 'Chỉ có thể xác nhận nhận hàng khi đơn đang vận chuyển.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            $donHang->trang_thai_dh = 'da_hoan_thanh';
+            $donHang->save();
+
+            // Cập nhật Phiếu xuất liên quan
+            \App\Models\PhieuXuat::where('ma_don_hang', $id)
+                ->whereIn('trang_thai_phieu_xuat', ['da_van_chuyen'])
+                ->update(['trang_thai_phieu_xuat' => 'da_hoan_thanh']);
+
+            DB::commit();
+            return back()->with('success', 'Cảm ơn! Đơn hàng đã được xác nhận hoàn thành.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Lỗi: ' . $e->getMessage()]);
+        }
+    }
+    /**
+     * Chi tiết sản phẩm
+     */
+    public function product($id)
+    {
+        $thuoc = Thuoc::with(['nhomThuoc', 'donViTinh'])->findOrFail($id);
+        $thuoc->ton_kho_hien_tai = $thuoc->tong_ton_kho;
+
+        // Sản phẩm tương tự
+        $similarProducts = Thuoc::with(['donViTinh'])
+            ->where('ma_nhom', $thuoc->ma_nhom)
+            ->where('ma_thuoc', '!=', $thuoc->ma_thuoc)
+            ->inRandomOrder()
+            ->limit(4)
+            ->get();
+            
+        foreach ($similarProducts as $sp) {
+            $sp->ton_kho_hien_tai = $sp->tong_ton_kho;
+        }
+
+        $cartCount = array_sum(array_column(session('cart', []), 'so_luong'));
+
+        return view('wholesale.product', compact('thuoc', 'similarProducts', 'cartCount'));
+    }
 }

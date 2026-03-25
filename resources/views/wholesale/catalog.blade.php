@@ -75,7 +75,7 @@
                                 <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-1">{{ $thuoc->donViTinh->ten_dvt ?? '' }}</span>
                             </div>
                             <h3 class="product-title">
-                                <a href="#" class="text-decoration-none {{ $thuoc->ton_kho_hien_tai <= 0 ? 'text-muted' : 'text-dark' }}">{{ $thuoc->ten_thuoc }}</a>
+                                <a href="{{ route('wholesale.product', $thuoc->ma_thuoc) }}" class="text-decoration-none {{ $thuoc->ton_kho_hien_tai <= 0 ? 'text-muted' : 'text-dark' }}">{{ $thuoc->ten_thuoc }}</a>
                             </h3>
                             @if($thuoc->nhomThuoc)
                                 <div class="product-meta mb-2">

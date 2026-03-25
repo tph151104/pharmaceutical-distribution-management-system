@@ -1,6 +1,6 @@
 @extends('layouts.wholesale')
 
-@section('title', 'Chi tiết sản phẩm - PharmaDistrib')
+@section('title', $thuoc->ten_thuoc . ' - PharmaDistrib')
 
 @push('styles')
 <style>
@@ -26,6 +26,15 @@
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+    .main-image-placeholder img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 10px;
     }
     .main-image-placeholder i {
         position: absolute;
@@ -53,6 +62,12 @@
         color: #adb5bd;
         font-size: 2rem;
         transition: all 0.2s;
+        overflow: hidden;
+    }
+    .thumbnail-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
     }
     .thumbnail-item:hover, .thumbnail-item.active {
         border-color: #0d6efd;
@@ -84,12 +99,6 @@
         font-size: 2rem;
         font-weight: 700;
         color: #0d6efd;
-    }
-    .price-old {
-        font-size: 1.1rem;
-        color: #6c757d;
-        text-decoration: line-through;
-        margin-left: 10px;
     }
     .qty-control {
         display: flex;
@@ -200,9 +209,14 @@
 <nav aria-label="breadcrumb" class="mb-4 mt-2">
     <ol class="breadcrumb mb-0">
         <li class="breadcrumb-item"><a href="{{ route('wholesale.catalog') }}"><i class="bi bi-house-door"></i> Trang chủ</a></li>
-        <li class="breadcrumb-item"><a href="{{ route('wholesale.catalog') }}">Thuốc không kê đơn</a></li>
-        <li class="breadcrumb-item"><a href="{{ route('wholesale.catalog') }}">Giảm đau, hạ sốt</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Paracetamol 500mg - Dược Hậu Giang</li>
+        <li class="breadcrumb-item"><a href="{{ route('wholesale.catalog') }}">
+            @if(isset($thuoc->nhomThuoc->ten_nhom))
+                {{ $thuoc->nhomThuoc->ten_nhom }}
+            @else
+                Tất cả sản phẩm
+            @endif
+        </a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ $thuoc->ten_thuoc }}</li>
     </ol>
 </nav>
 
@@ -211,16 +225,40 @@
     <div class="col-lg-5">
         <div class="sticky-top" style="top: 80px; z-index: 1;">
             <div class="product-gallery">
-                <span class="badge bg-danger position-absolute top-0 start-0 m-3 z-3 fs-6 rounded-pill px-3 py-2">HOT</span>
-                <div class="main-image-placeholder">
-                    <i class="bi bi-capsule"></i>
+                @if($thuoc->ton_kho_hien_tai <= 0)
+                    <span class="badge bg-secondary position-absolute top-0 start-0 m-3 z-3 fs-6 rounded-pill px-3 py-2">Hết hàng</span>
+                @elseif($thuoc->ton_kho_hien_tai <= 10)
+                    <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-3 z-3 fs-6 rounded-pill px-3 py-2">Sắp hết</span>
+                @endif
+                <div class="main-image-placeholder" id="mainImageContainer">
+                    @if($thuoc->image1)
+                        <img src="{{ asset('storage/' . $thuoc->image1) }}" alt="{{ $thuoc->ten_thuoc }}" id="mainImage">
+                    @elseif($thuoc->image2)
+                        <img src="{{ asset('storage/' . $thuoc->image2) }}" alt="{{ $thuoc->ten_thuoc }}" id="mainImage">
+                    @elseif($thuoc->image3)
+                        <img src="{{ asset('storage/' . $thuoc->image3) }}" alt="{{ $thuoc->ten_thuoc }}" id="mainImage">
+                    @else
+                        <i class="bi bi-capsule"></i>
+                    @endif
                 </div>
             </div>
             
             <div class="thumbnail-gallery">
-                <div class="thumbnail-item active"><i class="bi bi-capsule"></i></div>
-                <div class="thumbnail-item"><i class="bi bi-box"></i></div>
-                <div class="thumbnail-item"><i class="bi bi-file-medical"></i></div>
+                @if($thuoc->image1)
+                <div class="thumbnail-item active" onclick="changeImage('{{ asset('storage/' . $thuoc->image1) }}', this)">
+                    <img src="{{ asset('storage/' . $thuoc->image1) }}" alt="Thumnail">
+                </div>
+                @endif
+                @if($thuoc->image2)
+                <div class="thumbnail-item" onclick="changeImage('{{ asset('storage/' . $thuoc->image2) }}', this)">
+                    <img src="{{ asset('storage/' . $thuoc->image2) }}" alt="Thumnail">
+                </div>
+                @endif
+                @if($thuoc->image3)
+                <div class="thumbnail-item" onclick="changeImage('{{ asset('storage/' . $thuoc->image3) }}', this)">
+                    <img src="{{ asset('storage/' . $thuoc->image3) }}" alt="Thumnail">
+                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -229,15 +267,16 @@
     <div class="col-lg-7">
         <div class="ps-lg-3">
             <div class="d-flex align-items-center gap-2 mb-2">
-                <span class="badge bg-primary-subtle text-primary-emphasis px-2 py-1 rounded-1 fw-medium">Thuốc không kê đơn</span>
-                <span class="product-sku ms-2">Mã SP: <strong>PARA500</strong></span>
+                @if($thuoc->nhomThuoc)
+                <span class="badge bg-primary-subtle text-primary-emphasis px-2 py-1 rounded-1 fw-medium">{{ $thuoc->nhomThuoc->ten_nhom }}</span>
+                @endif
+                <span class="product-sku ms-2">Mã SP: <strong>{{ $thuoc->ma_thuoc }}</strong></span>
             </div>
             
-            <h1 class="product-title-large">Paracetamol 500mg - Dược Hậu Giang (Hộp 10 vỉ x 10 viên)</h1>
+            <h1 class="product-title-large">{{ $thuoc->ten_thuoc }}</h1>
             
             <div class="d-flex align-items-center gap-4 mb-2 mt-3 pb-3 border-bottom">
-                <div class="product-brand"><i class="bi bi-building me-1 text-muted"></i> Thương hiệu: <a href="#" class="text-decoration-none fw-medium">DHG Pharma</a></div>
-                <div class="text-muted"><i class="bi bi-geo-alt me-1"></i> Xuất xứ: <span class="fw-medium text-dark">Việt Nam</span></div>
+                <div class="product-brand"><i class="bi bi-building me-1 text-muted"></i> Nguồn gốc: <span class="fw-medium text-dark">{{ $thuoc->nguon_goc ?? 'Đang cập nhật' }}</span></div>
             </div>
 
             <div class="price-block">
@@ -245,9 +284,8 @@
                     <div>
                         <div class="text-muted mb-1 small">Giá bán sỉ (đã bao gồm VAT)</div>
                         <div class="d-flex align-items-baseline">
-                            <span class="price-main">120.000₫</span>
-                            <span class="price-old">130.000₫</span>
-                            <span class="badge bg-danger ms-2 rounded-1">-8%</span>
+                            <span class="price-main">{{ number_format($thuoc->gia_ban_de_xuat ?? 0) }}₫</span>
+                            <span class="text-muted ms-2">/ {{ $thuoc->donViTinh->ten_dvt ?? 'Sản phẩm' }}</span>
                         </div>
                     </div>
                 </div>
@@ -257,38 +295,49 @@
                 <div class="row g-3">
                     <div class="col-sm-6">
                         <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-check-circle-fill text-success fs-5"></i>
-                            <div>
-                                <div class="fw-medium">Tình trạng: Còn hàng</div>
-                                <div class="small text-muted">Sẵn sàng giao (320 hộp)</div>
-                            </div>
+                            @if($thuoc->ton_kho_hien_tai > 0)
+                                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                <div>
+                                    <div class="fw-medium">Tình trạng: Còn hàng</div>
+                                    <div class="small text-muted">Sẵn sàng giao ({{ $thuoc->ton_kho_hien_tai }} sản phẩm)</div>
+                                </div>
+                            @else
+                                <i class="bi bi-x-circle-fill text-danger fs-5"></i>
+                                <div>
+                                    <div class="fw-medium text-danger">Tình trạng: Hết hàng</div>
+                                    <div class="small text-muted">Vui lòng quay lại sau</div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                     <div class="col-sm-6">
                         <div class="d-flex align-items-center gap-2">
                             <i class="bi bi-box-seam-fill text-primary fs-5"></i>
                             <div>
-                                <div class="fw-medium">Quy cách</div>
-                                <div class="small text-muted">Hộp 10 vỉ x 10 viên nén</div>
+                                <div class="fw-medium">Đơn vị tính</div>
+                                <div class="small text-muted">{{ $thuoc->donViTinh->ten_dvt ?? 'Đang cập nhật' }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="d-flex flex-wrap gap-3 align-items-center mb-4 mt-4">
-                <div class="qty-control">
-                    <button class="qty-btn" type="button" onclick="const input = document.getElementById('qty'); input.value = Math.max(1, parseInt(input.value) - 1);"><i class="bi bi-dash"></i></button>
-                    <input type="number" id="qty" class="qty-input-large" value="1" min="1">
-                    <button class="qty-btn" type="button" onclick="const input = document.getElementById('qty'); input.value = parseInt(input.value) + 1;"><i class="bi bi-plus"></i></button>
+            @if($thuoc->ton_kho_hien_tai > 0)
+            <form method="POST" action="{{ route('wholesale.cart.add') }}">
+                @csrf
+                <input type="hidden" name="ma_thuoc" value="{{ $thuoc->ma_thuoc }}">
+                <div class="d-flex flex-wrap gap-3 align-items-center mb-4 mt-4">
+                    <div class="qty-control">
+                        <button class="qty-btn" type="button" onclick="const input = document.getElementById('qty'); input.value = Math.max(1, parseInt(input.value) - 1);"><i class="bi bi-dash"></i></button>
+                        <input type="number" id="qty" name="so_luong" class="qty-input-large" value="1" min="1" max="{{ $thuoc->ton_kho_hien_tai }}">
+                        <button class="qty-btn" type="button" onclick="const input = document.getElementById('qty'); let maxVal = parseInt(input.max); let curVal = parseInt(input.value); if(curVal < maxVal) input.value = curVal + 1;"><i class="bi bi-plus"></i></button>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-add-cart-large px-4 d-flex align-items-center gap-2 flex-grow-1 flex-md-grow-0">
+                        <i class="bi bi-cart-plus fs-5"></i> Thêm vào giỏ
+                    </button>
                 </div>
-                <button class="btn btn-outline-primary btn-add-cart-large px-4 d-flex align-items-center gap-2 flex-grow-1 flex-md-grow-0">
-                    <i class="bi bi-cart-plus fs-5"></i> Thêm vào giỏ
-                </button>
-                <a href="{{ route('wholesale.cart') }}" class="btn btn-primary btn-buy-now px-4 flex-grow-1 flex-md-grow-0">
-                    Mua ngay
-                </a>
-            </div>
+            </form>
+            @endif
 
             <div class="row g-3 mt-2">
                 <div class="col-md-6">
@@ -309,18 +358,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-12">
-                     <div class="feature-box border bg-warning-subtle py-2">
-                         <i class="bi bi-gift text-warning fs-4"></i>
-                         <div class="small w-100">
-                             <div class="fw-bold text-dark">Khuyến mãi đang áp dụng:</div>
-                             <ul class="mb-0 ps-3">
-                                 <li>Mua 50 hộp tặng 2 hộp cùng loại</li>
-                                 <li>Giảm 2% thanh toán qua chuyển khoản trước</li>
-                             </ul>
-                         </div>
-                     </div>
-                </div>
             </div>
         </div>
     </div>
@@ -331,133 +368,55 @@
     <div class="col-12">
         <div class="border rounded-top-3 overflow-hidden border-bottom-0">
             <ul class="nav nav-tabs product-info-tabs bg-light px-3 pt-3" id="productTabs" role="tablist">
-                <!-- <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="desc-tab" data-bs-toggle="tab" data-bs-target="#desc-pane" type="button" role="tab">Mô tả sản phẩm</button>
-                </li> -->
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="ingredients-tab" data-bs-toggle="tab" data-bs-target="#ingredients-pane" type="button" role="tab">Thành phần</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="usage-tab" data-bs-toggle="tab" data-bs-target="#usage-pane" type="button" role="tab">Công dụng & Liều dùng</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="warning-tab" data-bs-toggle="tab" data-bs-target="#warning-pane" type="button" role="tab">Chống chỉ định</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="docs-tab" data-bs-toggle="tab" data-bs-target="#docs-pane" type="button" role="tab">Tài liệu đính kèm</button>
+                    <button class="nav-link active" id="desc-tab" data-bs-toggle="tab" data-bs-target="#desc-pane" type="button" role="tab">Thông tin sản phẩm</button>
                 </li>
             </ul>
         </div>
         <div class="tab-content border border-top-0 rounded-bottom-4 bg-white" id="productTabContent">         
-            <!-- Thành phần -->
-            <div class="tab-pane fade show active p-4 p-md-5" id="ingredients-pane" role="tabpanel" aria-labelledby="ingredients-tab" tabindex="0">
-                <table class="table table-bordered table-striped" style="max-width: 600px;">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col" style="width: 70%">Hoạt chất / Tá dược</th>
-                            <th scope="col" style="width: 30%">Hàm lượng</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="fw-medium">Paracetamol (Acetaminophen)</td>
-                            <td>500 mg</td>
-                        </tr>
-                        <tr>
-                            <td>Tinh bột ngô</td>
-                            <td>Vừa đủ</td>
-                        </tr>
-                        <tr>
-                            <td>Lactose monohydrat</td>
-                            <td>Vừa đủ</td>
-                        </tr>
-                        <tr>
-                            <td>Povidon K30</td>
-                            <td>Vừa đủ</td>
-                        </tr>
-                        <tr>
-                            <td>Natri starch glycolat</td>
-                            <td>Vừa đủ</td>
-                        </tr>
-                        <tr>
-                            <td>Talc, Magnesi stearat</td>
-                            <td>Vừa đủ 1 viên</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <p class="text-muted small mt-3">* Dạng bào chế: Viên nén dài.</p>
-            </div>
-            
-            <!-- Công dụng & Liều dùng -->
-            <div class="tab-pane fade p-4 p-md-5" id="usage-pane" role="tabpanel" aria-labelledby="usage-tab" tabindex="0">
-                <h5 class="text-primary mb-3">Chỉ định (Công dụng)</h5>
-                <p>Điều trị triệu chứng đau từ nhẹ đến vừa và/hoặc sốt.</p>
-                <ul class="info-list mb-4">
-                    <li>Hạ sốt nhanh chóng trong các trường hợp sốt do cảm cúm, nhiễm khuẩn...</li>
-                    <li>Giảm đau hiệu quả đối với các chứng đau: Đau đầu, đau nửa đầu, đau răng, đau nhức cơ xương do vận động, đau bung kinh.</li>
-                </ul>
-
-                <h5 class="text-primary mb-3">Liều lượng & Cách dùng</h5>
-                <p><strong>Cách dùng:</strong> Dùng đường uống. Có thể uống trong hoặc ngoài bữa ăn.</p>
-                <div class="bg-light p-3 rounded border">
-                    <p class="mb-2"><strong>Dành cho người lớn và trẻ em trên 12 tuổi:</strong></p>
-                    <ul class="mb-3">
-                        <li>Uống 1 - 2 viên (500mg - 1000mg) mỗi lần.</li>
-                        <li>Khoảng cách giữa các liều là từ 4 - 6 giờ (khi cần thiết).</li>
-                        <li><strong>Không quá:</strong> 8 viên (4g)/ngày.</li>
-                    </ul>
-                    <p class="mb-2"><strong>Dành cho trẻ em từ 6 đến 12 tuổi:</strong></p>
-                    <ul class="mb-0">
-                        <li>Uống ½ - 1 viên/lần. Lặp lại sau 4 - 6 giờ nếu cần. Không dùng quá 4 lần/ngày.</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Chống chỉ định -->
-             <div class="tab-pane fade p-4 p-md-5" id="warning-pane" role="tabpanel" aria-labelledby="warning-tab" tabindex="0">
-                <div class="alert alert-danger d-flex align-items-start gap-3 border-0 bg-danger-subtle text-danger-emphasis">
-                    <i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0 mt-1"></i>
-                    <div>
-                        <h5 class="alert-heading text-danger fw-bold">Chống chỉ định tuyệt đối:</h5>
-                        <ul class="mb-0 ps-3">
-                            <li>Người bệnh quá mẫn với paracetamol hay với bất kỳ thành phần nào của thuốc.</li>
-                            <li>Người bệnh suy gan nặng, viêm gan tiến triển.</li>
-                            <li>Người thiếu máu nhiều lần, có bệnh lý tiền sử về tim, phổi, thận, hoặc gan.</li>
-                            <li>Người thiếu hụt men Glucose-6-phosphat dehydrogenase (G6PD).</li>
-                        </ul>
-                    </div>
+            <!-- Thông tin -->
+            <div class="tab-pane fade show active p-4 p-md-5" id="desc-pane" role="tabpanel" aria-labelledby="desc-tab" tabindex="0">
+                <div class="mb-4">
+                    <h5 class="text-primary mb-3">Thành phần & Hàm lượng</h5>
+                    @if($thuoc->thanh_phan || $thuoc->ham_luong)
+                        <p>{!! nl2br(e($thuoc->thanh_phan)) !!}</p>
+                        <p><strong>Hàm lượng:</strong> {!! nl2br(e($thuoc->ham_luong)) !!}</p>
+                    @else
+                        <p class="text-muted">Đang cập nhật</p>
+                    @endif
                 </div>
 
-                <h5 class="mt-4 mb-3">Tác dụng phụ có thể gặp:</h5>
-                <p>Paracetamol hiếm khi gây tác dụng phụ ở liều điều trị. Tuy nhiên, một số phản ứng có thể xảy ra:</p>
-                <ul class="mb-4">
-                    <li>Ban da, hồng ban, mề đay.</li>
-                    <li>Rối loạn tiêu hóa nhẹ (buồn nôn, nôn).</li>
-                    <li>Suy giảm chức năng gan nếu tự ý sử dụng quá liều cao trong thời gian dài (gây hoại tử tế bào gan rất nghiêm trọng).</li>
-                </ul>
-            </div>
-            
-            <!-- Tài liệu -->
-            <div class="tab-pane fade p-4 p-md-5" id="docs-pane" role="tabpanel" aria-labelledby="docs-tab" tabindex="0">
-                <div class="row g-3">
-                    <div class="col-md-6 col-lg-4">
-                        <div class="d-flex align-items-center gap-3 p-3 border rounded">
-                            <i class="bi bi-file-earmark-pdf text-danger fs-1"></i>
-                            <div>
-                                <h6 class="mb-1">Tờ rơi HDSD (PDF)</h6>
-                                <a href="#" class="text-decoration-none small">Tải xuống (1.2MB)</a>
-                            </div>
-                        </div>
+                <div class="mb-4">
+                    <h5 class="text-primary mb-3">Công dụng</h5>
+                    @if($thuoc->cong_dung)
+                        <div>{!! nl2br(e($thuoc->cong_dung)) !!}</div>
+                    @else
+                        <p class="text-muted">Đang cập nhật</p>
+                    @endif
+                </div>
+                
+                <div class="mb-4">
+                    <h5 class="text-primary mb-3">Cách dùng</h5>
+                    @if($thuoc->cach_dung)
+                        <div>{!! nl2br(e($thuoc->cach_dung)) !!}</div>
+                    @else
+                        <p class="text-muted">Đang cập nhật</p>
+                    @endif
+                </div>
+                
+                @if($thuoc->chong_chi_dinh)
+                <div class="mb-4">
+                    <h5 class="text-danger mb-3">Chống chỉ định</h5>
+                    <div class="alert alert-danger border-0 bg-danger-subtle text-danger-emphasis">
+                        {!! nl2br(e($thuoc->chong_chi_dinh)) !!}
                     </div>
-                    <div class="col-md-6 col-lg-4">
-                        <div class="d-flex align-items-center gap-3 p-3 border rounded">
-                            <i class="bi bi-file-earmark-pdf text-danger fs-1"></i>
-                            <div>
-                                <h6 class="mb-1">Giấy chứng nhận VSATTP</h6>
-                                <a href="#" class="text-decoration-none small">Tải xuống (850KB)</a>
-                            </div>
-                        </div>
-                    </div>
+                </div>
+                @endif
+                
+                <div class="mb-4">
+                    <h5 class="text-primary mb-3">Bảo quản & Dạng bào chế</h5>
+                    <p><strong>Bảo quản:</strong> {{ $thuoc->bao_quan ?? 'Đang cập nhật' }}</p>
+                    <p><strong>Dạng bào chế:</strong> {{ $thuoc->dang_bao_che ?? 'Đang cập nhật' }}</p>
                 </div>
             </div>
         </div>
@@ -465,40 +424,71 @@
 </div>
 
 <!-- Cùng danh mục -->
+@if($similarProducts->count() > 0)
 <div class="mb-5">
     <div class="d-flex justify-content-between align-items-end mb-4">
         <h3 class="fw-bold fs-4 mb-0 border-start border-4 border-primary ps-3">Sản phẩm tương tự</h3>
-        <a href="{{ route('wholesale.catalog') }}" class="text-decoration-none text-primary">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+        <a href="{{ route('wholesale.catalog', ['nhom' => $thuoc->ma_nhom]) }}" class="text-decoration-none text-primary">Xem tất cả <i class="bi bi-arrow-right"></i></a>
     </div>
 
     <div class="row g-3 g-xl-4">
-        <!-- Render 4 similar product cards -->
-        @for($i = 1; $i <= 4; $i++)
+        @foreach($similarProducts as $sp)
         <div class="col-6 col-md-3">
             <div class="product-card h-100 d-flex flex-column">
-                <div class="product-img-wrapper" onclick="window.location.href='{{ route('wholesale.product') }}'" style="cursor: pointer;">
+                <div class="product-img-wrapper" onclick="window.location.href='{{ route('wholesale.product', $sp->ma_thuoc) }}'" style="cursor: pointer; {{ $sp->ton_kho_hien_tai <= 0 ? 'opacity: 0.7;' : '' }}">
+                    @if($sp->ton_kho_hien_tai <= 0)
+                        <div class="product-badge"><span class="badge bg-secondary rounded-pill px-2">Hết hàng</span></div>
+                    @endif
                     <div class="placeholder-icon">
-                        <i class="bi bi-capsule"></i>
+                        @if($sp->image1)
+                            <img src="{{ asset('storage/' . $sp->image1) }}" alt="{{ $sp->ten_thuoc }}" class="img-fluid" style="max-height:120px; object-fit:contain;">
+                        @else
+                            <i class="bi bi-capsule"></i>
+                        @endif
                     </div>
                 </div>
                 <div class="p-3 d-flex flex-column flex-grow-1">
                     <h3 class="product-title">
-                        <a href="{{ route('wholesale.product') }}" class="text-decoration-none text-dark">Tiffy Dey Giảm cảm cúm, sổ mũi</a>
+                        <a href="{{ route('wholesale.product', $sp->ma_thuoc) }}" class="text-decoration-none {{ $sp->ton_kho_hien_tai <= 0 ? 'text-muted' : 'text-dark' }}">{{ $sp->ten_thuoc }}</a>
                     </h3>
-                    <div class="product-meta mb-2">Thái Nakorn Patana</div>
+                    <div class="product-meta mb-2">{{ $sp->donViTinh->ten_dvt ?? '' }}</div>
                     
                     <div class="mt-auto pt-3 border-top position-relative">
-                        <div class="product-price mb-2">105.000đ</div>
-                        <button class="btn btn-outline-primary btn-add-cart w-100 d-flex justify-content-center align-items-center gap-2">
-                            <i class="bi bi-cart-plus flex-shrink-0"></i><span class="d-none d-sm-inline">Vào giỏ</span>
-                        </button>
+                        <div class="product-price mb-2">{{ number_format($sp->gia_ban_de_xuat ?? 0) }}đ</div>
+                        
+                        @if($sp->ton_kho_hien_tai > 0)
+                        <form method="POST" action="{{ route('wholesale.cart.add') }}" class="d-flex gap-2">
+                            @csrf
+                            <input type="hidden" name="ma_thuoc" value="{{ $sp->ma_thuoc }}">
+                            <input type="hidden" name="so_luong" value="1">
+                            <button class="btn btn-outline-primary btn-add-cart w-100 d-flex justify-content-center align-items-center gap-2">
+                                <i class="bi bi-cart-plus flex-shrink-0"></i><span class="d-none d-sm-inline">Vào giỏ</span>
+                            </button>
+                        </form>
+                        @else
+                            <button class="btn btn-secondary w-100 disabled">Hết hàng</button>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
-        @endfor
+        @endforeach
     </div>
 </div>
+@endif
 
+@push('scripts')
+<script>
+    function changeImage(src, element) {
+        document.getElementById('mainImageContainer').innerHTML = '<img src="' + src + '" alt="Product Image" id="mainImage" style="width:100%; height:100%; object-fit:contain; padding:10px; position:absolute; top:0; left:0;">';
+        
+        let thumbnails = document.querySelectorAll('.thumbnail-item');
+        thumbnails.forEach(function(el) {
+            el.classList.remove('active');
+        });
+        
+        element.classList.add('active');
+    }
+</script>
+@endpush
 @endsection
-

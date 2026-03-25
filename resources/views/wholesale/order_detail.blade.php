@@ -130,6 +130,56 @@
                 </div>
             </div>
             @endif
+
+            @if($donHang->trang_thai_dh === 'da_hoan_thanh')
+            {{-- Kiểm tra công nợ --}}
+            @php
+                $phieuXuat = \App\Models\PhieuXuat::where('ma_don_hang', $donHang->ma_don_hang)->first();
+                $thanhToan = $phieuXuat ? \App\Models\ThanhToan::where('ma_phieu_xuat', $phieuXuat->ma_phieu_xuat)->where('loai_thanh_toan','xuat')->first() : null;
+            @endphp
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-header bg-white"><h6 class="mb-0 fw-bold"><i class="bi bi-credit-card me-2"></i>Thanh toán đơn hàng</h6></div>
+                <div class="card-body">
+                    @if($thanhToan)
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span class="text-muted">Tổng tiền đơn hàng:</span>
+                            <span class="fw-bold">{{ number_format($thanhToan->tong_tien) }}đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span class="text-muted">Đã thanh toán:</span>
+                            <span class="text-success">{{ number_format($thanhToan->so_tien_tt) }}đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 small">
+                            <span class="text-muted">Còn nợ:</span>
+                            <span class="text-danger fw-bold">{{ number_format($thanhToan->so_tien_con_no) }}đ</span>
+                        </div>
+                        @if($thanhToan->so_tien_con_no > 0)
+                            <div class="text-center text-danger fw-semibold py-2">
+                                <i class="bi bi-info-circle me-2"></i>Chưa thanh toán dứt điểm
+                            </div>
+                        @else
+                            <div class="text-center text-success fw-semibold py-2">
+                                <i class="bi bi-check-circle-fill me-2"></i>Đã thanh toán đầy đủ
+                            </div>
+                        @endif
+                    @elseif($phieuXuat)
+                        {{-- Có phiếu xuất nhưng chưa có bản ghi thanh toán --}}
+                        <div class="d-flex justify-content-between mb-3 small">
+                            <span class="text-muted">Tổng tiền:</span>
+                            <span class="fw-bold text-danger">{{ number_format($donHang->tong_tien) }}đ</span>
+                        </div>
+                        <div class="text-center text-danger fw-semibold py-2">
+                            <i class="bi bi-info-circle me-2"></i>Chưa thanh toán
+                        </div>
+                    @else
+                        <div class="text-center text-muted py-2">
+                            <i class="bi bi-info-circle me-2"></i>Chưa có phiếu xuất kho liên kết. Vui lòng liên hệ nhân viên.
+                        </div>
+                    @endif
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 @endsection
+

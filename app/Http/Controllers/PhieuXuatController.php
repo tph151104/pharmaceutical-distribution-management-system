@@ -191,9 +191,25 @@ class PhieuXuatController extends Controller
                     }
 
                     // Trừ tồn
+                    $tonTruoc = $tonKho->so_luong_ton;
                     $tonKho->so_luong_ton -= $soLuongXuat;
                     $tonKho->so_luong_da_xuat += $soLuongXuat;
                     $tonKho->save();
+
+                    // Ghi log xuất kho
+                    \App\Services\InventoryLogService::logMovement(
+                        $maThuoc,
+                        $soLo,
+                        $phieuXuat->nguoi_tao_phieu ?? 'NV001',
+                        $phieuXuat->ma_phieu_xuat,
+                        'xuat',
+                        'phieu_xuat',
+                        $soLuongXuat,
+                        $tonTruoc,
+                        $tonKho->so_luong_ton,
+                        $info['don_gia'],
+                        'Xuất kho (Bán sỉ)'
+                    );
 
                     // Lưu chi tiết chứng từ
                     ChiTietPhieuXuat::create([

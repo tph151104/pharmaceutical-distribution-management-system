@@ -136,6 +136,7 @@ Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout'
 use App\Http\Controllers\WholesaleController;
 use App\Http\Controllers\DonHangController;
 
+
 Route::prefix('wholesale')->name('wholesale.')->middleware('auth:customer')->group(function () {
     Route::get('/catalog', [WholesaleController::class, 'catalog'])->name('catalog');
     Route::post('/cart/add', [WholesaleController::class, 'addToCart'])->name('cart.add');
@@ -147,19 +148,38 @@ Route::prefix('wholesale')->name('wholesale.')->middleware('auth:customer')->gro
     Route::get('/orders/{id}', [WholesaleController::class, 'orderDetail'])->name('orders.show');
     Route::post('/orders/{id}/cancel', [WholesaleController::class, 'cancelOrder'])->name('orders.cancel');
     Route::post('/orders/{id}/edit', [WholesaleController::class, 'editOrder'])->name('orders.edit');
+    Route::post('/orders/{id}/complete', [WholesaleController::class, 'completeOrder'])->name('orders.complete');
 
-    Route::get('/product/{id?}', function ($id = null) {
-        return view('wholesale.product', compact('id'));
-    })->name('product');
+    // Thông tin cá nhân
+    Route::get('/profile', [KhachHangController::class, 'profile'])->name('profile');
+    Route::put('/profile', [KhachHangController::class, 'updateProfile'])->name('profile.update');
+
+
+
+
+
+    Route::get('/product/{id}', [WholesaleController::class, 'product'])->name('product');
+
+
 });
+
+
+
 
 Route::prefix('admin/orders')->name('admin.orders.')->group(function () {
     Route::get('/', [DonHangController::class, 'index'])->name('index');
     Route::get('/export', [DonHangController::class, 'export'])->name('export');
     Route::get('/{id}', [DonHangController::class, 'show'])->name('show');
-    Route::get('/{id}/print', [DonHangController::class, 'print'])->name('print');
     Route::post('/{id}/approve', [DonHangController::class, 'approve'])->name('approve');
     Route::post('/{id}/cancel', [DonHangController::class, 'cancel'])->name('cancel');
+    Route::post('/{id}/export-note', [DonHangController::class, 'createExportNote'])->name('exportNote');
 });
 
-// });
+use App\Http\Controllers\ReportController;
+
+Route::prefix('admin/reports')->name('reports.')->group(function () {
+    Route::get('/stock', [ReportController::class, 'stock'])->name('stock');
+    Route::get('/movements', [ReportController::class, 'movements'])->name('movements');
+    Route::get('/debts', [ReportController::class, 'debts'])->name('debts');
+    Route::get('/debts/export', [ReportController::class, 'exportDebts'])->name('debts.export');
+});
