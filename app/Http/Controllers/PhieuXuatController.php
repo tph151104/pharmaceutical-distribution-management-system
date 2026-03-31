@@ -367,4 +367,78 @@ class PhieuXuatController extends Controller
             return back()->withErrors(['error' => 'Lỗi: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * Đưa phiếu xuất về trạng thái "Đang chuẩn bị" (hoàn tác xuất kho)
+     */
+    public function revertToPreparing($id)
+    {
+        $phieuXuat = PhieuXuat::with('chiTiet')->findOrFail($id);
+
+        if ($phieuXuat->trang_thai_phieu_xuat !== 'da_xuat_kho') {
+            return back()->withErrors(['error' => 'Chỉ có thể đưa về "Đang chuẩn bị" khi phiếu đang ở trạng thái "Đã xuất kho".']);
+        }
+
+        DB::beginTransaction();
+        try {
+            // 1. Hoàn trả tồn kho cho từng dòng chi tiết
+            foreach ($phieuXuat->chiTiet as $ct) {
+                $tonKho = TonKho::where('ma_thuoc', $ct->ma_thuoc)
+                    ->where('so_lo', $ct->so_lo)
+                    ->first();
+
+                if ($tonKho) {
+                    $tonTruoc = $tonKho->so_luong_ton;
+                    $tonKho->so_luong_ton += $ct->so_luong_xuat;
+                    $tonKho->so_luong_da_xuat -= $ct->so_luong_xuat;
+                    if ($tonKho->so_luong_da_xuat < 0) $tonKho->so_luong_da_xuat = 0;
+                    $tonKho->save();
+
+                    // Ghi log hoàn trả
+                    \App\Services\InventoryLogService::logMovement(
+                        $ct->ma_thuoc,
+                        $ct->so_lo,
+                        auth()->id() ?? 'NV001',
+                        $phieuXuat->ma_phieu_xuat,
+                        'dieu_chinh',
+                        'phieu_xuat',
+                        $ct->so_luong_xuat,
+                        $tonTruoc,
+                        $tonKho->so_luong_ton,
+                        $ct->don_gia_ban,
+                        '[Hoàn tác xuất kho] Đưa phiếu về trạng thái Đang chuẩn bị'
+                    );
+                }
+            }
+
+            // 2. Xóa chi tiết phiếu xuất
+            ChiTietPhieuXuat::where('ma_phieu_xuat', $phieuXuat->ma_phieu_xuat)->delete();
+
+            // 3. Xóa bản ghi thanh toán liên quan (công nợ)
+            ThanhToan::where('ma_phieu_xuat', $phieuXuat->ma_phieu_xuat)->delete();
+
+            // 4. Đưa phiếu xuất về trạng thái đang chuẩn bị
+            $phieuXuat->trang_thai_phieu_xuat = 'dang_chuan_bi';
+            $phieuXuat->trang_thai_tt = 'chua_tt';
+            $phieuXuat->save();
+
+            // 5. Đưa đơn hàng về trạng thái đang xuất kho (nếu có)
+            if ($phieuXuat->ma_don_hang) {
+                $donHang = DonHang::find($phieuXuat->ma_don_hang);
+                if ($donHang) {
+                    $donHang->trang_thai_dh = 'dang_xuat_kho';
+                    $donHang->save();
+                }
+            }
+
+            DB::commit();
+            return redirect()->route('sales.show', $id)
+                ->with('success', 'Đã hoàn tác xuất kho. Phiếu đã trở về trạng thái "Đang chuẩn bị". Tồn kho đã được khôi phục.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Lỗi khi hoàn tác: ' . $e->getMessage()]);
+        }
+    }
 }
+

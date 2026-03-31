@@ -279,8 +279,8 @@
         <li class="sidebar-section-title">Hệ thống</li>
         <li>
             <a href="#" class="sidebar-link">
-                <span class="sidebar-link-icon"><i class="bi bi-gear"></i></span>
-                <span>Cấu hình hệ thống</span>
+                <span class="sidebar-link-icon"><i class="bi bi-person-fill-gear"></i></span>
+                <span>Quản lý người dùng</span>
             </a>
         </li>
     </ul>

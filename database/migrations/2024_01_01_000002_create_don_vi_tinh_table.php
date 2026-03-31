@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('don_vi_tinh', function (Blueprint $table) {
             $table->string('ma_dvt', 50)->primary();
             $table->string('ten_dvt', 100);
+            $table->text('ghi_chu')->nullable();
             $table->timestamps();
         });
     }

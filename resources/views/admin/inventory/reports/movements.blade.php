@@ -12,6 +12,11 @@
                 Tra cứu chi tiết các giao dịch làm biến động số lượng tồn kho (nhập, xuất, kiểm kho) theo thời gian.
             </div>
         </div>
+        <div>
+            <a href="{{ route('reports.movements.export', request()->query()) }}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
+            </a>
+        </div>
     </div>
 @endsection
 

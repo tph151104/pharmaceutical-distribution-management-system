@@ -54,7 +54,7 @@ class KhachHangController extends Controller
             'ten_kh' => 'required|string|max:255',
             'loai_kh' => 'required|in:nha_thuoc,dai_ly,phong_kham,benh_vien',
             'dia_chi' => 'required|string|max:255',
-            'ma_so_thue' => 'nullable|string|max:50',
+            'ma_so_thue' => 'required|string|max:50',
             'giay_phep_hd_image' => 'nullable|image|max:2048',
             'hinh_dai_dien' => 'nullable|image|max:2048',
             'dien_thoai' => 'nullable|string|max:20',

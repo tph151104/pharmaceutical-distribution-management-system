@@ -37,6 +37,7 @@ Route::prefix('sales')->name('sales.')->group(function () {
     Route::post('/{id}/confirm', [PhieuXuatController::class, 'confirm'])->name('confirm');
     Route::post('/{id}/shipping', [PhieuXuatController::class, 'markAsShipping'])->name('shipping');
     Route::post('/{id}/complete', [PhieuXuatController::class, 'markAsCompleted'])->name('complete');
+    Route::post('/{id}/revert', [PhieuXuatController::class, 'revertToPreparing'])->name('revert');
     Route::delete('/{id}', [PhieuXuatController::class, 'destroy'])->name('destroy');
     Route::get('/{id}/print', [PhieuXuatController::class, 'print'])->name('print');
 });
@@ -47,6 +48,7 @@ use App\Http\Controllers\PhieuNhapController;
 Route::prefix('batches')->name('batches.')->group(function () {
     Route::get('/', [TonKhoController::class, 'index'])->name('index');
     Route::put('/update-status', [TonKhoController::class, 'updateStatus'])->name('updateStatus');
+    Route::post('/adjust', [TonKhoController::class, 'adjustStock'])->name('adjust');
 });
 
 Route::prefix('imports')->name('imports.')->group(function () {
@@ -62,12 +64,23 @@ Route::prefix('imports')->name('imports.')->group(function () {
 });
 
 use App\Http\Controllers\ThuocController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\UnitController;
 
 Route::prefix('products')->name('products.')->group(function () {
     Route::get('/', [ThuocController::class, 'index'])->name('index');
     Route::post('/', [ThuocController::class, 'store'])->name('store');
     Route::put('/{id}', [ThuocController::class, 'update'])->name('update');
     Route::delete('/{id}', [ThuocController::class, 'destroy'])->name('destroy');
+
+    // Quản lý Nhóm & Đơn vị
+    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::put('/categories/{id}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+    Route::post('/units', [UnitController::class, 'store'])->name('units.store');
+    Route::put('/units/{id}', [UnitController::class, 'update'])->name('units.update');
+    Route::delete('/units/{id}', [UnitController::class, 'destroy'])->name('units.destroy');
 });
 
 use App\Http\Controllers\NhaCungCapController;
@@ -156,8 +169,6 @@ Route::prefix('wholesale')->name('wholesale.')->middleware('auth:customer')->gro
 
 
 
-
-
     Route::get('/product/{id}', [WholesaleController::class, 'product'])->name('product');
 
 
@@ -179,7 +190,9 @@ use App\Http\Controllers\ReportController;
 
 Route::prefix('admin/reports')->name('reports.')->group(function () {
     Route::get('/stock', [ReportController::class, 'stock'])->name('stock');
+    Route::get('/stock/export', [ReportController::class, 'exportStock'])->name('stock.export');
     Route::get('/movements', [ReportController::class, 'movements'])->name('movements');
+    Route::get('/movements/export', [ReportController::class, 'exportMovements'])->name('movements.export');
     Route::get('/debts', [ReportController::class, 'debts'])->name('debts');
     Route::get('/debts/export', [ReportController::class, 'exportDebts'])->name('debts.export');
 });

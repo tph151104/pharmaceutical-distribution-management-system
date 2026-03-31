@@ -26,7 +26,7 @@ return new class extends Migration
 
         // Ràng buộc: phải có ít nhất 1 trong 2 mã phiếu
         DB::statement('ALTER TABLE thanh_toan ADD CONSTRAINT chk_phieu_thanh_toan CHECK (ma_phieu_nhap IS NOT NULL OR ma_phieu_xuat IS NOT NULL)');
-        DB::statement('ALTER TABLE thanh_toan ADD CONSTRAINT chk_so_tien_tt CHECK (so_tien_tt > 0)');
+        DB::statement('ALTER TABLE thanh_toan ADD CONSTRAINT chk_so_tien_tt CHECK (so_tien_tt >= 0)');
     }
 
     public function down()

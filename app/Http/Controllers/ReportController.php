@@ -11,6 +11,25 @@ use Illuminate\Http\Request;
 class ReportController extends Controller
 {
     /**
+     * Helper cho query tồn kho
+     */
+    private function buildStockQuery(Request $request)
+    {
+        $query = TonKho::with('thuoc')
+            ->where('so_luong_ton', '>', 0);
+        
+        // Có thể thêm lọc theo tên thuốc ở đây nếu cần trong tương lai
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->whereHas('thuoc', function($q) use ($search) {
+                $q->where('ten_thuoc', 'like', "%$search%");
+            });
+        }
+
+        return $query;
+    }
+
+    /**
      * Báo cáo tồn kho theo lô hàng và cảnh báo hạn sử dụng
      */
     public function stock(Request $request)
@@ -21,9 +40,8 @@ class ReportController extends Controller
         $sixMonthsFromNow = now()->addMonths(6);
 
         // Lấy danh sách tồn kho có số lượng > 0, xếp lô gần hết hạn ưu tiên lên đầu
-        $tonKho = TonKho::with('thuoc')
-            ->where('so_luong_ton', '>', 0)
-            ->orderBy('han_su_dung', 'asc')
+        $query = $this->buildStockQuery($request);
+        $tonKho = $query->orderBy('han_su_dung', 'asc')
             ->paginate(50);
 
         return view('admin.inventory.reports.stock', compact(
@@ -35,9 +53,9 @@ class ReportController extends Controller
     }
 
     /**
-     * Báo cáo lịch sử xuất nhập kho (Audit Trail)
+     * Helper cho query lịch sử kho
      */
-    public function movements(Request $request)
+    private function buildMovementsQuery(Request $request)
     {
         $query = LichSuKho::with(['thuoc', 'nguoiDung']);
 
@@ -59,11 +77,128 @@ class ReportController extends Controller
             $query->where('nguon_giao_dich', $request->nguon_gd);
         }
 
+        return $query;
+    }
+
+    /**
+     * Báo cáo lịch sử xuất nhập kho (Audit Trail)
+     */
+    public function movements(Request $request)
+    {
+        $query = $this->buildMovementsQuery($request);
         $logs = $query->orderBy('thoi_gian', 'desc')->paginate(30);
 
         return view('admin.inventory.reports.movements', [
             'logs' => $logs
         ]);
+    }
+
+    /**
+     * Xuất Excel (CSV) Tồn Kho
+     */
+    public function exportStock(Request $request)
+    {
+        $query = $this->buildStockQuery($request);
+        $tonKho = $query->orderBy('han_su_dung', 'asc')->get();
+
+        $fileName = 'ton_kho_' . date('Ymd_His') . '.csv';
+
+        $headers = [
+            "Content-type"        => "text/csv; charset=UTF-8",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use($tonKho) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF"); // BOM
+
+            fputcsv($file, [
+                'Ma Thuoc',
+                'Ten Thuoc',
+                'So Lo',
+                'Han Su Dung',
+                'So Luong Ton',
+                'Don Vi Tinh',
+                'Ngay Nhap'
+            ]);
+
+            foreach ($tonKho as $item) {
+                fputcsv($file, [
+                    $item->ma_thuoc,
+                    $item->thuoc->ten_thuoc ?? 'N/A',
+                    $item->so_lo,
+                    $item->han_su_dung ? \Carbon\Carbon::parse($item->han_su_dung)->format('d/m/Y') : '',
+                    $item->so_luong_ton,
+                    $item->thuoc->don_vi_tinh ?? '',
+                    $item->ngay_nhap ? \Carbon\Carbon::parse($item->ngay_nhap)->format('d/m/Y') : ''
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Xuất Excel (CSV) Lịch Sử Kho
+     */
+    public function exportMovements(Request $request)
+    {
+        $query = $this->buildMovementsQuery($request);
+        $logs = $query->orderBy('thoi_gian', 'desc')->get();
+
+        $fileName = 'lich_su_kho_' . date('Ymd_His') . '.csv';
+
+        $headers = [
+            "Content-type"        => "text/csv; charset=UTF-8",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use($logs) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF"); // BOM
+
+            fputcsv($file, [
+                'Thoi Gian',
+                'Ma Log',
+                'Nguoi Thao Tac',
+                'Ma Chung Tu',
+                'Nguon',
+                'Ma Thuoc',
+                'Ten Thuoc',
+                'So Lo',
+                'Loai GD',
+                'So Luong',
+                'Ton Truoc',
+                'Ton Sau'
+            ]);
+
+            foreach ($logs as $log) {
+                fputcsv($file, [
+                    $log->thoi_gian->format('d/m/Y H:i:s'),
+                    $log->ma_log,
+                    $log->nguoiDung->ho_ten ?? $log->nguoi_thuc_hien,
+                    $log->ma_chung_tu,
+                    $log->nguon_giao_dich,
+                    $log->ma_thuoc,
+                    $log->thuoc->ten_thuoc ?? 'N/A',
+                    $log->so_lo,
+                    $log->loai_giao_dich,
+                    $log->so_luong,
+                    $log->ton_truoc,
+                    $log->ton_sau
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     /**

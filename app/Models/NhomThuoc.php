@@ -14,7 +14,7 @@ class NhomThuoc extends Model
     protected $fillable = [
         'ma_nhom',
         'ten_nhom',
-        'mo_ta',
+        'ghi_chu',
     ];
 
     public function cacThuoc()

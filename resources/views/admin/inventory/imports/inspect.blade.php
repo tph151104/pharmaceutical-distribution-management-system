@@ -45,6 +45,8 @@
                         <div class="col-8 fw-semibold">{{ $phieuNhap->ma_phieu_nhap }}</div>
                         <div class="col-4 text-muted">Nhà cung cấp:</div>
                         <div class="col-8 fw-semibold">{{ $phieuNhap->nhaCungCap->ten_ncc ?? 'N/A' }}</div>
+                        <div class="col-4 text-muted">Tên người lập phiếu nhập: </div>
+                        <div class="col-8 fw-semibold">{{ $phieuNhap->nguoiLap->ten_nguoi_dung ?? 'N/A' }}</div>
                         <div class="col-4 text-muted">Ngày ghi trên vé:</div>
                         <div class="col-8">{{ $phieuNhap->ngay_nhap->format('d/m/Y') }}</div>
                         <div class="col-4 text-muted">Trạng thái:</div>
@@ -206,10 +208,16 @@
                                 <th>Lô/ Số lô SX / HSD Thực tế</th>
                                 <th>SL Thực tế</th>
                                 <th>Diễn giải kết quả</th>
+                                <th width="200">Ghi nhận hình ảnh</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($phieuNhap->chiTiet as $item)
+                                @php
+                                    // Tìm dữ liệu tồn kho hiện tại để lấy ảnh
+                                    $tonKey = $item->ma_thuoc . '_' . $item->so_lo;
+                                    $tonModel = $tonKhos->get($tonKey);
+                                @endphp
                                 <tr>
                                     <td>
                                         <div class="fw-semibold">{{ $item->thuoc->ten_thuoc ?? 'N/A' }}</div>
@@ -233,6 +241,16 @@
                                         @else
                                             <span class="text-success">Khớp số lượng</span>
                                         @endif
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            @if($tonModel && $tonModel->image1) <img src="{{ asset($tonModel->image1) }}" width="40" height="40" class="rounded object-fit-cover shadow-sm"> @endif
+                                            @if($tonModel && $tonModel->image2) <img src="{{ asset($tonModel->image2) }}" width="40" height="40" class="rounded object-fit-cover shadow-sm"> @endif
+                                            @if($tonModel && $tonModel->image3) <img src="{{ asset($tonModel->image3) }}" width="40" height="40" class="rounded object-fit-cover shadow-sm"> @endif
+                                            @if(!$tonModel || (!$tonModel->image1 && !$tonModel->image2 && !$tonModel->image3))
+                                                <span class="text-muted small">Không có</span>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach

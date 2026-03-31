@@ -22,6 +22,13 @@
 @endsection
 
 @section('content')
+    @if(session('info'))
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle me-1"></i> {{ session('info') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body">
             <form action="{{ route('batches.index') }}" method="GET" class="row g-2 align-items-end">
@@ -123,6 +130,7 @@
                         <th class="text-nowrap">Trạng thái lô</th>
                         <th class="text-nowrap">Nhà cung cấp</th>
                         <th class="text-nowrap text-center">Tình trạng</th>
+                        <th class="text-nowrap text-center">Thao tác</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -130,7 +138,7 @@
                         @php
                             $now = \Carbon\Carbon::now();
                             $hanDung = $ton->han_su_dung;
-                            $daysLeft = $now->diffInDays($hanDung, false); // false để lấy số âm gán vào đã hết hạn
+                            $daysLeft = $now->diffInDays($hanDung, false);
                         @endphp
                         <tr>
                             <td>
@@ -193,10 +201,16 @@
                                     @if($ton->image3)<i class="bi bi-card-image text-primary" title="Có ảnh lưu kho 3"></i>@endif
                                 </div>
                             </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-warning" title="Điều chỉnh tồn kho"
+                                    onclick="openAdjustModal('{{ $ton->ma_thuoc }}', '{{ $ton->ma_phieu_nhap }}', '{{ $ton->so_lo }}', '{{ addslashes($ton->thuoc->ten_thuoc ?? 'N/A') }}', {{ $ton->so_luong_ton }})">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="text-center text-muted small py-4">
+                            <td colspan="12" class="text-center text-muted small py-4">
                                 Không tìm thấy lô hàng nào phù hợp với bộ lọc hiển thị hoặc kho trống.
                             </td>
                         </tr>
@@ -212,5 +226,142 @@
             @endif
         </div>
     </div>
-@endsection
 
+    <!-- Modal Điều chỉnh Tồn kho -->
+    <div class="modal fade" id="modalAdjustStock" tabindex="-1">
+        <div class="modal-dialog">
+            <form action="{{ route('batches.adjust') }}" method="POST" onsubmit="return confirmAdjust()">
+                @csrf
+                <input type="hidden" name="ma_thuoc" id="adjust_ma_thuoc">
+                <input type="hidden" name="ma_phieu_nhap" id="adjust_ma_phieu_nhap">
+                <input type="hidden" name="so_lo" id="adjust_so_lo">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning bg-opacity-25">
+                        <h5 class="modal-title"><i class="bi bi-pencil-square me-1"></i> Điều chỉnh Tồn kho</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning small mb-3">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Chức năng này dùng để điều chỉnh khi có sai lệch giữa tồn kho thực tế và hệ thống (kiểm kê định kỳ, thất thoát...). Mọi thay đổi sẽ được ghi vào lịch sử kho.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Sản phẩm</label>
+                            <input type="text" id="adjust_ten_thuoc" class="form-control bg-light" readonly disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Số lô</label>
+                            <input type="text" id="adjust_so_lo_display" class="form-control bg-light" readonly disabled>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-bold">Tồn hiện tại (Hệ thống)</label>
+                                <input type="number" id="adjust_ton_hien_tai" class="form-control bg-light" readonly disabled>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-bold">Tồn thực tế (Mới) <span class="text-danger">*</span></label>
+                                <input type="number" name="so_luong_moi" id="adjust_so_luong_moi" class="form-control" min="0" required oninput="calcDiff()">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div id="adjust_diff_info" class="small fw-semibold" style="display:none;"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Lý do điều chỉnh <span class="text-danger">*</span></label>
+                            <select id="adjust_ly_do_select" class="form-select mb-2" onchange="setLyDo()">
+                                <option value="">-- Chọn lý do --</option>
+                                <option value="Kiểm kê định kỳ">Kiểm kê định kỳ</option>
+                                <option value="Phát hiện thất thoát">Phát hiện thất thoát</option>
+                                <option value="Hàng hư hỏng / vỡ / không đạt chất lượng">Hàng hư hỏng / vỡ / không đạt chất lượng</option>
+                                <option value="Sai lệch do nhập liệu">Sai lệch do nhập liệu</option>
+                                <option value="Trả hàng nhà cung cấp">Trả hàng nhà cung cấp</option>
+                                <option value="custom">Lý do khác...</option>
+                            </select>
+                            <textarea name="ly_do" id="adjust_ly_do" class="form-control" rows="2" required placeholder="Mô tả chi tiết lý do điều chỉnh..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-lg me-1"></i> Xác nhận Điều chỉnh
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+@push('scripts')
+<script>
+    function openAdjustModal(maThuoc, maPhieuNhap, soLo, tenThuoc, tonHienTai) {
+        document.getElementById('adjust_ma_thuoc').value = maThuoc;
+        document.getElementById('adjust_ma_phieu_nhap').value = maPhieuNhap;
+        document.getElementById('adjust_so_lo').value = soLo;
+        document.getElementById('adjust_ten_thuoc').value = tenThuoc + ' (' + maThuoc + ')';
+        document.getElementById('adjust_so_lo_display').value = soLo;
+        document.getElementById('adjust_ton_hien_tai').value = tonHienTai;
+        document.getElementById('adjust_so_luong_moi').value = tonHienTai;
+        document.getElementById('adjust_ly_do').value = '';
+        document.getElementById('adjust_ly_do_select').value = '';
+        document.getElementById('adjust_diff_info').style.display = 'none';
+        new bootstrap.Modal(document.getElementById('modalAdjustStock')).show();
+    }
+
+    function calcDiff() {
+        const current = parseInt(document.getElementById('adjust_ton_hien_tai').value) || 0;
+        const newVal = parseInt(document.getElementById('adjust_so_luong_moi').value) || 0;
+        const diff = newVal - current;
+        const el = document.getElementById('adjust_diff_info');
+
+        if (diff === 0) {
+            el.style.display = 'none';
+        } else {
+            el.style.display = 'block';
+            if (diff > 0) {
+                el.className = 'small fw-semibold text-success';
+                el.innerHTML = '<i class="bi bi-arrow-up-circle me-1"></i> Tăng ' + diff + ' đơn vị so với hệ thống';
+            } else {
+                el.className = 'small fw-semibold text-danger';
+                el.innerHTML = '<i class="bi bi-arrow-down-circle me-1"></i> Giảm ' + Math.abs(diff) + ' đơn vị so với hệ thống';
+            }
+        }
+    }
+
+    function setLyDo() {
+        const sel = document.getElementById('adjust_ly_do_select');
+        const textarea = document.getElementById('adjust_ly_do');
+        if (sel.value && sel.value !== 'custom') {
+            textarea.value = sel.value;
+        } else if (sel.value === 'custom') {
+            textarea.value = '';
+            textarea.focus();
+        }
+    }
+
+    function confirmAdjust() {
+        const current = parseInt(document.getElementById('adjust_ton_hien_tai').value) || 0;
+        const newVal = parseInt(document.getElementById('adjust_so_luong_moi').value) || 0;
+        const diff = newVal - current;
+        const lyDo = document.getElementById('adjust_ly_do').value.trim();
+
+        if (!lyDo) {
+            alert('Vui lòng nhập lý do điều chỉnh!');
+            return false;
+        }
+
+        if (diff === 0) {
+            alert('Số lượng tồn kho không thay đổi, không cần điều chỉnh.');
+            return false;
+        }
+
+        const loai = diff > 0 ? 'TĂNG ' + diff : 'GIẢM ' + Math.abs(diff);
+        return confirm('Xác nhận điều chỉnh tồn kho?\n\n' +
+            '• Tồn hiện tại: ' + current + '\n' +
+            '• Tồn mới: ' + newVal + '\n' +
+            '• Thay đổi: ' + loai + '\n' +
+            '• Lý do: ' + lyDo + '\n\n' +
+            'Hành động này sẽ được ghi vào lịch sử kho.');
+    }
+</script>
+@endpush
+@endsection

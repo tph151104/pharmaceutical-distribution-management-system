@@ -48,7 +48,6 @@ class PhieuNhapController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'ma_phieu_nhap' => 'required|string|unique:phieu_nhap',
             'ma_ncc' => 'required|exists:nha_cung_cap,ma_ncc',
             'ngay_nhap' => 'required|date',
             'chi_tiet' => 'required|array',
@@ -56,8 +55,25 @@ class PhieuNhapController extends Controller
             'chi_tiet.*.so_lo' => 'required|string',
             'chi_tiet.*.so_luong_nhap' => 'required|integer|min:1',
             'chi_tiet.*.don_gia_nhap' => 'required|numeric|min:0',
-            'chi_tiet.*.han_su_dung' => 'required|date',
+            'chi_tiet.*.han_su_dung' => 'required|date|after:today',
+        ], [
+            'chi_tiet.*.han_su_dung.after' => 'Hạn sử dụng phải lớn hơn ngày hiện tại.',
         ]);
+
+        // Tự động sinh mã phiếu nhập PN_YYYYMMDD_0001
+        $prefix = 'PN_' . date('Ymd') . '_';
+        $latest = PhieuNhap::where('ma_phieu_nhap', 'LIKE', $prefix . '%')
+            ->orderBy('ma_phieu_nhap', 'desc')
+            ->first();
+
+        if ($latest) {
+            $num = (int) substr($latest->ma_phieu_nhap, -4);
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $maPN = $prefix . str_pad($newNum, 4, '0', STR_PAD_LEFT);
 
         DB::beginTransaction();
         try {
@@ -68,7 +84,7 @@ class PhieuNhapController extends Controller
             }
 
             $phieuNhap = PhieuNhap::create([
-                'ma_phieu_nhap' => $request->ma_phieu_nhap,
+                'ma_phieu_nhap' => $maPN,
                 'ma_ncc' => $request->ma_ncc,
                 'nguoi_nhap' => 'USR001', // Tạm fix cứng vì chưa có module Auth. Nếu có Auth: Auth::user()->ma_nguoi_dung
                 'ngay_nhap' => $request->ngay_nhap,
@@ -172,7 +188,9 @@ class PhieuNhapController extends Controller
             'chi_tiet.*.so_lo' => 'required|string',
             'chi_tiet.*.so_luong_nhap' => 'required|integer|min:1',
             'chi_tiet.*.don_gia_nhap' => 'required|numeric|min:0',
-            'chi_tiet.*.han_su_dung' => 'required|date',
+            'chi_tiet.*.han_su_dung' => 'required|date|after:today',
+        ], [
+            'chi_tiet.*.han_su_dung.after' => 'Hạn sử dụng phải lớn hơn ngày hiện tại.',
         ]);
 
         DB::beginTransaction();

@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class ChiTietPhieuXuat extends Model
 {
     protected $table = 'chi_tiet_phieu_xuat';
-    
-    // Composite PK handle
     public $incrementing = false;
     protected $primaryKey = ['ma_phieu_xuat', 'ma_thuoc', 'so_lo'];
     protected $keyType = 'string';

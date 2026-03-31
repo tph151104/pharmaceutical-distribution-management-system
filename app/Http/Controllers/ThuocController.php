@@ -30,8 +30,8 @@ class ThuocController extends Controller
 
         $thuocs = $query->orderBy('created_at', 'desc')->paginate(15);
         
-        $nhom_thuocs = NhomThuoc::all();
-        $don_vi_tinhs = DonViTinh::all();
+        $nhom_thuocs = NhomThuoc::withCount('cacThuoc')->get();
+        $don_vi_tinhs = DonViTinh::withCount('cacThuoc')->get();
 
         return view('admin.inventory.products.index', compact('thuocs', 'nhom_thuocs', 'don_vi_tinhs'));
     }
@@ -42,7 +42,6 @@ class ThuocController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'ma_thuoc' => 'required|string|max:50|unique:thuoc',
             'ten_thuoc' => 'required|string|max:255',
             'ma_nhom' => 'required|string|exists:nhom_thuoc,ma_nhom',
             'ma_dvt' => 'required|string|exists:don_vi_tinh,ma_dvt',
@@ -60,6 +59,21 @@ class ThuocController extends Controller
             'image3' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        // Tự động sinh mã sản phẩm TH01, TH02...
+        $latest = Thuoc::where('ma_thuoc', 'LIKE', 'TH%')
+            //sắp xếp giảm dần để đưa mã có số thứ tự lớn nhất lên đầu
+            ->orderByRaw('CAST(SUBSTRING(ma_thuoc, 3) AS UNSIGNED) DESC')//bỏ 2 ký tự đầu
+            ->first();
+
+        if ($latest) {
+            $num = (int) substr($latest->ma_thuoc, 2);
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+                                        //hàm "lấp đầy" chuỗi.
+        $validated['ma_thuoc'] = 'TH' . str_pad($newNum, 4, '0', STR_PAD_LEFT);//Bù vào bên trái
+
         // Upload images
         $imagePaths = [];
         for ($i = 1; $i <= 3; $i++) {
@@ -69,7 +83,7 @@ class ThuocController extends Controller
                 $image->move(public_path('uploads/thuoc'), $imageName);
                 $validated['image'.$i] = 'uploads/thuoc/' . $imageName;
             } else {
-                $validated['image'.$i] = ''; // Hoặc null nếu database của bạn cho phép nullable, chú ý migration có ghi not null hay comment thôi
+                $validated['image'.$i] = '';
             }
         }
 

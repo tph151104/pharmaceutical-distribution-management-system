@@ -37,8 +37,8 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-12 col-md-3">
-                        <label class="form-label small fw-semibold mb-1">Mã Phiếu Nhập *</label>
-                        <input type="text" name="ma_phieu_nhap" class="form-control" value="PN{{ time() }}" required>
+                        <label class="form-label small fw-semibold mb-1">Mã Phiếu Nhập</label>
+                        <input type="text" class="form-control bg-light" value="Hệ thống tự sinh (PN_...)" readonly disabled>
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label small fw-semibold mb-1">Nhà cung cấp *</label>

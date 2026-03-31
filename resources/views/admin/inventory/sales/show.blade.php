@@ -26,6 +26,12 @@
             @endif
 
             @if($phieuXuat->trang_thai_phieu_xuat === 'da_xuat_kho')
+                <form action="{{ route('sales.revert', $phieuXuat->ma_phieu_xuat) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-warning" onclick="return confirm('Bạn có chắc muốn đưa phiếu về trạng thái Đang chuẩn bị?\n\n⚠ Hành động này sẽ:\n• Hoàn trả toàn bộ tồn kho đã trừ\n• Xóa bản ghi thanh toán / công nợ liên quan\n• Xóa chi tiết phiếu xuất\n\nMọi thay đổi sẽ được ghi vào lịch sử kho.')">
+                        <i class="bi bi-arrow-counterclockwise"></i> Đưa về Đang chuẩn bị
+                    </button>
+                </form>
                 <form action="{{ route('sales.shipping', $phieuXuat->ma_phieu_xuat) }}" method="POST">
                     @csrf
                     <button type="submit" class="btn btn-primary" onclick="return confirm('Xác nhận chuyển hàng này đi giao / gửi đơn vị vận chuyển?')">

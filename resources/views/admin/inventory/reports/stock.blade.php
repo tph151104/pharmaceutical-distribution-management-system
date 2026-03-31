@@ -2,6 +2,25 @@
 
 @section('title', 'Thống Kê Tồn Kho Theo Lô')
 
+@section('content-header')
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="content-header-title mb-1">Báo Cáo Tồn Kho Theo Lô</h1>
+            <p class="text-muted small mb-0">Theo dõi chi tiết số lượng tồn, hạn sử dụng và cảnh báo hàng sắp hết hạn.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- Form tìm kiếm nhanh tên thuốc -->
+            <form action="{{ route('reports.stock') }}" method="GET" class="d-flex gap-2">
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Tìm tên thuốc..." value="{{ request('search') }}">
+                <button type="submit" class="btn btn-sm btn-primary px-3">Lọc</button>
+            </form>
+            <a href="{{ route('reports.stock.export', request()->query()) }}" class="btn btn-success btn-sm px-3">
+                <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
+            </a>
+        </div>
+    </div>
+@endsection
+
 @section('content')
 <div class="row">
     <div class="col-12">

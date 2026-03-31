@@ -14,7 +14,7 @@ class DonViTinh extends Model
     protected $fillable = [
         'ma_dvt',
         'ten_dvt',
-        'mo_ta',
+        'ghi_chu',
     ];
 
     public function cacThuoc()

@@ -15,7 +15,6 @@ class TonKhoController extends Controller
     public function index(Request $request)
     {
         // 1. Tính toán Dashboard (Thống kê tổng quan)
-        // Đây chỉ là query cơ bản, trong hệ thống lớn nên cache hoặc tính toán định kỳ
         $tongSoLo = TonKho::where('so_luong_ton', '>', 0)->count();
         
         $ngayHetHanCanhBao = Carbon::now()->addDays(60);
@@ -121,5 +120,59 @@ class TonKhoController extends Controller
         }
 
         return back()->with('success', 'Kho cập nhật trạng thái lô thành công.');
+    }
+
+    /**
+     * Điều chỉnh tồn kho (kiểm kê / thất thoát / sai lệch)
+     */
+    public function adjustStock(Request $request)
+    {
+        $request->validate([
+            'ma_thuoc' => 'required',
+            'ma_phieu_nhap' => 'required',
+            'so_lo' => 'required',
+            'so_luong_moi' => 'required|integer|min:0',
+            'ly_do' => 'required|string|max:500',
+        ], [
+            'so_luong_moi.required' => 'Vui lòng nhập số lượng tồn thực tế.',
+            'so_luong_moi.min' => 'Số lượng tồn thực tế không thể âm.',
+            'ly_do.required' => 'Vui lòng nhập lý do điều chỉnh.',
+        ]);
+
+        $tonKho = TonKho::where('ma_thuoc', $request->ma_thuoc)
+                        ->where('ma_phieu_nhap', $request->ma_phieu_nhap)
+                        ->where('so_lo', $request->so_lo)
+                        ->firstOrFail();
+
+        $tonTruoc = $tonKho->so_luong_ton;
+        $tonSau = (int) $request->so_luong_moi;
+        $chenhLech = $tonSau - $tonTruoc;
+
+        // Không làm gì nếu số lượng không đổi
+        if ($chenhLech === 0) {
+            return back()->with('info', 'Số lượng tồn kho không thay đổi, không cần điều chỉnh.');
+        }
+
+        $tonKho->so_luong_ton = $tonSau;
+        $tonKho->save();
+
+        // Ghi log điều chỉnh
+        \App\Services\InventoryLogService::logMovement(
+            $tonKho->ma_thuoc,
+            $tonKho->so_lo,
+            auth()->id() ?? 'NV001',
+            $tonKho->ma_phieu_nhap,
+            'dieu_chinh',
+            'kiem_kho',
+            abs($chenhLech),
+            $tonTruoc,
+            $tonSau,
+            0,
+            '[Điều chỉnh tồn kho] ' . $request->ly_do
+                . ' | Chênh lệch: ' . ($chenhLech > 0 ? '+' : '') . $chenhLech
+        );
+
+        $loaiDieuChinh = $chenhLech > 0 ? 'tăng' : 'giảm';
+        return back()->with('success', "Đã điều chỉnh tồn kho lô {$tonKho->so_lo}: {$loaiDieuChinh} " . abs($chenhLech) . " (Từ {$tonTruoc} → {$tonSau}).");
     }
 }

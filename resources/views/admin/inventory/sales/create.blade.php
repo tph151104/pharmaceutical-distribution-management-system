@@ -33,7 +33,7 @@
         <div class="col-md-8 mx-auto">
             <div class="card border-0 shadow-sm mt-3">
                 <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-                    <h5 class="mb-0 fw-bold text-primary">Bước 1: Chọn đơn hàng chờ xuất</h5>
+                    <h5 class="mb-0 fw-bold text-primary">Chọn đơn hàng chờ xuất</h5>
                     <p class="text-muted small mb-0">Hệ thống chỉ hiển thị các đơn hàng đã được Kế toán duyệt (trạng thái: Đã duyệt).</p>
                 </div>
                 
@@ -62,7 +62,7 @@
 
                         <div class="alert alert-info border-info-subtle bg-info-subtle py-2">
                             <i class="bi bi-info-circle-fill me-2"></i>
-                            <strong>Bước 2:</strong> Hệ thống sẽ tạo Phiếu xuất dự thảo dựa trên các sản phẩm khách đã mua và tự động phân bổ Lô cận Date (FEFO).
+                            Hệ thống sẽ tạo Phiếu xuất dự thảo dựa trên các sản phẩm khách đã mua và tự động phân bổ Lô cận Date (FEFO).
                         </div>
 
                         <div class="d-flex justify-content-end gap-2 mt-4 pb-2">
