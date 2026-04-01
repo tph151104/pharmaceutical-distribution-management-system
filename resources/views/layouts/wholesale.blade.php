@@ -68,6 +68,7 @@
                     <ul class="dropdown-menu dropdown-menu-end small">
                         <li><a class="dropdown-item" href="{{ route('wholesale.profile') }}"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a></li>
                         <li><a class="dropdown-item" href="{{ route('wholesale.orders.index') }}"><i class="bi bi-bag me-2"></i>Đơn hàng của tôi</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-bag me-2"></i>Lịch sử thanh toán đơn hàng</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <form method="POST" action="{{ route('logout') }}">

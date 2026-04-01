@@ -162,6 +162,8 @@ Route::prefix('wholesale')->name('wholesale.')->middleware('auth:customer')->gro
     Route::post('/orders/{id}/cancel', [WholesaleController::class, 'cancelOrder'])->name('orders.cancel');
     Route::post('/orders/{id}/edit', [WholesaleController::class, 'editOrder'])->name('orders.edit');
     Route::post('/orders/{id}/complete', [WholesaleController::class, 'completeOrder'])->name('orders.complete');
+    Route::post('/orders/{id}/pay', [WholesaleController::class, 'payOrder'])->name('orders.pay');
+    Route::get('/orders/{id}/payment-history', [WholesaleController::class, 'paymentHistory'])->name('orders.payment_history');
 
     // Thông tin cá nhân
     Route::get('/profile', [KhachHangController::class, 'profile'])->name('profile');

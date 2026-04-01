@@ -30,11 +30,17 @@
                             <th>Ngày đặt</th>
                             <th class="text-end">Tổng tiền</th>
                             <th class="text-center">Trạng thái</th>
+                            <th class="text-center">Thanh toán</th>
                             <th class="text-end pe-3">Chi tiết</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($donHangs as $dh)
+                            @php
+                                $px = \App\Models\PhieuXuat::where('ma_don_hang', $dh->ma_don_hang)->first();
+                                $daTra = $px ? \App\Models\ThanhToan::where('ma_phieu_xuat', $px->ma_phieu_xuat)->sum('so_tien_tt') : 0;
+                                $no = $dh->tong_tien - $daTra;
+                            @endphp
                             <tr>
                                 <td class="ps-3 fw-medium">
                                     <a href="{{ route('wholesale.orders.show', $dh->ma_don_hang) }}" class="text-decoration-none">{{ $dh->ma_don_hang }}</a>
@@ -44,6 +50,17 @@
                                 <td class="text-center">
                                     <span class="badge bg-{{ $dh->mauTrangThai }}">{{ $dh->tenTrangThai }}</span>
                                 </td>
+                                <td class="text-center">
+                                    @if(!$px)
+                                        <span class="text-muted small">—</span>
+                                    @elseif($no <= 0)
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Đã đủ</span>
+                                    @elseif($daTra > 0)
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-hourglass-split me-1"></i>Một phần</span>
+                                    @else
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Chưa TT</span>
+                                    @endif
+                                </td>
                                 <td class="text-end pe-3">
                                     <a href="{{ route('wholesale.orders.show', $dh->ma_don_hang) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye me-1"></i>Xem
@@ -52,7 +69,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-5 text-muted">
+                                <td colspan="6" class="text-center py-5 text-muted">
                                     <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                     Bạn chưa có đơn hàng nào.
                                     <div class="mt-2"><a href="{{ route('wholesale.catalog') }}">Bắt đầu mua sắm</a></div>
