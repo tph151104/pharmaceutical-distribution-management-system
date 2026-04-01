@@ -52,12 +52,14 @@ class PhieuNhapController extends Controller
             'ngay_nhap' => 'required|date',
             'chi_tiet' => 'required|array',
             'chi_tiet.*.ma_thuoc' => 'required|exists:thuoc,ma_thuoc',
-            'chi_tiet.*.so_lo' => 'required|string',
+            'chi_tiet.*.ngay_san_xuat' => 'required|date|before_or_equal:today',
+            'chi_tiet.*.so_dang_ky' => 'nullable|string',
             'chi_tiet.*.so_luong_nhap' => 'required|integer|min:1',
             'chi_tiet.*.don_gia_nhap' => 'required|numeric|min:0',
             'chi_tiet.*.han_su_dung' => 'required|date|after:today',
         ], [
             'chi_tiet.*.han_su_dung.after' => 'Hạn sử dụng phải lớn hơn ngày hiện tại.',
+            'chi_tiet.*.ngay_san_xuat.before_or_equal' => 'Ngày sản xuất không được lớn hơn ngày hiện tại.',
         ]);
 
         // Tự động sinh mã phiếu nhập PN_YYYYMMDD_0001
@@ -97,13 +99,32 @@ class PhieuNhapController extends Controller
                 'tieu_lieu_lien_quan' => '',
             ]);
 
+            // Chuẩn bị sinh số lô tự động
+            $currentDate = now()->format('Ymd');
+            $slPrefix = 'SL_' . $currentDate . '_';
+            $loIndex = 1;
+            
+            $maxSL = ChiTietPhieuNhap::where('so_lo', 'LIKE', $slPrefix . '%')
+                                     ->orderBy('so_lo', 'desc')
+                                     ->first();
+            if ($maxSL) {
+                $num = (int) substr($maxSL->so_lo, -4);
+                $loIndex = $num + 1;
+            }
+
             // 2. Tạo chi tiết & Tồn kho
             foreach ($request->chi_tiet as $item) {
+                $so_lo = $slPrefix . str_pad($loIndex, 4, '0', STR_PAD_LEFT);
+                $so_lo_sx = 'LSX_' . \Carbon\Carbon::parse($item['ngay_san_xuat'])->format('Ymd');
+                $loIndex++;
+
                 ChiTietPhieuNhap::create([
                     'ma_phieu_nhap' => $phieuNhap->ma_phieu_nhap,
                     'ma_thuoc' => $item['ma_thuoc'],
-                    'so_lo' => $item['so_lo'],
-                    'so_lo_sx' => $item['so_lo_sx'], 
+                    'so_lo' => $so_lo,
+                    'so_lo_sx' => $so_lo_sx, 
+                    'ngay_san_xuat' => $item['ngay_san_xuat'],
+                    'so_dang_ky' => $item['so_dang_ky'] ?? null,
                     'han_su_dung' => $item['han_su_dung'],
                     'so_luong_nhap' => $item['so_luong_nhap'],
                     'so_luong_thuc_te' => 0, // Mặc định 0 khi mới lập
@@ -115,7 +136,8 @@ class PhieuNhapController extends Controller
                 TonKho::create([
                     'ma_thuoc' => $item['ma_thuoc'],
                     'ma_phieu_nhap' => $phieuNhap->ma_phieu_nhap,
-                    'so_lo' => $item['so_lo'],
+                    'so_lo' => $so_lo,
+                    'ngay_san_xuat' => $item['ngay_san_xuat'],
                     'ngay_nhap_lo' => null, // Sẽ update khi hàng về thực tế
                     'han_su_dung' => $item['han_su_dung'],
                     'so_luong_ton' => 0, // Hiện tại chưa có hàng vật lý
@@ -193,12 +215,14 @@ class PhieuNhapController extends Controller
             'ngay_nhap' => 'required|date',
             'chi_tiet' => 'required|array',
             'chi_tiet.*.ma_thuoc' => 'required|exists:thuoc,ma_thuoc',
-            'chi_tiet.*.so_lo' => 'required|string',
+            'chi_tiet.*.ngay_san_xuat' => 'required|date|before_or_equal:today',
+            'chi_tiet.*.so_dang_ky' => 'nullable|string',
             'chi_tiet.*.so_luong_nhap' => 'required|integer|min:1',
             'chi_tiet.*.don_gia_nhap' => 'required|numeric|min:0',
             'chi_tiet.*.han_su_dung' => 'required|date|after:today',
         ], [
             'chi_tiet.*.han_su_dung.after' => 'Hạn sử dụng phải lớn hơn ngày hiện tại.',
+            'chi_tiet.*.ngay_san_xuat.before_or_equal' => 'Ngày sản xuất không được lớn hơn ngày hiện tại.',
         ]);
 
         DB::beginTransaction();
@@ -220,13 +244,32 @@ class PhieuNhapController extends Controller
             ChiTietPhieuNhap::where('ma_phieu_nhap', $id)->delete();
             TonKho::where('ma_phieu_nhap', $id)->delete();
 
+            // Chuẩn bị sinh lại số lô tự động nếu có
+            $currentDate = now()->format('Ymd');
+            $slPrefix = 'SL_' . $currentDate . '_';
+            $loIndex = 1;
+            
+            $maxSL = ChiTietPhieuNhap::where('so_lo', 'LIKE', $slPrefix . '%')
+                                     ->orderBy('so_lo', 'desc')
+                                     ->first();
+            if ($maxSL) {
+                $num = (int) substr($maxSL->so_lo, -4);
+                $loIndex = $num + 1;
+            }
+
             // Tạo lại chi tiết & Tồn kho nháp
             foreach ($request->chi_tiet as $item) {
+                $so_lo = $slPrefix . str_pad($loIndex, 4, '0', STR_PAD_LEFT);
+                $so_lo_sx = 'LSX_' . \Carbon\Carbon::parse($item['ngay_san_xuat'])->format('Ymd');
+                $loIndex++;
+
                 ChiTietPhieuNhap::create([
                     'ma_phieu_nhap' => $phieuNhap->ma_phieu_nhap,
                     'ma_thuoc' => $item['ma_thuoc'],
-                    'so_lo' => $item['so_lo'],
-                    'so_lo_sx' => $item['so_lo_sx'],
+                    'so_lo' => $so_lo,
+                    'so_lo_sx' => $so_lo_sx,
+                    'ngay_san_xuat' => $item['ngay_san_xuat'],
+                    'so_dang_ky' => $item['so_dang_ky'] ?? null,
                     'han_su_dung' => $item['han_su_dung'],
                     'so_luong_nhap' => $item['so_luong_nhap'],
                     'so_luong_thuc_te' => 0,
@@ -237,7 +280,8 @@ class PhieuNhapController extends Controller
                 TonKho::create([
                     'ma_thuoc' => $item['ma_thuoc'],
                     'ma_phieu_nhap' => $phieuNhap->ma_phieu_nhap,
-                    'so_lo' => $item['so_lo'],
+                    'so_lo' => $so_lo,
+                    'ngay_san_xuat' => $item['ngay_san_xuat'],
                     'ngay_nhap_lo' => null,
                     'han_su_dung' => $item['han_su_dung'],
                     'so_luong_ton' => 0,

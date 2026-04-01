@@ -106,8 +106,9 @@
                                 <tr>
                                     <th width="200">Sản phẩm</th>
                                     <th>Số lượng theo CT</th>
-                                    <th>Số Lô (Thực tế)</th>
-                                    <th>Số lô sản xuất</th>
+                                    <th>Số Lô (Nội bộ)</th>
+                                    <th>SL Sản Xuất</th>
+                                    <th>Ngày SX / SĐK</th>
                                     <th>HSD (Thực tế)</th>
                                     <th width="120">SL Thực tế</th>
                                     <th width="250">Ghi nhận hình ảnh</th>
@@ -133,10 +134,16 @@
                                             <div class="text-muted">Lô: {{ $item->so_lo }}</div>
                                         </td>
                                         <td>
-                                            <input type="text" name="items[{{$index}}][so_lo]" class="form-control form-control-sm text-center" value="{{ old('items.'.$index.'.so_lo', $item->so_lo) }}" required>
+                                            <input type="text" name="items[{{$index}}][so_lo]" class="form-control form-control-sm text-center bg-light" value="{{ old('items.'.$index.'.so_lo', $item->so_lo) }}" readonly>
                                         </td>
                                         <td>
-                                            <input type="text" name="items[{{$index}}][so_lo_sx]" class="form-control form-control-sm text-center" value="{{ old('items.'.$index.'.so_lo_sx', $item->so_lo_sx) }}" required>
+                                            <input type="text" name="items[{{$index}}][so_lo_sx]" class="form-control form-control-sm text-center bg-light" value="{{ old('items.'.$index.'.so_lo_sx', $item->so_lo_sx) }}" readonly>
+                                        </td>
+                                        <td>
+                                            <div class="mb-1"><span class="small text-muted">NSX:</span> <strong>{{ $item->ngay_san_xuat ? $item->ngay_san_xuat->format('d/m/Y') : 'N/A' }}</strong></div>
+                                            <div><span class="small text-muted">SĐK:</span> <strong>{{ $item->so_dang_ky ?? 'N/A' }}</strong></div>
+                                            <input type="hidden" name="items[{{$index}}][ngay_san_xuat]" value="{{ $item->ngay_san_xuat ? $item->ngay_san_xuat->format('Y-m-d') : '' }}">
+                                            <input type="hidden" name="items[{{$index}}][so_dang_ky]" value="{{ $item->so_dang_ky }}">
                                         </td>
                                         <td>
                                             <input type="date" name="items[{{$index}}][han_su_dung]" class="form-control form-control-sm text-center" value="{{ old('items.'.$index.'.han_su_dung', $item->han_su_dung ? $item->han_su_dung->format('Y-m-d') : '') }}" required>
@@ -205,7 +212,8 @@
                             <tr>
                                 <th width="200">Sản phẩm</th>
                                 <th>Theo CT</th>
-                                <th>Lô/ Số lô SX / HSD Thực tế</th>
+                                <th>Lô/ Số lô SX </th>
+                                <th>NSX / SĐK / HSD</th>
                                 <th>SL Thực tế</th>
                                 <th>Diễn giải kết quả</th>
                                 <th width="200">Ghi nhận hình ảnh</th>
@@ -226,8 +234,12 @@
                                         <div class="text-muted">SL: <span class="fw-bold text-dark">{{ $item->so_luong_nhap }}</span></div>
                                     </td>
                                     <td class="text-center small">
-                                        <div>Lô: <b>{{ $item->so_lo }}</b></div>
-                                        <div>Số lô sản xuất: <b>{{ $item->so_lo_sx }}</b></div>
+                                        <div>Lô NB: <b>{{ $item->so_lo }}</b></div>
+                                        <div>Lô SX: <b>{{ $item->so_lo_sx }}</b></div>
+                                    </td>
+                                    <td class="text-center small">
+                                        <div>NSX: <b>{{ $item->ngay_san_xuat ? $item->ngay_san_xuat->format('d/m/Y') : 'N/A' }}</b></div>
+                                        <div>SĐK: <b>{{ $item->so_dang_ky ?? 'N/A' }}</b></div>
                                         <div>HSD: {{ $item->han_su_dung ? $item->han_su_dung->format('d/m/Y') : '' }}</div>
                                     </td>
                                     <td class="text-center">

@@ -70,8 +70,8 @@
                         <thead class="table-light small text-muted text-center">
                             <tr>
                                 <th>Sản phẩm</th>
-                                <th>Số lô (Dự kiến)</th>
-                                <th>Số lô sản xuất</th>
+                                <th>Ngày sản xuất</th>
+                                <th>Số đăng ký</th>
                                 <th>Hạn dùng (Dự)</th>
                                 <th>Số lượng (Chứng từ)</th>
                                 <th>Đơn giá nhập</th>
@@ -88,8 +88,8 @@
                                         @endforeach
                                     </select>
                                 </td>
-                                <td><input type="text" name="chi_tiet[0][so_lo]" class="form-control form-control-sm" required></td>
-                                <td><input type="text" name="chi_tiet[0][so_lo_sx]" class="form-control form-control-sm" required></td>
+                                <td><input type="date" name="chi_tiet[0][ngay_san_xuat]" class="form-control form-control-sm" required></td>
+                                <td><input type="text" name="chi_tiet[0][so_dang_ky]" class="form-control form-control-sm" placeholder="SĐK (Tùy chọn)"></td>
                                 <td><input type="date" name="chi_tiet[0][han_su_dung]" class="form-control form-control-sm" required></td>
                                 <td><input type="number" name="chi_tiet[0][so_luong_nhap]" class="form-control form-control-sm" min="1" required></td>
                                 <td><input type="number" name="chi_tiet[0][don_gia_nhap]" class="form-control form-control-sm" min="0" step="100" required></td>
@@ -126,8 +126,8 @@
                             @endforeach
                         </select>
                     </td>
-                    <td><input type="text" name="chi_tiet[${rowIdx}][so_lo]" class="form-control form-control-sm" required></td>
-                    <td><input type="text" name="chi_tiet[${rowIdx}][so_lo_sx]" class="form-control form-control-sm" required></td>
+                    <td><input type="date" name="chi_tiet[${rowIdx}][ngay_san_xuat]" class="form-control form-control-sm" required></td>
+                    <td><input type="text" name="chi_tiet[${rowIdx}][so_dang_ky]" class="form-control form-control-sm" placeholder="SĐK (Tùy chọn)"></td>
                     <td><input type="date" name="chi_tiet[${rowIdx}][han_su_dung]" class="form-control form-control-sm" required></td>
                     <td><input type="number" name="chi_tiet[${rowIdx}][so_luong_nhap]" class="form-control form-control-sm" min="1" required></td>
                     <td><input type="number" name="chi_tiet[${rowIdx}][don_gia_nhap]" class="form-control form-control-sm" min="0" step="100" required></td>

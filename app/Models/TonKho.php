@@ -15,6 +15,7 @@ class TonKho extends Model
         'ma_thuoc',
         'ma_phieu_nhap',
         'so_lo',
+        'ngay_san_xuat',
         'ngay_nhap_lo',
         'han_su_dung',
         'so_luong_ton',

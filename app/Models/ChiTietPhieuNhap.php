@@ -16,6 +16,8 @@ class ChiTietPhieuNhap extends Model
         'ma_thuoc',
         'so_lo',
         'so_lo_sx',
+        'ngay_san_xuat',
+        'so_dang_ky',
         'han_su_dung',
         'so_luong_nhap',
         'so_luong_thuc_te',
@@ -24,6 +26,7 @@ class ChiTietPhieuNhap extends Model
     ];
 
     protected $casts = [
+        'ngay_san_xuat' => 'date',
         'han_su_dung' => 'date',
         'so_luong_nhap' => 'integer',
         'so_luong_thuc_te' => 'integer',

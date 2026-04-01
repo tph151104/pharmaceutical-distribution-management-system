@@ -71,8 +71,8 @@
                         <thead class="table-light small text-muted text-center">
                             <tr>
                                 <th>Sản phẩm</th>
-                                <th>Số lô (Dự kiến)</th>
-                                <th>Số lô sản xuất</th>
+                                <th>Ngày sản xuất</th>
+                                <th>Số đăng ký</th>
                                 <th>Hạn dùng (Dự)</th>
                                 <th>Số lượng (Chứng từ)</th>
                                 <th>Đơn giá nhập</th>
@@ -90,8 +90,8 @@
                                         @endforeach
                                     </select>
                                 </td>
-                                <td><input type="text" name="chi_tiet[{{ $index }}][so_lo]" class="form-control form-control-sm" value="{{ $ct->so_lo }}" required></td>
-                                <td><input type="text" name="chi_tiet[{{ $index }}][so_lo_sx]" class="form-control form-control-sm" value="{{ $ct->so_lo_sx }}" required></td>
+                                <td><input type="date" name="chi_tiet[{{ $index }}][ngay_san_xuat]" class="form-control form-control-sm" value="{{ $ct->ngay_san_xuat ? date('Y-m-d', strtotime($ct->ngay_san_xuat)) : '' }}" required></td>
+                                <td><input type="text" name="chi_tiet[{{ $index }}][so_dang_ky]" class="form-control form-control-sm" value="{{ $ct->so_dang_ky }}" placeholder="SĐK (Tùy chọn)"></td>
                                 <td><input type="date" name="chi_tiet[{{ $index }}][han_su_dung]" class="form-control form-control-sm" value="{{ $ct->han_su_dung ? date('Y-m-d', strtotime($ct->han_su_dung)) : '' }}" required></td>
                                 <td><input type="number" name="chi_tiet[{{ $index }}][so_luong_nhap]" class="form-control form-control-sm" min="1" value="{{ $ct->so_luong_nhap }}" required></td>
                                 <td><input type="number" name="chi_tiet[{{ $index }}][don_gia_nhap]" class="form-control form-control-sm" min="0" step="100" value="{{ $ct->don_gia_nhap }}" required></td>
@@ -129,8 +129,8 @@
                             @endforeach
                         </select>
                     </td>
-                    <td><input type="text" name="chi_tiet[${rowIdx}][so_lo]" class="form-control form-control-sm" required></td>
-                    <td><input type="text" name="chi_tiet[${rowIdx}][so_lo_sx]" class="form-control form-control-sm" required></td>
+                    <td><input type="date" name="chi_tiet[${rowIdx}][ngay_san_xuat]" class="form-control form-control-sm" required></td>
+                    <td><input type="text" name="chi_tiet[${rowIdx}][so_dang_ky]" class="form-control form-control-sm" placeholder="SĐK (Tùy chọn)"></td>
                     <td><input type="date" name="chi_tiet[${rowIdx}][han_su_dung]" class="form-control form-control-sm" required></td>
                     <td><input type="number" name="chi_tiet[${rowIdx}][so_luong_nhap]" class="form-control form-control-sm" min="1" required></td>
                     <td><input type="number" name="chi_tiet[${rowIdx}][don_gia_nhap]" class="form-control form-control-sm" min="0" step="100" required></td>

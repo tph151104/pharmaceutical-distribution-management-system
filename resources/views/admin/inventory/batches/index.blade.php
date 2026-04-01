@@ -122,9 +122,8 @@
                         <th class="text-nowrap">Ảnh lô</th>
                         <th class="text-nowrap">Sản phẩm</th>
                         <th class="text-nowrap">Số lô</th>
-                        <th class="text-nowrap">Hạn dùng</th>
+                        <th class="text-nowrap text-center">Hạn dùng (Còn lại)</th>
                         <th class="text-nowrap">Ngày nhập lô</th>
-                        <th class="text-nowrap text-end">Số ngày còn lại</th>
                         <th class="text-nowrap text-end">Tồn lô</th>
                         <th class="text-nowrap text-end">SL đã xuất</th>
                         <th class="text-nowrap">Trạng thái lô</th>
@@ -153,17 +152,19 @@
                                 <div class="small text-muted">{{ $ton->ma_thuoc }}</div>
                             </td>
                             <td class="fw-semibold">{{ $ton->so_lo }}</td>
-                            <td>{{ $ton->han_su_dung->format('d/m/Y') }}</td>
-                            <td>{{ $ton->ngay_nhap_lo ? $ton->ngay_nhap_lo->format('d/m/Y') : 'N/A' }}</td>
-                            <td class="text-end">
-                                @if($daysLeft < 0)
-                                    <span class="text-danger fw-semibold">Quá hạn {{ abs((int)$daysLeft) }} ngày</span>
-                                @elseif($daysLeft <= 60)
-                                    <span class="text-warning fw-semibold">Còn {{ (int)$daysLeft }} ngày</span>
-                                @else
-                                    <span class="text-success">{{ (int)$daysLeft }} ngày</span>
-                                @endif
+                            <td class="text-center">
+                                <div class="fw-semibold">{{ $ton->han_su_dung->format('d/m/Y') }}</div>
+                                <div class="small mt-1">
+                                    @if($daysLeft < 0)
+                                        <span class="badge bg-danger">Quá hạn {{ abs((int)$daysLeft) }} ngày</span>
+                                    @elseif($daysLeft <= 60)
+                                        <span class="badge bg-warning text-dark">Còn {{ (int)$daysLeft }} ngày</span>
+                                    @else
+                                        <span class="badge bg-success bg-opacity-75">Còn {{ (int)$daysLeft }} ngày</span>
+                                    @endif
+                                </div>
                             </td>
+                            <td>{{ $ton->ngay_nhap_lo ? $ton->ngay_nhap_lo->format('d/m/Y') : 'N/A' }}</td>
                             <td class="text-end fw-semibold">{{ number_format($ton->so_luong_ton) }}</td>
                             <td class="text-end">{{ number_format($ton->so_luong_da_xuat) }}</td>
                             <td>
