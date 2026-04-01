@@ -58,8 +58,15 @@ class PhieuXuatController extends Controller
 
         DB::beginTransaction();
         try {
-            // Sinh mã phiếu xuất tự động: PX_MaDonHang_Time
-            $maPX = 'PX_' . $donHang->ma_don_hang . '_' . time();
+            // Sinh mã phiếu xuất tự động
+            $prefix = 'PX_' . $donHang->ma_don_hang . '_';
+
+            $lastPX = PhieuXuat::where('ma_phieu_xuat', 'like', $prefix . '%')->orderBy('ma_phieu_xuat', 'desc')->first();
+            $nextId = 1;
+            if ($lastPX && preg_match('/' . $prefix . '(\d+)/', $lastPX->ma_phieu_xuat, $matches)) {
+                $nextId = intval($matches[1]) + 1;
+            }
+            $maPX = $prefix . str_pad($nextId, 4, '0', STR_PAD_LEFT);
             
             $phieuXuat = PhieuXuat::create([
                 'ma_phieu_xuat' => $maPX,
@@ -89,7 +96,7 @@ class PhieuXuatController extends Controller
     }
 
     /**
-     * Chi tiết phiếu xuất (Màn hình FEFO)
+     * Chi tiết phiếu xuất
      */
     public function show($id)
     {

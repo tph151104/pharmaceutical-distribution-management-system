@@ -8,7 +8,6 @@ class ChiTietPhieuNhap extends Model
 {
     protected $table = 'chi_tiet_phieu_nhap';
     public $incrementing = false;
-    // Bảng này có khóa chính composite: ma_phieu_nhap, ma_thuoc, so_lo
     protected $primaryKey = ['ma_phieu_nhap', 'ma_thuoc', 'so_lo'];
     protected $keyType = 'string';
 

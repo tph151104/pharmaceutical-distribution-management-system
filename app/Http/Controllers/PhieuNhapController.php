@@ -86,7 +86,7 @@ class PhieuNhapController extends Controller
             $phieuNhap = PhieuNhap::create([
                 'ma_phieu_nhap' => $maPN,
                 'ma_ncc' => $request->ma_ncc,
-                'nguoi_nhap' => 'USR001', // Tạm fix cứng vì chưa có module Auth. Nếu có Auth: Auth::user()->ma_nguoi_dung
+                'nguoi_nhap' => 'USR001', // Tạm fix cứng vì chưa có module Auth
                 'ngay_nhap' => $request->ngay_nhap,
                 'tong_tien' => $tongTien,
                 'trang_thai_tt' => 'chua_tt',
@@ -297,11 +297,7 @@ class PhieuNhapController extends Controller
 
                 if ($chiTiet && $tonKho) {
                     $newSoLo = $item['so_lo'];
-                    // Nếu sửa số lô, phải cẩn thận vì nó nằm trong khoá chính của cả 2 bảng.
-                    // Tối ưu nhất: xóa cũ tạo mới nếu đổi số lô (do Eloquent không hỗ trợ update composite PK tốt).
-                    // Tuy nhiên để ở mức demo, ta giả sử xoá bản ghi cũ rồi insert bản ghi mới.
                     if ($newSoLo != $item['original_so_lo']) {
-                        // Tạm thời để đơn giản: Xóa cũ, tạo mới với y nguyên data + số lô mới
                         $chiTietData = $chiTiet->toArray();
                         $tonKhoData = $tonKho->toArray();
                         
@@ -315,7 +311,6 @@ class PhieuNhapController extends Controller
 
                         $tonKhoData['so_lo'] = $newSoLo;
                         $tonKhoData['han_su_dung'] = $item['han_su_dung'];
-                        // Cập nhật ảnh nếu có (giả lập upload ở dưới)
                         
                         TonKho::create($tonKhoData);
                         $tonKho = TonKho::where('ma_phieu_nhap', $id)
