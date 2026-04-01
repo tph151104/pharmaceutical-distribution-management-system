@@ -46,17 +46,20 @@ class TonKho extends Model
         return $this->belongsTo(PhieuNhap::class, 'ma_phieu_nhap', 'ma_phieu_nhap');
     }
 
+    // Custom relation vì khoá chính phức tạp. Tạm thời dùng hasOne nhưng cần query thêm điều kiện ở nơi gọi
     public function chiTietPhieuNhap()
     {
-        // Custom relation vì khoá chính phức tạp. Tạm thời dùng hasOne nhưng cần query thêm điều kiện ở nơi gọi
         return $this->hasOne(ChiTietPhieuNhap::class, 'ma_phieu_nhap', 'ma_phieu_nhap')
                     ->where('ma_thuoc', $this->ma_thuoc)
                     ->where('so_lo', $this->so_lo);
     }
 
-    // ==========================================
-    // Scopes
-    // ==========================================
+    public function chiTietKhuVuc()
+    {
+        return $this->hasMany(TonKhoKhuVuc::class, 'ma_thuoc', 'ma_thuoc')
+                    ->where('ma_phieu_nhap', $this->ma_phieu_nhap)
+                    ->where('so_lo', $this->so_lo);
+    }
 
     /**
      * Chỉ lấy các lô đang được phép bán
@@ -77,10 +80,7 @@ class TonKho extends Model
                      ->where('trang_thai_lo', '!=', 'het_han');
     }
 
-    // ==========================================
     // Kiểm tra ràng buộc nghiệp vụ
-    // ==========================================
-
     /**
      * Kiểm tra lô có thể xuất bán không
      */

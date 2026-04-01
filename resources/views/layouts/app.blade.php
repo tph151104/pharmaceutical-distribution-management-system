@@ -229,6 +229,12 @@
                 <span>Tồn kho theo lô</span>
             </a>
         </li>
+        <li>
+            <a href="{{ route('transfers.index') }}" class="sidebar-link {{ request()->routeIs('transfers.*') ? 'active' : '' }}">
+                <span class="sidebar-link-icon"><i class="bi bi-arrow-left-right"></i></span>
+                <span>Luân chuyển khu vực</span>
+            </a>
+        </li>
 
         <li class="sidebar-section-title">Danh mục</li>
         <li>

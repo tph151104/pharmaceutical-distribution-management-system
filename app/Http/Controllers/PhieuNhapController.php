@@ -18,7 +18,7 @@ class PhieuNhapController extends Controller
      */
     public function index(Request $request)
     {
-        $query = PhieuNhap::with('nhaCungCap')->orderBy('created_at', 'desc');
+        $query = PhieuNhap::with(['nhaCungCap', 'chiTiet'])->orderBy('created_at', 'desc');
 
         if ($request->has('search') && $request->search != '') {
             $query->where('ma_phieu_nhap', 'like', '%' . $request->search . '%');
@@ -164,6 +164,10 @@ class PhieuNhapController extends Controller
             return redirect()->route('imports.index')->withErrors(['error' => 'Không thể sửa phiếu nhập đã hàng về hoặc đã hoàn tất.']);
         }
 
+        if ($phieuNhap->chiTiet->sum('so_luong_thuc_te') > 0) {
+            return redirect()->route('imports.index')->withErrors(['error' => 'Không thể sửa do đã có một phần hàng hóa được nhập về.']);
+        }
+
         $nhaCungCaps = NhaCungCap::all();
         $thuocs = Thuoc::all();
         return view('admin.inventory.imports.edit', compact('phieuNhap', 'nhaCungCaps', 'thuocs'));
@@ -174,10 +178,14 @@ class PhieuNhapController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $phieuNhap = PhieuNhap::findOrFail($id);
+        $phieuNhap = PhieuNhap::with('chiTiet')->findOrFail($id);
         
         if ($phieuNhap->trang_thai_phieu_nhap != 'doi_hang_ve') {
             return back()->withErrors(['error' => 'Không thể sửa phiếu này.']);
+        }
+
+        if ($phieuNhap->chiTiet->sum('so_luong_thuc_te') > 0) {
+            return back()->withErrors(['error' => 'Không thể sửa do đã có một phần hàng hóa được nhập về.']);
         }
 
         $request->validate([
@@ -416,11 +424,35 @@ class PhieuNhapController extends Controller
                     if ($hangMoiVe > 0) {
                         $tonTruoc = $tonKho->so_luong_ton;
                         $tonKho->so_luong_ton += $hangMoiVe;
-                        $tonKho->trang_thai_lo = 'dang_ban';
+                        $tonKho->trang_thai_lo = 'cho_duyet'; // Đổi từ dang_ban thành cho_duyet vì phải qua Tiếp nhận -> Biệt trữ -> Thành phẩm
                         $tonKho->ngay_nhap_lo = Carbon::now();
                         $tonKho->save();
 
-                        // Ghi log nhập kho
+                        // Thêm số lượng vào Khu vực Tiếp nhận (KV01)
+                        $khuVuc = \App\Models\TonKhoKhuVuc::firstOrNew([
+                            'ma_thuoc' => $chiTiet->ma_thuoc,
+                            'ma_phieu_nhap' => $id,
+                            'so_lo' => $chiTiet->so_lo,
+                            'ma_khu_vuc' => 'KV01_TIEP_NHAN'
+                        ]);
+                        $khuVuc->so_luong += $hangMoiVe;
+                        $khuVuc->save();
+
+                        // Ghi log dịch chuyển kho (Nhập mới vào KV01)
+                        \App\Models\LichSuDichChuyenKho::create([
+                            'ma_phieu_chuyen' => 'CHUP-' . now()->format('YmdHis') . '-' . strtoupper(\Illuminate\Support\Str::random(4)),
+                            'ma_thuoc' => $chiTiet->ma_thuoc,
+                            'ma_phieu_nhap' => $id,
+                            'so_lo' => $chiTiet->so_lo,
+                            'tu_khu_vuc' => null,
+                            'den_khu_vuc' => 'KV01_TIEP_NHAN',
+                            'so_luong_chuyen' => $hangMoiVe,
+                            'nguoi_thuc_hien' => 'USR001', // Tạm fix cứng
+                            'ngay_chuyen' => Carbon::now(),
+                            'ly_do_chuyen' => 'Tự động nhập vào kho Tiếp nhận sau khi xác nhận kiểm đếm',
+                        ]);
+
+                        // Ghi log nhập kho tổng (cũ)
                         \App\Services\InventoryLogService::logMovement(
                             $chiTiet->ma_thuoc,
                             $chiTiet->so_lo,
@@ -466,10 +498,14 @@ class PhieuNhapController extends Controller
      */
     public function destroy($id)
     {
-        $phieuNhap = PhieuNhap::findOrFail($id);
+        $phieuNhap = PhieuNhap::with('chiTiet')->findOrFail($id);
 
         if ($phieuNhap->trang_thai_phieu_nhap != 'doi_hang_ve') {
             return back()->withErrors(['error' => 'Chỉ có thể xoá phiếu nhập ở trạng thái đợi hàng về.']);
+        }
+
+        if ($phieuNhap->chiTiet->sum('so_luong_thuc_te') > 0) {
+            return back()->withErrors(['error' => 'Không thể xoá do đã có một phần hàng hóa được nhập về.']);
         }
 
         DB::beginTransaction();

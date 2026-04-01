@@ -63,6 +63,14 @@ Route::prefix('imports')->name('imports.')->group(function () {
     Route::delete('/{id}', [PhieuNhapController::class, 'destroy'])->name('destroy');
 });
 
+use App\Http\Controllers\InventoryTransferController;
+Route::prefix('transfers')->name('transfers.')->group(function () {
+    Route::get('/', [InventoryTransferController::class, 'index'])->name('index');
+    Route::post('/', [InventoryTransferController::class, 'transfer'])->name('store');
+    Route::get('/history', [InventoryTransferController::class, 'history'])->name('history');
+    Route::get('/export', [InventoryTransferController::class, 'exportHistory'])->name('export');
+});
+
 use App\Http\Controllers\ThuocController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\UnitController;

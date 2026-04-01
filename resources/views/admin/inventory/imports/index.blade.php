@@ -100,16 +100,22 @@
                             <td class="text-center">
                                 <div class="btn-group">
                                     @if($phieu->trang_thai_phieu_nhap == 'doi_hang_ve')
+                                        @php
+                                            $daNhapMotPhan = $phieu->chiTiet->sum('so_luong_thuc_te') > 0;
+                                        @endphp
                                         <!-- Actions when waiting for goods -->
+                                        @if(!$daNhapMotPhan)
                                         <a href="{{ route('imports.edit', $phieu->ma_phieu_nhap) }}" class="btn btn-sm btn-outline-primary me-2" title="Sửa đơn hàng">
                                             <i class="bi bi-pencil"></i> Sửa
                                         </a>
+                                        @endif
                                         <form action="{{ route('imports.markArrived', $phieu->ma_phieu_nhap) }}" method="POST" class="d-inline" onsubmit="return confirm('Xác nhận hàng đã về kho? Bạn sẽ có thể thực hiện kiểm hàng sau bước này.');">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-success me-2" title="Hàng đã về">
-                                                <i class="bi bi-box-arrow-in-down"></i> Về kho
+                                                <i class="bi bi-box-arrow-in-down"></i> {{ $daNhapMotPhan ? 'Về kho đợt tiếp' : 'Về kho' }}
                                             </button>
                                         </form>
+                                        @if(!$daNhapMotPhan)
                                         <form action="{{ route('imports.destroy', $phieu->ma_phieu_nhap) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xoá phiếu nhập này?');">
                                             @csrf
                                             @method('DELETE')
@@ -117,6 +123,7 @@
                                                 <i class="bi bi-trash"></i> Xóa
                                             </button>
                                         </form>
+                                        @endif
                                     @elseif($phieu->trang_thai_phieu_nhap == 'cho_nhap_kho')
                                         <!-- Actions when goods have arrived, waiting for inspection -->
                                         <a href="{{ route('imports.inspect', $phieu->ma_phieu_nhap) }}" class="btn btn-sm btn-outline-primary">
