@@ -134,6 +134,7 @@
                                     <th>Đã Thanh Toán</th>
                                     <th>Còn Nợ</th>
                                     <th>Trạng Thái</th>
+                                    <th class="text-end pe-3">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -154,10 +155,22 @@
                                                 <span class="badge bg-warning text-dark shadow-sm"><i class="bi bi-hourglass-split me-1"></i>Thu nợ một phần</span>
                                             @endif
                                         </td>
+                                        <td class="text-end pe-3">
+                                            <button type="button" class="btn btn-sm btn-primary" onclick="openPaymentModal({
+                                                loai: 'xuat',
+                                                ma_phieu: '{{ $px->ma_phieu_xuat }}',
+                                                doituong: '{{ $px->khachHang->ten_kh ?? "N/A" }}',
+                                                tong_tien: {{ $px->tong_tien ?? 0 }},
+                                                da_tra: {{ $px->so_tien_da_tra ?? 0 }},
+                                                con_no: {{ $px->so_tien_con_no ?? 0 }}
+                                            })">
+                                                <i class="bi bi-wallet2 me-1"></i>Thu tiền
+                                            </button>
+                                        </td>
                                         </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-4 text-muted">
+                                        <td colspan="7" class="text-center py-4 text-muted">
                                             <i class="bi bi-check-circle fs-4 d-block mb-2 text-success"></i>
                                             Không có công nợ Phải thu nào cần thu.
                                         </td>

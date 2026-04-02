@@ -107,12 +107,19 @@ class PhieuXuatController extends Controller
         
         if ($phieuXuat->trang_thai_phieu_xuat === 'dang_chuan_bi') {
             foreach ($phieuXuat->donHang->chiTiet as $ctdh) {
-                // Tìm các lô thuốc còn tồn, đang bán, còn hạn theo FEFO (ASC date)
-                $lots = TonKho::where('ma_thuoc', $ctdh->ma_thuoc)
-                    ->where('trang_thai_lo', 'dang_ban')
-                    ->where('han_su_dung', '>=', now()->toDateString())
-                    ->where('so_luong_ton', '>', 0)
-                    ->orderBy('han_su_dung', 'asc')
+                // Chỉ tìm các lô thuốc còn tồn ở khu vực Sẵn Sàng Bán (KV03), đang bán, còn hạn theo FEFO
+                $lots = \App\Models\TonKhoKhuVuc::select('ton_kho_khu_vuc.*', 'ton_kho.han_su_dung', 'ton_kho.so_luong_ton as tong_ton')
+                    ->join('ton_kho', function ($join) {
+                        $join->on('ton_kho_khu_vuc.ma_thuoc', '=', 'ton_kho.ma_thuoc')
+                             ->on('ton_kho_khu_vuc.ma_phieu_nhap', '=', 'ton_kho.ma_phieu_nhap')
+                             ->on('ton_kho_khu_vuc.so_lo', '=', 'ton_kho.so_lo');
+                    })
+                    ->where('ton_kho_khu_vuc.ma_thuoc', $ctdh->ma_thuoc)
+                    ->where('ton_kho_khu_vuc.ma_khu_vuc', 'KV03_THANH_PHAM')
+                    ->where('ton_kho.trang_thai_lo', 'dang_ban')
+                    ->where('ton_kho.han_su_dung', '>=', now()->toDateString())
+                    ->where('ton_kho_khu_vuc.so_luong', '>', 0)
+                    ->orderBy('ton_kho.han_su_dung', 'asc')
                     ->get();
                 
                 $needed = $ctdh->so_luong;
@@ -121,11 +128,11 @@ class PhieuXuatController extends Controller
                 foreach ($lots as $lot) {
                     if ($needed <= 0) break;
 
-                    $take = min($needed, $lot->so_luong_ton);
+                    $take = min($needed, $lot->so_luong); // Chỉ lấy số lượng có trong KV03
                     $allocatedLots[] = [
                         'so_lo' => $lot->so_lo,
                         'han_su_dung' => $lot->han_su_dung,
-                        'so_luong_ton' => $lot->so_luong_ton,
+                        'so_luong_ton' => $lot->so_luong, // Hiển thị tồn của KV03
                         'so_luong_xuat' => $take,
                         'ma_phieu_nhap' => $lot->ma_phieu_nhap
                     ];
@@ -193,11 +200,22 @@ class PhieuXuatController extends Controller
                         ->where('ma_phieu_nhap', $info['ma_phieu_nhap'])
                         ->first();
 
-                    if (!$tonKho || $tonKho->so_luong_ton < $soLuongXuat) {
-                        throw new \Exception("Lô {$soLo} của thuốc {$maThuoc} không đủ số lượng tồn ({$soLuongXuat}).");
+                    $tonKhoKhuVuc = \App\Models\TonKhoKhuVuc::where('ma_thuoc', $maThuoc)
+                        ->where('so_lo', $soLo)
+                        ->where('ma_phieu_nhap', $info['ma_phieu_nhap'])
+                        ->where('ma_khu_vuc', 'KV03_THANH_PHAM')
+                        ->first();
+
+                    // Check nếu thiếu hàng ở khu vực sẵn sàng bán
+                    if (!$tonKho || !$tonKhoKhuVuc || $tonKhoKhuVuc->so_luong < $soLuongXuat) {
+                        throw new \Exception("Lô {$soLo} của thuốc {$maThuoc} không đủ hàng tại khu vực Sẵn Sàng Bán (KV03).");
                     }
 
-                    // Trừ tồn
+                    // Trừ tồn KV03
+                    $tonKhoKhuVuc->so_luong -= $soLuongXuat;
+                    $tonKhoKhuVuc->save();
+
+                    // Trừ tồn Tổng
                     $tonTruoc = $tonKho->so_luong_ton;
                     $tonKho->so_luong_ton -= $soLuongXuat;
                     $tonKho->so_luong_da_xuat += $soLuongXuat;
@@ -395,11 +413,32 @@ class PhieuXuatController extends Controller
                     ->first();
 
                 if ($tonKho) {
+                    $tonKhoKhuVuc = \App\Models\TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
+                        ->where('so_lo', $tonKho->so_lo)
+                        ->where('ma_phieu_nhap', $tonKho->ma_phieu_nhap)
+                        ->where('ma_khu_vuc', 'KV03_THANH_PHAM')
+                        ->first();
+
+                    // Hoàn trả tồn Kho Tổng
                     $tonTruoc = $tonKho->so_luong_ton;
                     $tonKho->so_luong_ton += $ct->so_luong_xuat;
                     $tonKho->so_luong_da_xuat -= $ct->so_luong_xuat;
                     if ($tonKho->so_luong_da_xuat < 0) $tonKho->so_luong_da_xuat = 0;
                     $tonKho->save();
+
+                    // Hoàn trả tồn Khu Vực KV03
+                    if ($tonKhoKhuVuc) {
+                        $tonKhoKhuVuc->so_luong += $ct->so_luong_xuat;
+                        $tonKhoKhuVuc->save();
+                    } else {
+                        \App\Models\TonKhoKhuVuc::create([
+                            'ma_thuoc' => $tonKho->ma_thuoc,
+                            'ma_phieu_nhap' => $tonKho->ma_phieu_nhap,
+                            'so_lo' => $tonKho->so_lo,
+                            'ma_khu_vuc' => 'KV03_THANH_PHAM',
+                            'so_luong' => $ct->so_luong_xuat
+                        ]);
+                    }
 
                     // Ghi log hoàn trả
                     \App\Services\InventoryLogService::logMovement(

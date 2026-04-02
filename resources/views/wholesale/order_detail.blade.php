@@ -154,90 +154,51 @@
             </div>
             @endif
 
-            {{-- PHẦN THANH TOÁN - hiện khi có phiếu xuất liên kết --}}
+            @if($donHang->trang_thai_dh === 'da_hoan_thanh')
+            {{-- Kiểm tra công nợ --}}
             @php
                 $phieuXuat = \App\Models\PhieuXuat::where('ma_don_hang', $donHang->ma_don_hang)->first();
-                $allPayments = $phieuXuat ? \App\Models\ThanhToan::where('ma_phieu_xuat', $phieuXuat->ma_phieu_xuat)->orderBy('ngay_thanh_toan', 'desc')->get() : collect();
-                $tongDaTra = $allPayments->sum('so_tien_tt');
-                $conNo = $donHang->tong_tien - $tongDaTra;
+                $thanhToan = $phieuXuat ? \App\Models\ThanhToan::where('ma_phieu_xuat', $phieuXuat->ma_phieu_xuat)->where('loai_thanh_toan','xuat')->first() : null;
             @endphp
-
-            @if($phieuXuat && in_array($donHang->trang_thai_dh, ['da_xuat_kho', 'dang_van_chuyen', 'da_hoan_thanh']))
             <div class="card border-0 shadow-sm mt-3">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-bold"><i class="bi bi-credit-card me-2"></i>Thanh toán đơn hàng</h6>
-                    @if($allPayments->count() > 0)
-                        <a href="{{ route('wholesale.orders.payment_history', $donHang->ma_don_hang) }}" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-clock-history me-1"></i>Lịch sử ({{ $allPayments->count() }})
-                        </a>
-                    @endif
-                </div>
+                <div class="card-header bg-white"><h6 class="mb-0 fw-bold"><i class="bi bi-credit-card me-2"></i>Thanh toán đơn hàng</h6></div>
                 <div class="card-body">
-                    {{-- Tóm tắt công nợ --}}
-                    <div class="bg-light rounded p-3 mb-3">
+                    @if($thanhToan)
                         <div class="d-flex justify-content-between mb-2 small">
                             <span class="text-muted">Tổng tiền đơn hàng:</span>
-                            <span class="fw-bold">{{ number_format($donHang->tong_tien) }}đ</span>
+                            <span class="fw-bold">{{ number_format($thanhToan->tong_tien) }}đ</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2 small">
                             <span class="text-muted">Đã thanh toán:</span>
-                            <span class="text-success fw-semibold">{{ number_format($tongDaTra) }}đ</span>
+                            <span class="text-success">{{ number_format($thanhToan->so_tien_tt) }}đ</span>
                         </div>
-                        <div class="d-flex justify-content-between pt-2 border-top">
-                            <span class="fw-bold">Còn nợ:</span>
-                            <span class="fw-bold fs-5 {{ $conNo > 0 ? 'text-danger' : 'text-success' }}">
-                                {{ $conNo > 0 ? number_format($conNo) . 'đ' : 'Đã thanh toán đủ' }}
-                            </span>
+                        <div class="d-flex justify-content-between mb-3 small">
+                            <span class="text-muted">Còn nợ:</span>
+                            <span class="text-danger fw-bold">{{ number_format($thanhToan->so_tien_con_no) }}đ</span>
                         </div>
-                    </div>
-
-                    @if($conNo > 0)
-                        {{-- Form thanh toán --}}
-                        <form action="{{ route('wholesale.orders.pay', $donHang->ma_don_hang) }}" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold small">Số tiền thanh toán <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="number" name="so_tien_tt" class="form-control fw-bold text-primary" 
-                                        required min="1" step="1" max="{{ $conNo }}" value="{{ (int)$conNo }}"
-                                        placeholder="Nhập số tiền...">
-                                    <span class="input-group-text fw-bold">VNĐ</span>
-                                </div>
+                        @if($thanhToan->so_tien_con_no > 0)
+                            <div class="text-center text-danger fw-semibold py-2">
+                                <i class="bi bi-info-circle me-2"></i>Chưa thanh toán dứt điểm
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold small">Phương thức thanh toán <span class="text-danger">*</span></label>
-                                <select name="phuong_thuc_tt" class="form-select" required>
-                                    <option value="Chuyển khoản">Chuyển khoản (NH)</option>
-                                    <option value="Tiền mặt">Tiền mặt</option>
-                                </select>
+                        @else
+                            <div class="text-center text-success fw-semibold py-2">
+                                <i class="bi bi-check-circle-fill me-2"></i>Đã thanh toán đầy đủ
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold small">Minh chứng thanh toán</label>
-                                <input type="file" name="minh_chung_tt_image" class="form-control form-control-sm" accept="image/*">
-                                <div class="form-text">Tải ảnh chụp biên lai / xác nhận chuyển khoản (tùy chọn)</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold small">Ghi chú</label>
-                                <textarea name="ghi_chu" class="form-control form-control-sm" rows="2" placeholder="Nội dung / mã GD chuyển khoản..."></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100 fw-semibold" onclick="return confirm('Xác nhận thanh toán số tiền này?')">
-                                <i class="bi bi-wallet2 me-1"></i>Xác nhận thanh toán
-                            </button>
-                        </form>
+                        @endif
+                    @elseif($phieuXuat)
+                        {{-- Có phiếu xuất nhưng chưa có bản ghi thanh toán --}}
+                        <div class="d-flex justify-content-between mb-3 small">
+                            <span class="text-muted">Tổng tiền:</span>
+                            <span class="fw-bold text-danger">{{ number_format($donHang->tong_tien) }}đ</span>
+                        </div>
+                        <div class="text-center text-danger fw-semibold py-2">
+                            <i class="bi bi-info-circle me-2"></i>Chưa thanh toán
+                        </div>
                     @else
-                        <div class="text-center py-3">
-                            <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
-                            <h6 class="text-success mb-1">Đã thanh toán đầy đủ</h6>
-                            <p class="text-muted small mb-0">Cảm ơn bạn đã thanh toán cho đơn hàng này.</p>
+                        <div class="text-center text-muted py-2">
+                            <i class="bi bi-info-circle me-2"></i>Chưa có phiếu xuất kho liên kết. Vui lòng liên hệ nhân viên.
                         </div>
                     @endif
-                </div>
-            </div>
-            @elseif(!$phieuXuat && $donHang->trang_thai_dh === 'da_hoan_thanh')
-            <div class="card border-0 shadow-sm mt-3">
-                <div class="card-header bg-white"><h6 class="mb-0 fw-bold"><i class="bi bi-credit-card me-2"></i>Thanh toán đơn hàng</h6></div>
-                <div class="card-body text-center text-muted py-3">
-                    <i class="bi bi-info-circle me-1"></i>Chưa có phiếu xuất kho liên kết. Vui lòng liên hệ nhân viên.
                 </div>
             </div>
             @endif

@@ -147,9 +147,128 @@ class ThanhToanController extends Controller
     /**
      * Lịch sử thanh toán
      */
-    public function history()
+    public function history(Request $request)
     {
-        $transactions = ThanhToan::orderBy('created_at', 'desc')->paginate(20);
-        return view('admin.inventory.payments.history', compact('transactions'));
+        $tab = $request->get('tab', 'xuat'); // xuat hoặc nhap
+        $groupBy = $request->get('group_by', 'false');
+        $search = $request->get('search');
+        $fromDate = $request->get('from_date');
+        $toDate = $request->get('to_date');
+
+        $query = ThanhToan::where('loai_thanh_toan', $tab);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('ma_thanh_toan', 'like', "%{$search}%")
+                  ->orWhere('ma_phieu_nhap', 'like', "%{$search}%")
+                  ->orWhere('ma_phieu_xuat', 'like', "%{$search}%");
+            });
+        }
+        if ($fromDate) {
+            $query->whereDate('ngay_thanh_toan', '>=', $fromDate);
+        }
+        if ($toDate) {
+            $query->whereDate('ngay_thanh_toan', '<=', $toDate);
+        }
+
+        if ($tab === 'nhap') {
+            $query->with('phieuNhap.nhaCungCap');
+        } else {
+            $query->with('phieuXuat.khachHang');
+        }
+
+        $query->orderBy('ngay_thanh_toan', 'desc');
+
+        // Phân trang bằng pagination, nếu group by thì group trên tập kết quả trang hiện tại hoặc dùng collection
+        if ($groupBy === 'true') {
+            // Gom nhóm tất cả kết quả thỏa mãn filter để tránh vỡ group khi pagination
+            $unpaginated = $query->get();
+            $transactions = $unpaginated->groupBy($tab === 'nhap' ? 'ma_phieu_nhap' : 'ma_phieu_xuat');
+        } else {
+            $transactions = $query->paginate(20)->withQueryString();
+        }
+
+        return view('admin.inventory.payments.history', compact('transactions', 'tab', 'groupBy', 'search', 'fromDate', 'toDate'));
+    }
+
+    /**
+     * Xuất Excel Lịch sử thanh toán
+     */
+    public function exportHistory(Request $request)
+    {
+        $tab = $request->get('tab', 'xuat');
+        $search = $request->get('search');
+        $fromDate = $request->get('from_date');
+        $toDate = $request->get('to_date');
+
+        $query = ThanhToan::where('loai_thanh_toan', $tab);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('ma_thanh_toan', 'like', "%{$search}%")
+                  ->orWhere('ma_phieu_nhap', 'like', "%{$search}%")
+                  ->orWhere('ma_phieu_xuat', 'like', "%{$search}%");
+            });
+        }
+        if ($fromDate) {
+            $query->whereDate('ngay_thanh_toan', '>=', $fromDate);
+        }
+        if ($toDate) {
+            $query->whereDate('ngay_thanh_toan', '<=', $toDate);
+        }
+
+        if ($tab === 'nhap') {
+            $query->with('phieuNhap.nhaCungCap');
+        } else {
+            $query->with('phieuXuat.khachHang');
+        }
+
+        $transactions = $query->orderBy('ngay_thanh_toan', 'asc')->get();
+
+        $fileName = 'Lich_Su_Thanh_Toan_' . ($tab == 'nhap' ? 'Phai_Tra' : 'Phai_Thu') . '_' . date('Y_m_d_H_i') . '.xls';
+        return response(view('admin.inventory.payments.history_export', compact('transactions', 'tab')))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+    }
+    /**
+     * Xuất Excel Công nợ Phải trả (NCC)
+     */
+    public function exportSuppliers()
+    {
+        $phieuNhaps = PhieuNhap::with('nhaCungCap')
+            ->withSum('cacThanhToan as so_tien_da_tra', 'so_tien_tt')
+            ->whereIn('trang_thai_tt', ['chua_tt', 'mot_phan'])
+            ->orderBy('ngay_nhap', 'desc')
+            ->get()
+            ->map(function ($pn) {
+                $pn->so_tien_con_no = $pn->tong_tien - ($pn->so_tien_da_tra ?? 0);
+                return $pn;
+            });
+
+        $fileName = 'Cong_No_Phai_Tra_NCC_' . date('Y_m_d_H_i') . '.xls';
+        return response(view('admin.inventory.payments.export_debts', ['phieus' => $phieuNhaps, 'type' => 'nhap']))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+    }
+
+    /**
+     * Xuất Excel Công nợ Phải thu (Khách Hàng)
+     */
+    public function exportCustomers()
+    {
+        $phieuXuats = PhieuXuat::with('khachHang')
+            ->withSum('cacThanhToan as so_tien_da_tra', 'so_tien_tt')
+            ->whereIn('trang_thai_tt', ['chua_tt', 'mot_phan'])
+            ->orderBy('ngay_xuat', 'desc')
+            ->get()
+            ->map(function ($px) {
+                $px->so_tien_con_no = $px->tong_tien - ($px->so_tien_da_tra ?? 0);
+                return $px;
+            });
+
+        $fileName = 'Cong_No_Phai_Thu_KH_' . date('Y_m_d_H_i') . '.xls';
+        return response(view('admin.inventory.payments.export_debts', ['phieus' => $phieuXuats, 'type' => 'xuat']))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
     }
 }

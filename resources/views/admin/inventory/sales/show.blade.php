@@ -136,8 +136,8 @@
             
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white border-bottom-0 pt-4 pb-2 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-primary">Phân bổ xuất kho (FEFO)</h5>
-                    <span class="badge bg-info-subtle text-info border border-info-subtle">Hệ thống gợi ý ưu tiên xuất lô cận date</span>
+                    <h5 class="mb-0 fw-bold text-primary">Phân bổ xuất kho (FEFO từ KV03)</h5>
+                    <span class="badge bg-info-subtle text-info border border-info-subtle">Hệ thống gợi ý xuất lô cận date, chỉ áp dụng hàng tại Khu vực Sẵn sáng bán (KV03)</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -166,14 +166,14 @@
                                         </td>
                                         <td>
                                             @if(empty($item['allocated']))
-                                                <div class="text-muted small fst-italic py-2">Không còn lô nào đủ điều kiện bán.</div>
+                                                <div class="text-muted small fst-italic py-2">Không có lô hàng hợp lệ</div>
                                             @else
                                                 <table class="table table-sm table-bordered border-light mb-0 bg-light">
                                                     <thead>
                                                         <tr class="text-muted" style="font-size: 0.8rem;">
                                                             <th>Số lô</th>
                                                             <th>Hạn SD</th>
-                                                            <th class="text-end" title="Tồn kho hiện tại của lô">Tồn lô</th>
+                                                            <th class="text-end" title="Tồn kho tại khu vực KV03">Tồn lô (KV03)</th>
                                                             <th style="width: 120px;" title="Số lượng sẽ xuất từ lô này">SL xuất thực tế</th>
                                                         </tr>
                                                     </thead>

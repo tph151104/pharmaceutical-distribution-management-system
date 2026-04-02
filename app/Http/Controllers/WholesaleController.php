@@ -19,7 +19,20 @@ class WholesaleController extends Controller
      */
     public function catalog(Request $request)
     {
-        $query = Thuoc::with(['nhomThuoc', 'donViTinh']);
+        $query = Thuoc::with(['nhomThuoc', 'donViTinh'])
+            ->whereHas('tonKho', function ($q) {
+                $q->where('trang_thai_lo', 'dang_ban')
+                  ->where('han_su_dung', '>=', now()->toDateString())
+                  ->whereExists(function ($sub) {
+                      $sub->select(DB::raw(1))
+                          ->from('ton_kho_khu_vuc')
+                          ->whereColumn('ton_kho_khu_vuc.ma_thuoc', 'ton_kho.ma_thuoc')
+                          ->whereColumn('ton_kho_khu_vuc.ma_phieu_nhap', 'ton_kho.ma_phieu_nhap')
+                          ->whereColumn('ton_kho_khu_vuc.so_lo', 'ton_kho.so_lo')
+                          ->where('ton_kho_khu_vuc.ma_khu_vuc', 'KV03_THANH_PHAM')
+                          ->where('ton_kho_khu_vuc.so_luong', '>', 0);
+                  });
+            });
 
         // Tìm kiếm
         if ($search = $request->get('search')) {
@@ -364,110 +377,5 @@ class WholesaleController extends Controller
         $cartCount = array_sum(array_column(session('cart', []), 'so_luong'));
 
         return view('wholesale.product', compact('thuoc', 'similarProducts', 'cartCount'));
-    }
-
-    /**
-     * Khách hàng thanh toán đơn hàng
-     */
-    public function payOrder(Request $request, $id)
-    {
-        $customer = auth('customer')->user();
-        $donHang = DonHang::where('ma_kh', $customer->ma_kh)
-            ->where('ma_don_hang', $id)
-            ->firstOrFail();
-
-        // Tìm phiếu xuất liên quan
-        $phieuXuat = PhieuXuat::where('ma_don_hang', $id)->first();
-        if (!$phieuXuat) {
-            return back()->withErrors(['error' => 'Chưa có phiếu xuất kho liên kết với đơn hàng này.']);
-        }
-
-        $request->validate([
-            'so_tien_tt' => 'required|numeric|min:1',
-            'phuong_thuc_tt' => 'required|string',
-            'minh_chung_tt_image' => 'nullable|image|max:2048',
-            'ghi_chu' => 'nullable|string|max:500',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $soTienTT = floatval($request->so_tien_tt);
-            $tongDaTra = ThanhToan::where('ma_phieu_xuat', $phieuXuat->ma_phieu_xuat)->sum('so_tien_tt');
-            $tongTienCT = floatval($phieuXuat->tong_tien);
-            $soTienConNo = $tongTienCT - $tongDaTra;
-
-            if ($soTienTT > $soTienConNo + 0.01) {
-                return back()->withErrors(['error' => 'Số tiền thanh toán (' . number_format($soTienTT) . 'đ) không được lớn hơn số tiền còn nợ (' . number_format($soTienConNo) . 'đ).']);
-            }
-
-            // Sinh mã thanh toán
-            $lastTT = ThanhToan::where('ma_thanh_toan', 'like', 'TTX%')->orderBy('ma_thanh_toan', 'desc')->first();
-            $nextId = 1;
-            if ($lastTT && preg_match('/TTX(\d+)/', $lastTT->ma_thanh_toan, $matches)) {
-                $nextId = intval($matches[1]) + 1;
-            }
-            $maTT = 'TTX' . str_pad($nextId, 5, '0', STR_PAD_LEFT);
-
-            // Xử lý ảnh minh chứng
-            $imagePath = null;
-            if ($request->hasFile('minh_chung_tt_image')) {
-                $imagePath = $request->file('minh_chung_tt_image')->store('payments', 'public');
-            }
-
-            $conNoMoi = $soTienConNo - $soTienTT;
-
-            ThanhToan::create([
-                'ma_thanh_toan' => $maTT,
-                'loai_thanh_toan' => 'xuat',
-                'ma_phieu_xuat' => $phieuXuat->ma_phieu_xuat,
-                'tong_tien' => $tongTienCT,
-                'so_tien_tt' => $soTienTT,
-                'so_tien_con_no' => $conNoMoi,
-                'trang_thai_tt' => $conNoMoi <= 0.01 ? 'da_du' : 'con_no',
-                'phuong_thuc_tt' => $request->phuong_thuc_tt,
-                'ngay_thanh_toan' => now(),
-                'minh_chung_tt_image' => $imagePath,
-                'ghi_chu' => $request->ghi_chu,
-            ]);
-
-            // Cập nhật trạng thái phiếu xuất
-            $phieuXuat->update([
-                'trang_thai_tt' => $conNoMoi <= 0.01 ? 'da_tt' : 'mot_phan'
-            ]);
-
-            DB::commit();
-            return back()->with('success', 'Thanh toán thành công! Mã giao dịch: ' . $maTT);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withErrors(['error' => 'Lỗi thanh toán: ' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Lịch sử thanh toán đơn hàng
-     */
-    public function paymentHistory($id)
-    {
-        $customer = auth('customer')->user();
-        $donHang = DonHang::where('ma_kh', $customer->ma_kh)
-            ->where('ma_don_hang', $id)
-            ->firstOrFail();
-
-        $phieuXuat = PhieuXuat::where('ma_don_hang', $id)->first();
-
-        $transactions = collect();
-        $tongDaTra = 0;
-        $tongTien = $donHang->tong_tien;
-
-        if ($phieuXuat) {
-            $transactions = ThanhToan::where('ma_phieu_xuat', $phieuXuat->ma_phieu_xuat)
-                ->orderBy('ngay_thanh_toan', 'desc')
-                ->get();
-            $tongDaTra = $transactions->sum('so_tien_tt');
-        }
-
-        $conNo = $tongTien - $tongDaTra;
-
-        return view('wholesale.payment_history', compact('donHang', 'phieuXuat', 'transactions', 'tongTien', 'tongDaTra', 'conNo'));
     }
 }

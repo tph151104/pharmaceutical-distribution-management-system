@@ -139,6 +139,7 @@ Route::prefix('payments')->name('payments.')->group(function () {
     Route::get('/', [ThanhToanController::class, 'index'])->name('index');
     Route::post('/', [ThanhToanController::class, 'store'])->name('store');
     Route::get('/history', [ThanhToanController::class, 'history'])->name('history');
+    Route::get('/history/export', [ThanhToanController::class, 'exportHistory'])->name('history.export');
     Route::get('/export/suppliers', [ThanhToanController::class, 'exportSuppliers'])->name('export.suppliers');
     Route::get('/export/customers', [ThanhToanController::class, 'exportCustomers'])->name('export.customers');
     Route::get('/{id}', [ThanhToanController::class, 'show'])->name('show');
@@ -170,22 +171,12 @@ Route::prefix('wholesale')->name('wholesale.')->middleware('auth:customer')->gro
     Route::post('/orders/{id}/cancel', [WholesaleController::class, 'cancelOrder'])->name('orders.cancel');
     Route::post('/orders/{id}/edit', [WholesaleController::class, 'editOrder'])->name('orders.edit');
     Route::post('/orders/{id}/complete', [WholesaleController::class, 'completeOrder'])->name('orders.complete');
-    Route::post('/orders/{id}/pay', [WholesaleController::class, 'payOrder'])->name('orders.pay');
-    Route::get('/orders/{id}/payment-history', [WholesaleController::class, 'paymentHistory'])->name('orders.payment_history');
 
     // Thông tin cá nhân
     Route::get('/profile', [KhachHangController::class, 'profile'])->name('profile');
     Route::put('/profile', [KhachHangController::class, 'updateProfile'])->name('profile.update');
-
-
-
     Route::get('/product/{id}', [WholesaleController::class, 'product'])->name('product');
-
-
 });
-
-
-
 
 Route::prefix('admin/orders')->name('admin.orders.')->group(function () {
     Route::get('/', [DonHangController::class, 'index'])->name('index');

@@ -51,9 +51,15 @@ class Thuoc extends Model
      */
     public function getTongTonKhoAttribute()
     {
-        return $this->tonKho()
-            ->where('trang_thai_lo', 'dang_ban')
-            ->where('han_su_dung', '>=', now()->toDateString())
-            ->sum('so_luong_ton');
+        return \App\Models\TonKhoKhuVuc::join('ton_kho', function ($join) {
+                $join->on('ton_kho_khu_vuc.ma_thuoc', '=', 'ton_kho.ma_thuoc')
+                     ->on('ton_kho_khu_vuc.ma_phieu_nhap', '=', 'ton_kho.ma_phieu_nhap')
+                     ->on('ton_kho_khu_vuc.so_lo', '=', 'ton_kho.so_lo');
+            })
+            ->where('ton_kho_khu_vuc.ma_thuoc', $this->ma_thuoc)
+            ->where('ton_kho_khu_vuc.ma_khu_vuc', 'KV03_THANH_PHAM')
+            ->where('ton_kho.trang_thai_lo', 'dang_ban')
+            ->where('ton_kho.han_su_dung', '>=', now()->toDateString())
+            ->sum('ton_kho_khu_vuc.so_luong');
     }
 }
