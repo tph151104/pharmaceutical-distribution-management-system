@@ -31,7 +31,7 @@
                                 <th>Sản phẩm</th>
                                 <th class="text-end">Đơn giá trả</th>
                                 <th class="text-center">SL Trả</th>
-                                <th>Lý do chi tiết</th>
+                                <th>Lý do</th>
                                 <th class="text-end">Thành tiền</th>
                             </tr>
                         </thead>
@@ -62,7 +62,7 @@
             <!-- Ghi chú chung -->
             <div class="card border-0 shadow-sm">
                 <div class="card-body bg-light rounded">
-                    <h6 class="fw-bold text-dark"><i class="bi bi-chat-quote me-2"></i>Lý do khách hàng ghi chú:</h6>
+                    <h6 class="fw-bold text-dark"><i class="bi bi-chat-quote me-2"></i>Lý do chi tiết khách hàng ghi chú:</h6>
                     <p class="mb-0 fst-italic">"{{ $traHang->ly_do_chung }}"</p>
                 </div>
             </div>

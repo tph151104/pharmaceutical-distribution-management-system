@@ -6,7 +6,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="content-header-title mb-0"><i class="bi bi-cash-coin text-primary me-2"></i>Xử lý Thanh toán</h1>
-            <p class="text-muted small mb-0 mt-1">Quản lý và thanh toán công nợ Phải thu / Phải trả</p>
+            <p class="text-muted small mb-0 mt-1">Quản lý và thanh toán công nợ Phải thu / Phải trả / Hoàn trả</p>
         </div>
         <div>
             <a href="{{ route('payments.history') }}" class="btn btn-outline-secondary">
@@ -17,7 +17,7 @@
 @endsection
 
 @section('content')
-    <!-- Alert Messages -->
+    {{-- Alert Messages --}}
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
@@ -39,22 +39,37 @@
         <div class="card-header bg-white border-bottom p-3">
             <ul class="nav nav-tabs card-header-tabs" id="paymentTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-semibold" id="supplier-tab" data-bs-toggle="tab" data-bs-target="#supplier-pane" type="button" role="tab" aria-controls="supplier-pane" aria-selected="true">
+                    <button class="nav-link {{ $activeTab == 'supplier' || $activeTab == '' ? 'active' : '' }} fw-semibold"
+                            id="supplier-tab" data-bs-toggle="tab" data-bs-target="#supplier-pane"
+                            type="button" role="tab">
                         <i class="bi bi-arrow-up-circle text-danger me-1"></i>Công nợ Phải trả (Nhà cung cấp)
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-semibold" id="customer-tab" data-bs-toggle="tab" data-bs-target="#customer-pane" type="button" role="tab" aria-controls="customer-pane" aria-selected="false">
+                    <button class="nav-link {{ $activeTab == 'customer' ? 'active' : '' }} fw-semibold"
+                            id="customer-tab" data-bs-toggle="tab" data-bs-target="#customer-pane"
+                            type="button" role="tab">
                         <i class="bi bi-arrow-down-circle text-success me-1"></i>Công nợ Phải thu (Khách hàng)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {{ $activeTab == 'tra_hang' ? 'active' : '' }} fw-semibold"
+                            id="return-tab" data-bs-toggle="tab" data-bs-target="#return-pane"
+                            type="button" role="tab">
+                        <i class="bi bi-arrow-return-left text-warning me-1"></i>Hoàn trả đơn hàng (KH)
+                        @if($donTraHangs->count() > 0)
+                            <span class="badge bg-warning text-dark ms-1">{{ $donTraHangs->count() }}</span>
+                        @endif
                     </button>
                 </li>
             </ul>
         </div>
         <div class="card-body p-0">
             <div class="tab-content" id="paymentTabContent">
-                
-                <!-- THU NỢ NHÀ CUNG CẤP (PHẢI TRẢ) -->
-                <div class="tab-pane fade show active" id="supplier-pane" role="tabpanel" aria-labelledby="supplier-tab" tabindex="0">
+
+                {{-- THU NỢ NHÀ CUNG CẤP (PHẢI TRẢ) --}}
+                <div class="tab-pane fade {{ $activeTab == 'supplier' || $activeTab == '' ? 'show active' : '' }}"
+                     id="supplier-pane" role="tabpanel" tabindex="0">
                     <div class="d-flex justify-content-end p-2 border-bottom text-bg-light">
                         <a href="{{ route('payments.export.suppliers') }}" class="btn btn-sm btn-success">
                             <i class="bi bi-file-earmark-excel me-1"></i>Xuất Excel
@@ -117,14 +132,15 @@
                     </div>
                 </div>
 
-                <!-- THU NỢ KHÁCH HÀNG (PHẢI THU) -->
-                <div class="tab-pane fade" id="customer-pane" role="tabpanel" aria-labelledby="customer-tab" tabindex="0">
+                {{-- THU NỢ KHÁCH HÀNG (PHẢI THU) --}}
+                <div class="tab-pane fade {{ $activeTab == 'customer' ? 'show active' : '' }}"
+                     id="customer-pane" role="tabpanel" tabindex="0">
                     <div class="d-flex justify-content-end p-2 border-bottom text-bg-light">
                         <a href="{{ route('payments.export.customers') }}" class="btn btn-sm btn-success">
                             <i class="bi bi-file-earmark-excel me-1"></i>Xuất Excel
                         </a>
-                     </div>
-                     <div class="table-responsive">
+                    </div>
+                    <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
@@ -167,7 +183,7 @@
                                                 <i class="bi bi-wallet2 me-1"></i>Thu tiền
                                             </button>
                                         </td>
-                                        </tr>
+                                    </tr>
                                 @empty
                                     <tr>
                                         <td colspan="7" class="text-center py-4 text-muted">
@@ -181,11 +197,82 @@
                     </div>
                 </div>
 
+                {{-- HOÀN TRẢ ĐƠN HÀNG (KH) --}}
+                <div class="tab-pane fade {{ $activeTab == 'tra_hang' ? 'show active' : '' }}"
+                     id="return-pane" role="tabpanel" tabindex="0">
+                    <div class="d-flex justify-content-end p-2 border-bottom text-bg-light">
+                        <a href="{{ route('payments.export.returns') }}" class="btn btn-sm btn-success">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Xuất Excel
+                        </a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Mã Đơn Trả</th>
+                                    <th>Khách Hàng</th>
+                                    <th>Đơn Hàng Gốc</th>
+                                    <th>Ngày Duyệt</th>
+                                    <th>Tổng Hoàn</th>
+                                    <th>Đã Hoàn</th>
+                                    <th>Còn Phải Hoàn</th>
+                                    <th>Trạng Thái</th>
+                                    <th class="text-end pe-3">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($donTraHangs as $dth)
+                                    <tr>
+                                        <td class="ps-3 fw-medium">
+                                            <a href="{{ route('admin.returns.show', $dth->ma_tra_hang) }}" class="text-decoration-none">
+                                                {{ $dth->ma_tra_hang }}
+                                            </a>
+                                        </td>
+                                        <td>{{ $dth->khachHang->ten_kh ?? 'N/A' }}</td>
+                                        <td class="small text-muted">{{ $dth->ma_don_hang }}</td>
+                                        <td class="small">{{ $dth->ngay_duyet ? $dth->ngay_duyet->format('d/m/Y') : '-' }}</td>
+                                        <td class="fw-semibold">{{ number_format($dth->tong_tien_hoan_tra) }}</td>
+                                        <td class="text-success">{{ number_format($dth->so_tien_da_hoan ?? 0) }}</td>
+                                        <td class="text-danger fw-bold">{{ number_format($dth->so_tien_con_hoan) }}</td>
+                                        <td>
+                                            @if($dth->trang_thai_hoan_tien == 'chua_hoan')
+                                                <span class="badge bg-danger shadow-sm"><i class="bi bi-x-circle me-1"></i>Chưa hoàn tiền</span>
+                                            @else
+                                                <span class="badge bg-warning text-dark shadow-sm"><i class="bi bi-hourglass-split me-1"></i>Hoàn một phần</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <button type="button" class="btn btn-sm btn-warning fw-semibold"
+                                                    onclick="openRefundModal({
+                                                        ma_tra_hang: '{{ $dth->ma_tra_hang }}',
+                                                        khach_hang: '{{ $dth->khachHang->ten_kh ?? "N/A" }}',
+                                                        ma_don_hang: '{{ $dth->ma_don_hang }}',
+                                                        tong_hoan: {{ $dth->tong_tien_hoan_tra ?? 0 }},
+                                                        da_hoan: {{ $dth->so_tien_da_hoan ?? 0 }},
+                                                        con_hoan: {{ $dth->so_tien_con_hoan ?? 0 }}
+                                                    })">
+                                                <i class="bi bi-arrow-return-left me-1"></i>Hoàn tiền
+                                            </button>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="9" class="text-center py-4 text-muted">
+                                            <i class="bi bi-check-circle fs-4 d-block mb-2 text-success"></i>
+                                            Không có đơn trả hàng nào cần hoàn tiền.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 
-    <!-- Modal Thanh Toán -->
+    {{-- Modal Thanh Toán (Phải thu / Phải trả) --}}
     <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -225,7 +312,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Số tiền thanh toán <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" name="so_tien_tt" id="modal_so_tien" class="form-control form-control-lg fw-bold text-primary" required min="1" step="1" max="">
+                                <input type="number" name="so_tien_tt" id="modal_so_tien" class="form-control form-control-lg fw-bold text-primary" required min="1" step="1">
                                 <span class="input-group-text fw-bold">VNĐ</span>
                             </div>
                             <div class="form-text text-danger d-none" id="error_so_tien">Số tiền không được lớn hơn dư nợ.</div>
@@ -239,10 +326,10 @@
                                 <option value="Cấn trừ công nợ">Cấn trừ công nợ</option>
                             </select>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Minh chứng thanh toán (Tùy chọn)</label>
-                            <input type="file" name="giay_phep_tt_image" class="form-control" accept="image/*">
+                            <input type="file" name="minh_chung_tt_image" class="form-control" accept="image/*">
                         </div>
 
                         <div class="mb-1">
@@ -258,30 +345,119 @@
             </div>
         </div>
     </div>
+
+    {{-- Modal Hoàn Tiền Đơn Trả Hàng --}}
+    <div class="modal fade" id="refundModal" tabindex="-1" aria-labelledby="refundModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="refundForm" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-header border-bottom-0 bg-warning bg-opacity-10">
+                        <h5 class="modal-title fw-bold text-warning" id="refundModalLabel">
+                            <i class="bi bi-arrow-return-left me-2"></i>Hoàn Tiền Đơn Trả Hàng
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-0 pt-3">
+                        <div class="bg-light p-3 rounded mb-3">
+                            <div class="row mb-1">
+                                <div class="col-5 text-muted small">Mã đơn trả:</div>
+                                <div class="col-7 fw-bold" id="ref_ma_tra_hang">-</div>
+                            </div>
+                            <div class="row mb-1">
+                                <div class="col-5 text-muted small">Khách hàng:</div>
+                                <div class="col-7 fw-medium" id="ref_khach_hang">-</div>
+                            </div>
+                            <div class="row mb-1">
+                                <div class="col-5 text-muted small">Đơn hàng gốc:</div>
+                                <div class="col-7 small text-muted" id="ref_ma_don_hang">-</div>
+                            </div>
+                            <div class="row mb-1">
+                                <div class="col-5 text-muted small">Tổng cần hoàn:</div>
+                                <div class="col-7 fw-semibold" id="ref_tong_hoan">0</div>
+                            </div>
+                            <div class="row mb-1">
+                                <div class="col-5 text-muted small">Đã hoàn:</div>
+                                <div class="col-7 text-success" id="ref_da_hoan">0</div>
+                            </div>
+                            <div class="row border-top pt-1 mt-1">
+                                <div class="col-5 text-muted small fw-bold">Còn phải hoàn:</div>
+                                <div class="col-7 text-danger fw-bold fs-5" id="ref_con_hoan">0</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Số tiền hoàn trả <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" name="so_tien_tt" id="ref_so_tien" class="form-control form-control-lg fw-bold text-warning" required min="1" step="1">
+                                <span class="input-group-text fw-bold">VNĐ</span>
+                            </div>
+                            <div class="form-text text-danger d-none" id="ref_error_so_tien">Số tiền không được lớn hơn số tiền còn phải hoàn.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Phương thức hoàn tiền <span class="text-danger">*</span></label>
+                            <select name="phuong_thuc_tt" class="form-select" required>
+                                <option value="Chuyển khoản">Chuyển khoản (NH)</option>
+                                <option value="Tiền mặt">Tiền mặt</option>
+                                <option value="Cấn trừ công nợ">Cấn trừ công nợ</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Minh chứng (Tùy chọn)</label>
+                            <input type="file" name="minh_chung_tt_image" class="form-control" accept="image/*">
+                        </div>
+
+                        <div class="mb-1">
+                            <label class="form-label fw-semibold">Ghi chú (Tùy chọn)</label>
+                            <textarea name="ghi_chu" class="form-control" rows="2" placeholder="Nội dung chuyển khoản, ghi chú..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 pt-0 mt-3 pb-4">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-warning px-4 fw-bold" id="btn_submit_refund">
+                            <i class="bi bi-arrow-return-left me-1"></i>Xác nhận Hoàn tiền
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
 <script>
+    // Activate the correct tab on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab === 'tra_hang') {
+            const returnTab = document.getElementById('return-tab');
+            if (returnTab) bootstrap.Tab.getOrCreateInstance(returnTab).show();
+        } else if (tab === 'customer') {
+            const customerTab = document.getElementById('customer-tab');
+            if (customerTab) bootstrap.Tab.getOrCreateInstance(customerTab).show();
+        }
+    });
+
     function openPaymentModal(data) {
-        // Set values
         document.getElementById('modal_loai').value = data.loai;
         document.getElementById('modal_ma_phieu').value = data.ma_phieu;
-        
-        // Labels
         document.getElementById('lbl_phieu').textContent = data.ma_phieu;
-        document.getElementById('paymentModalLabel').innerHTML = data.loai === 'nhap' ? '<i class="bi bi-arrow-up-circle"></i> Trả Nợ Nhà Cung Cấp' : '<i class="bi bi-arrow-down-circle"></i> Thu Nợ Khách Hàng';
+        document.getElementById('paymentModalLabel').innerHTML = data.loai === 'nhap'
+            ? '<i class="bi bi-arrow-up-circle"></i> Trả Nợ Nhà Cung Cấp'
+            : '<i class="bi bi-arrow-down-circle"></i> Thu Nợ Khách Hàng';
         document.getElementById('lbl_doi_tuong').textContent = data.doituong;
         document.getElementById('lbl_tong_tien').textContent = new Intl.NumberFormat('vi-VN').format(data.tong_tien) + ' đ';
         document.getElementById('lbl_da_tra').textContent = new Intl.NumberFormat('vi-VN').format(data.da_tra) + ' đ';
         document.getElementById('lbl_con_no').textContent = new Intl.NumberFormat('vi-VN').format(data.con_no) + ' đ';
 
-        // Set Input max and direct value
         let inputTien = document.getElementById('modal_so_tien');
         inputTien.max = data.con_no;
-        inputTien.value = data.con_no; // Default full payment
+        inputTien.value = data.con_no;
 
-        // Live Validate Function
-        inputTien.oninput = function() {
+        inputTien.oninput = function () {
             let val = parseFloat(this.value);
             let btn = document.getElementById('btn_submit_payment');
             let err = document.getElementById('error_so_tien');
@@ -294,9 +470,38 @@
             }
         };
 
-        // Open Modal
-        var myModal = new bootstrap.Modal(document.getElementById('paymentModal'));
-        myModal.show();
+        new bootstrap.Modal(document.getElementById('paymentModal')).show();
+    }
+
+    function openRefundModal(data) {
+        // Set form action dynamically
+        document.getElementById('refundForm').action = `/admin/returns/${data.ma_tra_hang}/refund`;
+
+        document.getElementById('ref_ma_tra_hang').textContent = data.ma_tra_hang;
+        document.getElementById('ref_khach_hang').textContent = data.khach_hang;
+        document.getElementById('ref_ma_don_hang').textContent = data.ma_don_hang;
+        document.getElementById('ref_tong_hoan').textContent = new Intl.NumberFormat('vi-VN').format(data.tong_hoan) + ' đ';
+        document.getElementById('ref_da_hoan').textContent = new Intl.NumberFormat('vi-VN').format(data.da_hoan) + ' đ';
+        document.getElementById('ref_con_hoan').textContent = new Intl.NumberFormat('vi-VN').format(data.con_hoan) + ' đ';
+
+        let inputRef = document.getElementById('ref_so_tien');
+        inputRef.max = data.con_hoan;
+        inputRef.value = data.con_hoan;
+
+        inputRef.oninput = function () {
+            let val = parseFloat(this.value);
+            let btn = document.getElementById('btn_submit_refund');
+            let err = document.getElementById('ref_error_so_tien');
+            if (val > data.con_hoan) {
+                btn.disabled = true;
+                err.classList.remove('d-none');
+            } else {
+                btn.disabled = false;
+                err.classList.add('d-none');
+            }
+        };
+
+        new bootstrap.Modal(document.getElementById('refundModal')).show();
     }
 </script>
 @endpush

@@ -6,18 +6,18 @@ use Illuminate\Http\Request;
 use App\Models\ThanhToan;
 use App\Models\PhieuNhap;
 use App\Models\PhieuXuat;
+use App\Models\KhachTraHang;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class ThanhToanController extends Controller
 {
     /**
-     * Hiển thị danh sách công nợ (cả Phải thu và Phải trả).
+     * Hiển thị danh sách công nợ (cả Phải thu, Phải trả và Hoàn trả đơn hàng KH).
      */
     public function index(Request $request)
     {
         // 1. Công nợ Nhà Cung Cấp (Phải trả)
-        // Lấy các phiếu nhập chưa thanh toán hết (chua_tt hoặc mot_phan)
         $phieuNhaps = PhieuNhap::with('nhaCungCap')
             ->withSum('cacThanhToan as so_tien_da_tra', 'so_tien_tt')
             ->whereIn('trang_thai_tt', ['chua_tt', 'mot_phan'])
@@ -29,7 +29,6 @@ class ThanhToanController extends Controller
             });
 
         // 2. Công nợ Khách Hàng (Phải thu)
-        // Lấy các phiếu xuất chưa thanh toán hết
         $phieuXuats = PhieuXuat::with('khachHang')
             ->withSum('cacThanhToan as so_tien_da_tra', 'so_tien_tt')
             ->whereIn('trang_thai_tt', ['chua_tt', 'mot_phan'])
@@ -40,7 +39,20 @@ class ThanhToanController extends Controller
                 return $px;
             });
 
-        return view('admin.inventory.payments.index', compact('phieuNhaps', 'phieuXuats'));
+        // 3. Hoàn trả đơn hàng cho KH (đã duyệt, chưa hoàn tiền đủ)
+        $donTraHangs = KhachTraHang::with(['khachHang', 'donHang'])
+            ->withSum('thanhToans as so_tien_da_hoan', 'so_tien_tt')
+            ->where('trang_thai', 'da_duyet_nhap_kho')
+            ->whereIn('trang_thai_hoan_tien', ['chua_hoan', 'mot_phan'])
+            ->orderBy('ngay_duyet', 'desc')
+            ->get()
+            ->map(function ($dth) {
+                $dth->so_tien_con_hoan = $dth->tong_tien_hoan_tra - ($dth->so_tien_da_hoan ?? 0);
+                return $dth;
+            });
+
+        $activeTab = request('tab', 'supplier');
+        return view('admin.inventory.payments.index', compact('phieuNhaps', 'phieuXuats', 'donTraHangs', 'activeTab'));
     }
 
     /**
@@ -75,23 +87,20 @@ class ThanhToanController extends Controller
             $tongTienCT = floatval($phieu->tong_tien);
             $soTienConNoHienTai = $tongTienCT - $tongDaTra;
 
-            // Kiểm tra ràng buộc: không vượt quá số nợ
-            if ($soTienTT > $soTienConNoHienTai + 0.01) { 
+            if ($soTienTT > $soTienConNoHienTai + 0.01) {
                 return back()->withInput()->withErrors(['error' => 'Số tiền thanh toán (' . number_format($soTienTT) . ') không được lớn hơn số tiền còn nợ (' . number_format($soTienConNoHienTai) . ').']);
             }
 
-            // Sinh mã thanh toán
             $prefix = $loai == 'nhap' ? 'TTN' : 'TTX';
-            $lastTT = ThanhToan::where('ma_thanh_toan', 'like', $prefix . '%')->orderBy('ma_thanh_toan', 'desc')->first();//tìm mã thanh toán cuối cùng
+            $lastTT = ThanhToan::where('ma_thanh_toan', 'like', $prefix . '%')->orderBy('ma_thanh_toan', 'desc')->first();
 
             $nextId = 1;
             if ($lastTT && preg_match('/' . $prefix . '(\d+)/', $lastTT->ma_thanh_toan, $matches)) {
-                $nextId = intval($matches[1]) + 1; //tự động tăng mã thanh toán lên 1
+                $nextId = intval($matches[1]) + 1;
             }
 
-            $maTT = $prefix . str_pad($nextId, 5, '0', STR_PAD_LEFT);//tạo mã thanh toán mới
+            $maTT = $prefix . str_pad($nextId, 5, '0', STR_PAD_LEFT);
 
-            // Xử lý ảnh
             $imagePath = null;
             if ($request->hasFile('minh_chung_tt_image')) {
                 $imagePath = $request->file('minh_chung_tt_image')->store('payments', 'public');
@@ -99,23 +108,21 @@ class ThanhToanController extends Controller
 
             $conNoMoi = $soTienConNoHienTai - $soTienTT;
 
-            // Lưu lịch sử
             ThanhToan::create([
-                'ma_thanh_toan' => $maTT,
-                'loai_thanh_toan' => $loai,
-                'ma_phieu_nhap' => $loai == 'nhap' ? $maPhieu : null,
-                'ma_phieu_xuat' => $loai == 'xuat' ? $maPhieu : null,
-                'tong_tien' => $tongTienCT,
-                'so_tien_tt' => $soTienTT,
-                'so_tien_con_no' => $conNoMoi,
-                'trang_thai_tt' => $conNoMoi <= 0.01 ? 'da_du' : 'con_no',
-                'phuong_thuc_tt' => $request->phuong_thuc_tt,
-                'ngay_thanh_toan' => now(),
-                'minh_chung_tt_image' => $imagePath,
-                'ghi_chu' => $request->ghi_chu,
+                'ma_thanh_toan'    => $maTT,
+                'loai_thanh_toan'  => $loai,
+                'ma_phieu_nhap'    => $loai == 'nhap' ? $maPhieu : null,
+                'ma_phieu_xuat'    => $loai == 'xuat' ? $maPhieu : null,
+                'tong_tien'        => $tongTienCT,
+                'so_tien_tt'       => $soTienTT,
+                'so_tien_con_no'   => $conNoMoi,
+                'trang_thai_tt'    => $conNoMoi <= 0.01 ? 'da_du' : 'con_no',
+                'phuong_thuc_tt'   => $request->phuong_thuc_tt,
+                'ngay_thanh_toan'  => now(),
+                'giay_phep_tt_image' => $imagePath,
+                'ghi_chu'          => $request->ghi_chu,
             ]);
 
-            // Cập nhật trạng thái phiếu gốc
             $phieu->update([
                 'trang_thai_tt' => $conNoMoi <= 0.01 ? 'da_tt' : 'mot_phan'
             ]);
@@ -134,11 +141,13 @@ class ThanhToanController extends Controller
     public function show($id)
     {
         $thanhToan = ThanhToan::findOrFail($id);
-        
+
         if ($thanhToan->loai_thanh_toan == 'nhap') {
             $thanhToan->load('phieuNhap.nhaCungCap');
-        } else {
+        } elseif ($thanhToan->loai_thanh_toan == 'xuat') {
             $thanhToan->load('phieuXuat.khachHang');
+        } else {
+            $thanhToan->load('khachTraHang.khachHang');
         }
 
         return view('admin.inventory.payments.show', compact('thanhToan'));
@@ -149,7 +158,7 @@ class ThanhToanController extends Controller
      */
     public function history(Request $request)
     {
-        $tab = $request->get('tab', 'xuat'); // xuat hoặc nhap
+        $tab = $request->get('tab', 'xuat'); // xuat, nhap, tra_hang
         $groupBy = $request->get('group_by', 'false');
         $search = $request->get('search');
         $fromDate = $request->get('from_date');
@@ -158,10 +167,13 @@ class ThanhToanController extends Controller
         $query = ThanhToan::where('loai_thanh_toan', $tab);
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search, $tab) {
                 $q->where('ma_thanh_toan', 'like', "%{$search}%")
                   ->orWhere('ma_phieu_nhap', 'like', "%{$search}%")
                   ->orWhere('ma_phieu_xuat', 'like', "%{$search}%");
+                if ($tab === 'tra_hang') {
+                    $q->orWhere('ma_tra_hang', 'like', "%{$search}%");
+                }
             });
         }
         if ($fromDate) {
@@ -173,17 +185,23 @@ class ThanhToanController extends Controller
 
         if ($tab === 'nhap') {
             $query->with('phieuNhap.nhaCungCap');
-        } else {
+        } elseif ($tab === 'xuat') {
             $query->with('phieuXuat.khachHang');
+        } else {
+            $query->with('khachTraHang.khachHang');
         }
 
         $query->orderBy('ngay_thanh_toan', 'desc');
 
-        // Phân trang bằng pagination, nếu group by thì group trên tập kết quả trang hiện tại hoặc dùng collection
         if ($groupBy === 'true') {
-            // Gom nhóm tất cả kết quả thỏa mãn filter để tránh vỡ group khi pagination
             $unpaginated = $query->get();
-            $transactions = $unpaginated->groupBy($tab === 'nhap' ? 'ma_phieu_nhap' : 'ma_phieu_xuat');
+            if ($tab === 'nhap') {
+                $transactions = $unpaginated->groupBy('ma_phieu_nhap');
+            } elseif ($tab === 'xuat') {
+                $transactions = $unpaginated->groupBy('ma_phieu_xuat');
+            } else {
+                $transactions = $unpaginated->groupBy('ma_tra_hang');
+            }
         } else {
             $transactions = $query->paginate(20)->withQueryString();
         }
@@ -204,10 +222,13 @@ class ThanhToanController extends Controller
         $query = ThanhToan::where('loai_thanh_toan', $tab);
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search, $tab) {
                 $q->where('ma_thanh_toan', 'like', "%{$search}%")
                   ->orWhere('ma_phieu_nhap', 'like', "%{$search}%")
                   ->orWhere('ma_phieu_xuat', 'like', "%{$search}%");
+                if ($tab === 'tra_hang') {
+                    $q->orWhere('ma_tra_hang', 'like', "%{$search}%");
+                }
             });
         }
         if ($fromDate) {
@@ -219,17 +240,25 @@ class ThanhToanController extends Controller
 
         if ($tab === 'nhap') {
             $query->with('phieuNhap.nhaCungCap');
-        } else {
+        } elseif ($tab === 'xuat') {
             $query->with('phieuXuat.khachHang');
+        } else {
+            $query->with('khachTraHang.khachHang');
         }
 
         $transactions = $query->orderBy('ngay_thanh_toan', 'asc')->get();
 
-        $fileName = 'Lich_Su_Thanh_Toan_' . ($tab == 'nhap' ? 'Phai_Tra' : 'Phai_Thu') . '_' . date('Y_m_d_H_i') . '.xls';
+        $tabLabel = match($tab) {
+            'nhap'     => 'Phai_Tra',
+            'xuat'     => 'Phai_Thu',
+            default    => 'Hoan_Tra_KH',
+        };
+        $fileName = 'Lich_Su_Thanh_Toan_' . $tabLabel . '_' . date('Y_m_d_H_i') . '.xls';
         return response(view('admin.inventory.payments.history_export', compact('transactions', 'tab')))
             ->header('Content-Type', 'application/vnd.ms-excel')
             ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
     }
+
     /**
      * Xuất Excel Công nợ Phải trả (NCC)
      */
@@ -268,6 +297,28 @@ class ThanhToanController extends Controller
 
         $fileName = 'Cong_No_Phai_Thu_KH_' . date('Y_m_d_H_i') . '.xls';
         return response(view('admin.inventory.payments.export_debts', ['phieus' => $phieuXuats, 'type' => 'xuat']))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+    }
+
+    /**
+     * Xuất Excel Danh sách hoàn trả đơn hàng (KH) đang chờ hoàn tiền
+     */
+    public function exportReturnRefunds()
+    {
+        $donTraHangs = KhachTraHang::with(['khachHang', 'donHang'])
+            ->withSum('thanhToans as so_tien_da_hoan', 'so_tien_tt')
+            ->where('trang_thai', 'da_duyet_nhap_kho')
+            ->whereIn('trang_thai_hoan_tien', ['chua_hoan', 'mot_phan'])
+            ->orderBy('ngay_duyet', 'desc')
+            ->get()
+            ->map(function ($dth) {
+                $dth->so_tien_con_hoan = $dth->tong_tien_hoan_tra - ($dth->so_tien_da_hoan ?? 0);
+                return $dth;
+            });
+
+        $fileName = 'Hoan_Tra_Don_Hang_KH_' . date('Y_m_d_H_i') . '.xls';
+        return response(view('admin.inventory.payments.export_debts', ['phieus' => $donTraHangs, 'type' => 'tra_hang']))
             ->header('Content-Type', 'application/vnd.ms-excel')
             ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
     }

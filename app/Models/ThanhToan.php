@@ -16,6 +16,7 @@ class ThanhToan extends Model
         'loai_thanh_toan',
         'ma_phieu_nhap',
         'ma_phieu_xuat',
+        'ma_tra_hang',
         'tong_tien',
         'so_tien_tt',
         'so_tien_con_no',
@@ -40,5 +41,13 @@ class ThanhToan extends Model
     public function phieuXuat()
     {
         return $this->belongsTo(PhieuXuat::class, 'ma_phieu_xuat', 'ma_phieu_xuat');
+    }
+
+    /**
+     * Thuộc về 1 Đơn Trả Hàng
+     */
+    public function khachTraHang()
+    {
+        return $this->belongsTo(KhachTraHang::class, 'ma_tra_hang', 'ma_tra_hang');
     }
 }

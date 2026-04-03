@@ -19,6 +19,7 @@ class KhachTraHang extends Model
         'ly_do_chung',
         'tong_tien_hoan_tra',
         'trang_thai',
+        'trang_thai_hoan_tien',
         'nguoi_duyet',
         'ngay_duyet',
         'ghi_chu_admin',
@@ -42,6 +43,14 @@ class KhachTraHang extends Model
     public function chiTiet()
     {
         return $this->hasMany(ChiTietTraHang::class, 'ma_tra_hang', 'ma_tra_hang');
+    }
+
+    /**
+     * Các giao dịch hoàn tiền
+     */
+    public function thanhToans()
+    {
+        return $this->hasMany(ThanhToan::class, 'ma_tra_hang', 'ma_tra_hang');
     }
 
     public function nguoiDung()

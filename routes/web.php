@@ -143,6 +143,7 @@ Route::prefix('payments')->name('payments.')->group(function () {
     Route::get('/history/export', [ThanhToanController::class, 'exportHistory'])->name('history.export');
     Route::get('/export/suppliers', [ThanhToanController::class, 'exportSuppliers'])->name('export.suppliers');
     Route::get('/export/customers', [ThanhToanController::class, 'exportCustomers'])->name('export.customers');
+    Route::get('/export/returns', [ThanhToanController::class, 'exportReturnRefunds'])->name('export.returns');
     Route::get('/{id}', [ThanhToanController::class, 'show'])->name('show');
 });
 
@@ -196,6 +197,7 @@ Route::prefix('admin/returns')->name('admin.returns.')->group(function () {
     Route::get('/{id}', [KhachTraHangController::class, 'show'])->name('show');
     Route::post('/{id}/approve', [KhachTraHangController::class, 'approve'])->name('approve');
     Route::post('/{id}/reject', [KhachTraHangController::class, 'reject'])->name('reject');
+    Route::post('/{id}/refund', [KhachTraHangController::class, 'processRefund'])->name('refund');
 });
 
 use App\Http\Controllers\ReportController;
