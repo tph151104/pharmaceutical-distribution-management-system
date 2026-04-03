@@ -9,9 +9,16 @@
             <p class="text-muted small mb-0">Theo dõi chi tiết số lượng tồn, hạn sử dụng và cảnh báo hàng sắp hết hạn.</p>
         </div>
         <div class="d-flex gap-2">
-            <!-- Form tìm kiếm nhanh tên thuốc -->
+            <!-- Form tìm kiếm nhanh tên thuốc & trạng thái -->
             <form action="{{ route('reports.stock') }}" method="GET" class="d-flex gap-2">
-                <input type="text" name="search" class="form-control form-control-sm" placeholder="Tìm tên thuốc..." value="{{ request('search') }}">
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Tìm tên thuốc/số lô..." value="{{ request('search') }}">
+                <select name="trang_thai_lo" class="form-select form-select-sm" style="width: auto;">
+                    <option value="">-- Trạng thái lô --</option>
+                    <option value="dang_ban" {{ request('trang_thai_lo') == 'dang_ban' ? 'selected' : '' }}>Đang bán</option>
+                    <option value="ngung_ban" {{ request('trang_thai_lo') == 'ngung_ban' ? 'selected' : '' }}>Ngừng bán</option>
+                    <option value="cho_duyet" {{ request('trang_thai_lo') == 'cho_duyet' ? 'selected' : '' }}>Chờ duyệt</option>
+                    <option value="huy_bo" {{ request('trang_thai_lo') == 'huy_bo' ? 'selected' : '' }}>Hủy bỏ (Cách ly)</option>
+                </select>
                 <button type="submit" class="btn btn-sm btn-primary px-3">Lọc</button>
             </form>
             <a href="{{ route('reports.stock.export', request()->query()) }}" class="btn btn-success btn-sm px-3">
@@ -41,6 +48,7 @@
                                 <th class="ps-4">Mã Thuốc</th>
                                 <th>Tên Thuốc</th>
                                 <th>Số Lô</th>
+                                <th>Khu Vực</th>
                                 <th>Ngày Nhập</th>
                                 <th>Hạn Sử Dụng</th>
                                 <th>Số Lượng Tồn</th>
@@ -70,6 +78,15 @@
                                     <td class="ps-4 text-muted">{{ $ton->ma_thuoc }}</td>
                                     <td class="fw-semibold text-dark">{{ $ton->thuoc->ten_thuoc ?? 'N/A' }}</td>
                                     <td><span class="badge bg-light text-dark border border-secondary font-monospace">{{ $ton->so_lo }}</span></td>
+                                    <td>
+                                        @if($ton->chiTietKhuVuc && $ton->chiTietKhuVuc->count() > 0)
+                                            @foreach($ton->chiTietKhuVuc as $kv)
+                                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle mb-1"><i class="bi bi-geo-alt me-1"></i>{{ $kv->khuVuc->ten_khu_vuc ?? $kv->ma_khu_vuc }}</span><br>
+                                            @endforeach
+                                        @else
+                                            <span class="text-muted small fst-italic">Chưa phân khu</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $ton->ngay_nhap_lo ? $ton->ngay_nhap_lo->format('d/m/Y') : '' }}</td>
                                     <td class="{{ $textClass }}">
                                         {{ $hanSuDung->format('d/m/Y') }}

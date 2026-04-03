@@ -6,6 +6,7 @@ use App\Models\TonKho;
 use App\Models\LichSuKho;
 use App\Models\ThanhToan;
 use App\Models\PhieuXuat;
+use App\Models\PhieuNhap;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
@@ -15,15 +16,22 @@ class ReportController extends Controller
      */
     private function buildStockQuery(Request $request)
     {
-        $query = TonKho::with('thuoc')
+        $query = TonKho::with(['thuoc', 'chiTietKhuVuc.khuVuc'])
             ->where('so_luong_ton', '>', 0);
         
-        // Có thể thêm lọc theo tên thuốc ở đây nếu cần trong tương lai
+        // Lọc theo tên thuốc hoặc số lô
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->whereHas('thuoc', function($q) use ($search) {
-                $q->where('ten_thuoc', 'like', "%$search%");
+            $query->where(function($q) use ($search) {
+                $q->whereHas('thuoc', function($qThuoc) use ($search) {
+                    $qThuoc->where('ten_thuoc', 'like', "%$search%");
+                })->orWhere('so_lo', 'like', "%$search%");
             });
+        }
+
+        // Lọc theo trạng thái lô
+        if ($request->has('trang_thai_lo') && $request->trang_thai_lo != '') {
+            $query->where('trang_thai_lo', $request->trang_thai_lo);
         }
 
         return $query;
@@ -72,9 +80,15 @@ class ReportController extends Controller
             $query->where('loai_giao_dich', $request->loai_gd);
         }
 
-        // Filter by source
-        if ($request->has('nguon_gd') && $request->nguon_gd != '') {
-            $query->where('nguon_giao_dich', $request->nguon_gd);
+        // Search by Tên thuốc or Số lô
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('so_lo', 'like', "%$search%")
+                  ->orWhereHas('thuoc', function($qThuoc) use ($search) {
+                      $qThuoc->where('ten_thuoc', 'like', "%$search%");
+                  });
+            });
         }
 
         return $query;
@@ -202,32 +216,74 @@ class ReportController extends Controller
     }
 
     /**
-     * Helper cho query công nợ
+     * Helper list debts collection
      */
-    private function buildDebtsQuery(Request $request)
+    private function getDebtsData(Request $request)
     {
-        $query = ThanhToan::with(['phieuNhap.nhaCungCap', 'phieuXuat.khachHang'])
-            ->where('so_tien_con_no', '>', 0);
+        $search = $request->search;
+        $loai = $request->loai;
+        $fromDate = $request->from_date;
+        $toDate = $request->to_date;
 
-        if ($request->has('loai') && $request->loai != '') {
-            $query->where('loai_thanh_toan', $request->loai);
+        $pnQuery = PhieuNhap::with('nhaCungCap')
+            ->withSum('cacThanhToan as so_tien_da_tra', 'so_tien_tt')
+            ->whereIn('trang_thai_tt', ['chua_tt', 'mot_phan']);
+
+        $pxQuery = PhieuXuat::with('khachHang')
+            ->withSum('cacThanhToan as so_tien_da_tra', 'so_tien_tt')
+            ->whereIn('trang_thai_tt', ['chua_tt', 'mot_phan']);
+
+        if ($fromDate) {
+            $pnQuery->whereDate('ngay_nhap', '>=', $fromDate);
+            $pxQuery->whereDate('ngay_xuat', '>=', $fromDate);
+        }
+        if ($toDate) {
+            $pnQuery->whereDate('ngay_nhap', '<=', $toDate);
+            $pxQuery->whereDate('ngay_xuat', '<=', $toDate);
         }
 
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('ma_phieu_nhap', 'like', "%$search%")
-                  ->orWhere('ma_phieu_xuat', 'like', "%$search%")
-                  ->orWhereHas('phieuNhap.nhaCungCap', function($qNcc) use ($search) {
-                      $qNcc->where('ten_ncc', 'like', "%$search%");
-                  })
-                  ->orWhereHas('phieuXuat.khachHang', function($qKh) use ($search) {
-                      $qKh->where('ho_ten_kh', 'like', "%$search%");
+        if ($search) {
+            $pnQuery->where(function($q) use ($search) {
+                $q->where('ma_phieu_nhap', 'like', "%{$search}%")
+                  ->orWhereHas('nhaCungCap', function($ncc) use ($search) {
+                      $ncc->where('ten_ncc', 'like', "%{$search}%");
+                  });
+            });
+
+            $pxQuery->where(function($q) use ($search) {
+                $q->where('ma_phieu_xuat', 'like', "%{$search}%")
+                  ->orWhereHas('khachHang', function($kh) use ($search) {
+                      $kh->where('ten_kh', 'like', "%{$search}%");
                   });
             });
         }
 
-        return $query;
+        $all = collect();
+        if (!$loai || $loai == 'nhap') {
+            $all = $all->merge($pnQuery->get()->map(function($item) {
+                $item->loai_thanh_toan = 'nhap';
+                $item->so_tien_con_no = $item->tong_tien - ($item->so_tien_da_tra ?? 0);
+                $item->doi_tuong = $item->nhaCungCap->ten_ncc ?? 'N/A';
+                $item->sdt = $item->nhaCungCap->so_dien_thoai ?? '';
+                $item->ma_chung_tu = $item->ma_phieu_nhap;
+                $item->ngay_gd = $item->ngay_nhap;
+                return $item;
+            }));
+        }
+
+        if (!$loai || $loai == 'xuat') {
+            $all = $all->merge($pxQuery->get()->map(function($item) {
+                $item->loai_thanh_toan = 'xuat';
+                $item->so_tien_con_no = $item->tong_tien - ($item->so_tien_da_tra ?? 0);
+                $item->doi_tuong = $item->khachHang->ten_kh ?? 'N/A';
+                $item->sdt = $item->khachHang->so_dien_thoai ?? '';
+                $item->ma_chung_tu = $item->ma_phieu_xuat;
+                $item->ngay_gd = $item->ngay_xuat;
+                return $item;
+            }));
+        }
+
+        return $all->sortByDesc('ngay_gd');
     }
 
     /**
@@ -235,17 +291,25 @@ class ReportController extends Controller
      */
     public function debts(Request $request)
     {
-        // Danh sách công nợ phân trang
-        $query = $this->buildDebtsQuery($request);
-        $debts = $query->orderBy('ngay_thanh_toan', 'desc')->paginate(20);
+        $allDebts = $this->getDebtsData($request);
+
+        // Paginate manually
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+        $perPage = 20;
+        $debts = new \Illuminate\Pagination\LengthAwarePaginator(
+            $allDebts->forPage($page, $perPage)->values(), 
+            $allDebts->count(), 
+            $perPage, 
+            $page, 
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
+        );
+        $debts->appends($request->all());
 
         // --- Data cho Biểu đồ Công nợ (Tròn) ---
-        // Phải thu = xuat (Khách nợ mình), Phải trả = nhap (Mình nợ NCC)
-        $tongPhaiThu = ThanhToan::where('so_tien_con_no', '>', 0)
-            ->where('loai_thanh_toan', 'xuat')->sum('so_tien_con_no');
-            
-        $tongPhaiTra = ThanhToan::where('so_tien_con_no', '>', 0)
-            ->where('loai_thanh_toan', 'nhap')->sum('so_tien_con_no');
+        // Nếu muốn chart tổng thật sự (không phụ thuộc filter) thì query raw,
+        // Nhưng thường họ muốn chart ăn theo filter.
+        $tongPhaiThu = $allDebts->where('loai_thanh_toan', 'xuat')->sum('so_tien_con_no');
+        $tongPhaiTra = $allDebts->where('loai_thanh_toan', 'nhap')->sum('so_tien_con_no');
 
         // --- Data cho Biểu đồ Doanh Thu (Cột - 6 tháng gần nhất) ---
         $revenueData = [];
@@ -277,8 +341,7 @@ class ReportController extends Controller
      */
     public function exportDebts(Request $request)
     {
-        $query = $this->buildDebtsQuery($request);
-        $debts = $query->orderBy('ngay_thanh_toan', 'desc')->get();
+        $debts = $this->getDebtsData($request);
 
         $fileName = 'cong_no_' . date('Ymd_His') . '.csv';
 
@@ -309,22 +372,14 @@ class ReportController extends Controller
 
             foreach ($debts as $d) {
                 $loai = $d->loai_thanh_toan == 'nhap' ? 'Phải Trả (NCC)' : 'Phải Thu (KH)';
-                $chungTu = $d->loai_thanh_toan == 'nhap' ? $d->ma_phieu_nhap : $d->ma_phieu_xuat;
                 
-                $doiTuong = '';
-                if ($d->loai_thanh_toan == 'nhap' && $d->phieuNhap && $d->phieuNhap->nhaCungCap) {
-                    $doiTuong = $d->phieuNhap->nhaCungCap->ten_ncc;
-                } elseif ($d->loai_thanh_toan == 'xuat' && $d->phieuXuat && $d->phieuXuat->khachHang) {
-                    $doiTuong = $d->phieuXuat->khachHang->ho_ten_kh;
-                }
-
                 fputcsv($file, [
                     $loai,
-                    $chungTu,
-                    $d->ngay_thanh_toan ? \Carbon\Carbon::parse($d->ngay_thanh_toan)->format('d/m/Y') : '',
-                    $doiTuong,
+                    $d->ma_chung_tu,
+                    $d->ngay_gd ? \Carbon\Carbon::parse($d->ngay_gd)->format('d/m/Y') : '',
+                    $d->doi_tuong,
                     $d->tong_tien,
-                    $d->so_tien_tt,
+                    $d->so_tien_da_tra ?? 0,
                     $d->so_tien_con_no
                 ]);
             }

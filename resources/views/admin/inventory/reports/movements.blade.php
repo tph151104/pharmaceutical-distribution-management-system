@@ -44,17 +44,12 @@
                             <option value="dieu_chinh" {{ request('loai_gd') == 'dieu_chinh' ? 'selected' : '' }}>Điều chỉnh</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label text-muted small fw-semibold">Nguồn</label>
-                        <select name="nguon_gd" class="form-select">
-                            <option value="">-- Tất cả --</option>
-                            <option value="phieu_nhap" {{ request('nguon_gd') == 'phieu_nhap' ? 'selected' : '' }}>Phiếu nhập</option>
-                            <option value="phieu_xuat" {{ request('nguon_gd') == 'phieu_xuat' ? 'selected' : '' }}>Phiếu xuất</option>
-                            <option value="kiem_kho" {{ request('nguon_gd') == 'kiem_kho' ? 'selected' : '' }}>Kiểm kho</option>
-                        </select>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small fw-semibold">Tìm tên thuốc / Số lô</label>
+                        <input type="text" name="search" class="form-control" placeholder="Nhập tên thuốc hoặc số lô..." value="{{ request('search') }}">
                     </div>
-                    <div class="col-md-2 d-grid">
-                        <button type="submit" class="btn btn-primary"><i class="bi bi-filter me-1"></i>Lọc Dữ Liệu</button>
+                    <div class="col-md-1 d-grid">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-filter me-1"></i>Lọc</button>
                     </div>
                 </form>
             </div>

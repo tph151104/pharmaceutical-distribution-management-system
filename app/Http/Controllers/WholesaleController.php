@@ -228,12 +228,15 @@ class WholesaleController extends Controller
     public function orderDetail($id)
     {
         $customer = auth('customer')->user();
-        $donHang = DonHang::with('chiTiet.thuoc')
+        $donHang  = DonHang::with(['chiTiet.thuoc'])
             ->where('ma_kh', $customer->ma_kh)
             ->where('ma_don_hang', $id)
             ->firstOrFail();
 
-        return view('wholesale.order_detail', compact('donHang'));
+        $cartCount = array_sum(array_column(session('cart', []), 'so_luong'));
+        $traHang = \App\Models\KhachTraHang::where('ma_don_hang', $id)->first();
+
+        return view('wholesale.order_detail', compact('donHang', 'cartCount', 'traHang'));
     }
 
     /**
@@ -377,5 +380,82 @@ class WholesaleController extends Controller
         $cartCount = array_sum(array_column(session('cart', []), 'so_luong'));
 
         return view('wholesale.product', compact('thuoc', 'similarProducts', 'cartCount'));
+    }
+
+    /**
+     * Yêu cầu trả hàng
+     */
+    public function submitReturn(Request $request, $id)
+    {
+        $customer = auth('customer')->user();
+        $donHang  = DonHang::where('ma_kh', $customer->ma_kh)
+                            ->where('ma_don_hang', $id)
+                            ->firstOrFail();
+
+        if ($donHang->trang_thai_dh !== 'da_hoan_thanh') {
+            return back()->withErrors(['error' => 'Chỉ có thể yêu cầu trả hàng đối với đơn hàng đã hoàn thành.']);
+        }
+
+        // Kiểm tra đã có yêu cầu trả hàng chưa
+        $exists = \App\Models\KhachTraHang::where('ma_don_hang', $id)->exists();
+        if ($exists) {
+            return back()->withErrors(['error' => 'Đơn hàng này đã có yêu cầu trả hàng.']);
+        }
+
+        $items = $request->input('items', []);
+        $totalRefund = 0;
+        $hasReturn = false;
+
+        DB::beginTransaction();
+        try {
+            $maTraHang = 'TH_' . date('Ymd_His');
+
+            $khachTra = \App\Models\KhachTraHang::create([
+                'ma_tra_hang' => $maTraHang,
+                'ma_don_hang' => $donHang->ma_don_hang,
+                'ma_kh' => $customer->ma_kh,
+                'ngay_yeu_cau' => now()->toDateString(),
+                'ly_do_chung' => $request->ly_do_chung,
+                'tong_tien_hoan_tra' => 0,
+                'trang_thai' => 'cho_duyet'
+            ]);
+
+            foreach ($items as $ct) {
+                if (!empty($ct['so_luong']) && $ct['so_luong'] > 0) {
+                    $hasReturn = true;
+                    // Lấy đơn giá lúc mua
+                    $chiTietMua = \App\Models\ChiTietDonHang::where('ma_don_hang', $id)
+                        ->where('ma_thuoc', $ct['ma_thuoc'])
+                        ->first();
+                    
+                    $donGia = $chiTietMua ? $chiTietMua->don_gia : 0;
+                    $thanhTien = $ct['so_luong'] * $donGia;
+                    $totalRefund += $thanhTien;
+
+                    \App\Models\ChiTietTraHang::create([
+                        'ma_tra_hang' => $maTraHang,
+                        'ma_thuoc' => $ct['ma_thuoc'],
+                        'so_luong_tra' => $ct['so_luong'],
+                        'don_gia_tra' => $donGia,
+                        'thanh_tien' => $thanhTien,
+                        'ly_do_chi_tiet' => $ct['ly_do'] ?? ''
+                    ]);
+                }
+            }
+
+            if (!$hasReturn) {
+                DB::rollBack();
+                return back()->withErrors(['error' => 'Vui lòng chọn ít nhất 1 sản phẩm cần trả.']);
+            }
+
+            $khachTra->tong_tien_hoan_tra = $totalRefund;
+            $khachTra->save();
+
+            DB::commit();
+            return back()->with('success', 'Yêu cầu trả hàng đã được gửi và đang chờ duyệt.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Lỗi: ' . $e->getMessage()]);
+        }
     }
 }

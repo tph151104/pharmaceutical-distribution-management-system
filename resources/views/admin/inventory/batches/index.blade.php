@@ -174,10 +174,9 @@
                                     <input type="hidden" name="ma_thuoc" value="{{ $ton->ma_thuoc }}">
                                     <input type="hidden" name="ma_phieu_nhap" value="{{ $ton->ma_phieu_nhap }}">
                                     <input type="hidden" name="so_lo" value="{{ $ton->so_lo }}">
-                                    <select name="trang_thai_lo" class="form-select form-select-sm" style="min-width: 120px;" onchange="this.form.submit()">
+                                    <select name="trang_thai_lo" class="form-select form-select-sm" style="min-width: 110px;" onchange="this.form.submit()">
                                         <option value="cho_duyet" {{ $ton->trang_thai_lo == 'cho_duyet' ? 'selected' : '' }}>Chờ duyệt</option>
                                         <option value="dang_ban" {{ $ton->trang_thai_lo == 'dang_ban' ? 'selected' : '' }}>Đang bán</option>
-                                        <option value="het_han" {{ $ton->trang_thai_lo == 'het_han' ? 'selected' : '' }}>Hết hạn</option>
                                         <option value="ngung_ban" {{ $ton->trang_thai_lo == 'ngung_ban' ? 'selected' : '' }}>Ngưng bán</option>
                                     </select>
                                 </form>
@@ -206,6 +205,10 @@
                                 <button type="button" class="btn btn-sm btn-outline-warning" title="Điều chỉnh tồn kho"
                                     onclick="openAdjustModal('{{ $ton->ma_thuoc }}', '{{ $ton->ma_phieu_nhap }}', '{{ $ton->so_lo }}', '{{ addslashes($ton->thuoc->ten_thuoc ?? 'N/A') }}', {{ $ton->so_luong_ton }})">
                                     <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-1" title="Cách ly GSP (Lỗi/Thu hồi)"
+                                    onclick="openIsolateModal('{{ $ton->ma_thuoc }}', '{{ $ton->ma_phieu_nhap }}', '{{ $ton->so_lo }}', '{{ addslashes($ton->thuoc->ten_thuoc ?? 'N/A') }}', {{ $ton->so_luong_ton }})">
+                                    <i class="bi bi-shield-x"></i>
                                 </button>
                             </td>
                         </tr>
@@ -292,6 +295,61 @@
         </div>
     </div>
 
+    <!-- Modal Cách ly GSP (Lỗi/Thu hồi) -->
+    <div class="modal fade" id="modalIsolateStock" tabindex="-1">
+        <div class="modal-dialog">
+            <form action="{{ route('batches.isolate') }}" method="POST">
+                @csrf
+                <input type="hidden" name="ma_thuoc" id="isolate_ma_thuoc">
+                <input type="hidden" name="ma_phieu_nhap" id="isolate_ma_phieu_nhap">
+                <input type="hidden" name="so_lo" id="isolate_so_lo">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title"><i class="bi bi-shield-x me-1"></i> Cách ly Sản phẩm (GSP)</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-danger small mb-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Tách những sản phẩm bị lỗi/hỏng khỏi lô "Đang bán" để đưa vào khu cách ly chuyên dụng, đảm bảo không bị xuất nhầm ra thị trường.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Sản phẩm</label>
+                            <input type="text" id="isolate_ten_thuoc" class="form-control bg-light" readonly disabled>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-bold">Tổng Tồn (Cả lô)</label>
+                                <input type="number" id="isolate_ton_hien_tai" class="form-control bg-light" readonly disabled>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-danger fw-bold">Số lượng cách ly <span class="text-danger">*</span></label>
+                                <input type="number" name="so_luong_cach_ly" id="isolate_so_luong_cach_ly" class="form-control border-danger fw-bold text-danger" min="1" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Khu vực chuyển đến <span class="text-danger">*</span></label>
+                            <select name="ma_khu_vuc_den" class="form-select border-danger" required>
+                                <option value="KV04_CHO_XU_LY">KV04 - Chờ xử lý (Lỗi, Thu hồi)</option>
+                                <option value="KV05_LOAI_BO">KV05 - Loại bỏ (Hỏng nặng, Tiêu hủy)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Lý do cách ly <span class="text-danger">*</span></label>
+                            <textarea name="ly_do" class="form-control" rows="2" required placeholder="Ghi rõ tình trạng sản phẩm (móp méo, vỡ chai, nấm mốc...)"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Bạn có chắc muốn đưa số lượng này vào khu cách ly? (Không thể hoàn tác tại đây)')">
+                            <i class="bi bi-box-arrow-right me-1"></i> Đưa vào cách ly
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
 @push('scripts')
 <script>
     function openAdjustModal(maThuoc, maPhieuNhap, soLo, tenThuoc, tonHienTai) {
@@ -362,6 +420,16 @@
             '• Thay đổi: ' + loai + '\n' +
             '• Lý do: ' + lyDo + '\n\n' +
             'Hành động này sẽ được ghi vào lịch sử kho.');
+    }
+    function openIsolateModal(maThuoc, maPhieuNhap, soLo, tenThuoc, tonHienTai) {
+        document.getElementById('isolate_ma_thuoc').value = maThuoc;
+        document.getElementById('isolate_ma_phieu_nhap').value = maPhieuNhap;
+        document.getElementById('isolate_so_lo').value = soLo;
+        document.getElementById('isolate_ten_thuoc').value = tenThuoc;
+        document.getElementById('isolate_ton_hien_tai').value = tonHienTai;
+        document.getElementById('isolate_so_luong_cach_ly').value = '';
+        document.getElementById('isolate_so_luong_cach_ly').max = tonHienTai;
+        new bootstrap.Modal(document.getElementById('modalIsolateStock')).show();
     }
 </script>
 @endpush

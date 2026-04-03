@@ -235,6 +235,12 @@
                 <span>Luân chuyển khu vực</span>
             </a>
         </li>
+        <li>
+            <a href="{{ route('admin.returns.index') }}" class="sidebar-link {{ request()->routeIs('admin.returns.*') ? 'active' : '' }}">
+                <span class="sidebar-link-icon"><i class="bi bi-arrow-return-left"></i></span>
+                <span>Yêu cầu Khách Trả Hàng</span>
+            </a>
+        </li>
 
         <li class="sidebar-section-title">Danh mục</li>
         <li>

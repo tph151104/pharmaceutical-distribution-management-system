@@ -347,13 +347,8 @@ class PhieuXuatController extends Controller
             $phieuXuat->trang_thai_phieu_xuat = 'da_hoan_thanh';
             $phieuXuat->save();
 
-            if ($phieuXuat->ma_don_hang) {
-                $donHang = DonHang::find($phieuXuat->ma_don_hang);
-                if ($donHang) {
-                    $donHang->trang_thai_dh = 'da_hoan_thanh';
-                    $donHang->save();
-                }
-            }
+            // Không tự động cập nhật Đơn Hàng nữa, để Khách tự xác nhận hoặc 3 ngày auto-complete
+            // (Theo yêu cầu mới của Khách Hàng)
 
             DB::commit();
             return back()->with('success', 'Đã xác nhận Giao hàng hoàn thành.');

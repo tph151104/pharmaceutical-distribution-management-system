@@ -49,6 +49,7 @@ Route::prefix('batches')->name('batches.')->group(function () {
     Route::get('/', [TonKhoController::class, 'index'])->name('index');
     Route::put('/update-status', [TonKhoController::class, 'updateStatus'])->name('updateStatus');
     Route::post('/adjust', [TonKhoController::class, 'adjustStock'])->name('adjust');
+    Route::post('/isolate', [TonKhoController::class, 'isolate'])->name('isolate');
 });
 
 Route::prefix('imports')->name('imports.')->group(function () {
@@ -171,6 +172,7 @@ Route::prefix('wholesale')->name('wholesale.')->middleware('auth:customer')->gro
     Route::post('/orders/{id}/cancel', [WholesaleController::class, 'cancelOrder'])->name('orders.cancel');
     Route::post('/orders/{id}/edit', [WholesaleController::class, 'editOrder'])->name('orders.edit');
     Route::post('/orders/{id}/complete', [WholesaleController::class, 'completeOrder'])->name('orders.complete');
+    Route::post('/orders/{id}/return', [WholesaleController::class, 'submitReturn'])->name('orders.return');
 
     // Thông tin cá nhân
     Route::get('/profile', [KhachHangController::class, 'profile'])->name('profile');
@@ -185,6 +187,15 @@ Route::prefix('admin/orders')->name('admin.orders.')->group(function () {
     Route::post('/{id}/approve', [DonHangController::class, 'approve'])->name('approve');
     Route::post('/{id}/cancel', [DonHangController::class, 'cancel'])->name('cancel');
     Route::post('/{id}/export-note', [DonHangController::class, 'createExportNote'])->name('exportNote');
+});
+
+use App\Http\Controllers\KhachTraHangController;
+
+Route::prefix('admin/returns')->name('admin.returns.')->group(function () {
+    Route::get('/', [KhachTraHangController::class, 'index'])->name('index');
+    Route::get('/{id}', [KhachTraHangController::class, 'show'])->name('show');
+    Route::post('/{id}/approve', [KhachTraHangController::class, 'approve'])->name('approve');
+    Route::post('/{id}/reject', [KhachTraHangController::class, 'reject'])->name('reject');
 });
 
 use App\Http\Controllers\ReportController;

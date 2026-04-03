@@ -15,8 +15,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // Tự động cập nhật trạng thái lô thuốc hết hạn - chạy mỗi ngày lúc 00:00
-        $schedule->command('tonkho:cap-nhat-het-han')->dailyAt('00:00');
+        // Tự động kiểm tra và chuyển hàng hết hạn về KV05 (GSP)
+        $schedule->command('inventory:check-expired')->dailyAt('00:00');
+
+        // Tự động hoàn thành Đơn Hàng nếu Phiếu Xuất đã giao > 3 ngày
+        $schedule->command('order:auto-complete')->dailyAt('00:30');
     }
 
     /**

@@ -202,7 +202,90 @@
                 </div>
             </div>
             @endif
+            
+            {{-- CHỨC NĂNG TRẢ HÀNG --}}
+            @if($donHang->trang_thai_dh === 'da_hoan_thanh')
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-header bg-white"><h6 class="mb-0 fw-bold text-danger"><i class="bi bi-arrow-return-left me-2"></i>Trả hàng / Hoàn tiền</h6></div>
+                <div class="card-body">
+                    @if(isset($traHang) && $traHang)
+                        <div class="alert alert-info py-2 small mb-0">
+                            <strong>Trạng thái:</strong> 
+                            @if($traHang->trang_thai == 'cho_duyet') <span class="badge bg-warning">Chờ duyệt</span>
+                            @elseif($traHang->trang_thai == 'da_duyet_nhap_kho') <span class="badge bg-success">Đã nhận hàng (Hoàn tất)</span>
+                            @elseif($traHang->trang_thai == 'tu_choi') <span class="badge bg-danger">Bị từ chối</span>
+                            @endif
+                            <br>
+                            <em>Ghi chú: {{ $traHang->ghi_chu_admin ?? 'Đang chờ bộ phận kho xử lý' }}</em>
+                        </div>
+                    @else
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalReturnOrder">
+                                Yêu cầu Trả hàng
+                            </button>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            
+            <!-- Modal Trả Hàng -->
+            <div class="modal fade" id="modalReturnOrder" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <form action="{{ route('wholesale.orders.return', $donHang->ma_don_hang) }}" method="POST">
+                        @csrf
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title">Yêu cầu Trả hàng</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="alert alert-warning small">
+                                    <i class="bi bi-exclamation-triangle me-1"></i> Vui lòng nhập số lượng cho từng mặt hàng bạn muốn trả và lý do cụ thể. Những hàng không trả vui lòng để số lượng = 0.
+                                </div>
+                                <div class="table-responsive mb-3">
+                                    <table class="table table-bordered table-sm align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Sản phẩm</th>
+                                                <th>SL đã mua</th>
+                                                <th style="width: 120px;">SL Trả</th>
+                                                <th>Lý do</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($donHang->chiTiet as $i => $ct)
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold">{{ $ct->thuoc->ten_thuoc ?? $ct->ma_thuoc }}</div>
+                                                    </td>
+                                                    <td class="text-center">{{ $ct->so_luong }}</td>
+                                                    <td>
+                                                        <input type="hidden" name="items[{{$i}}][ma_thuoc]" value="{{ $ct->ma_thuoc }}">
+                                                        <input type="number" name="items[{{$i}}][so_luong]" class="form-control form-control-sm" max="{{ $ct->so_luong }}" min="0" value="0">
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" name="items[{{$i}}][ly_do]" class="form-control form-control-sm" placeholder="Móp méo, cận date...">
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Lý do trả hàng tổng quát <span class="text-danger">*</span></label>
+                                    <textarea name="ly_do_chung" class="form-control" rows="2" placeholder="Giải thích thêm lý do trả hàng..." required></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Bạn có chắc chắn muốn gửi Yêu cầu trả hàng này?')">Xác nhận Gửi yêu cầu</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            @endif
+
         </div>
     </div>
 @endsection
-

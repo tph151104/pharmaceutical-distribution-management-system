@@ -78,33 +78,36 @@
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body pb-0">
                 <form action="{{ route('reports.debts') }}" method="GET" class="row g-3 align-items-end mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label text-muted small fw-semibold">Đối tượng / Mã chứng từ</label>
                         <div class="input-group">
                             <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
                             <input type="text" name="search" class="form-control" placeholder="Tên KH, Tên NCC, Mã Phiếu..." value="{{ request('search') }}">
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label text-muted small fw-semibold">Loại Công Nợ</label>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-semibold">Loại</label>
                         <select name="loai" class="form-select">
                             <option value="">-- Tất cả --</option>
-                            <option value="xuat" {{ request('loai') == 'xuat' ? 'selected' : '' }}>Khoản Phải Thu (Khách Hàng)</option>
-                            <option value="nhap" {{ request('loai') == 'nhap' ? 'selected' : '' }}>Khoản Phải Trả (Nhà Cung Cấp)</option>
+                            <option value="xuat" {{ request('loai') == 'xuat' ? 'selected' : '' }}>Phải Thu (KH)</option>
+                            <option value="nhap" {{ request('loai') == 'nhap' ? 'selected' : '' }}>Phải Trả (NCC)</option>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i>Lọc Kết Quả</button>
+                        <label class="form-label text-muted small fw-semibold">Từ ngày</label>
+                        <input type="date" name="from_date" class="form-control" value="{{ request('from_date') }}">
                     </div>
-                    @if(request()->has('search') || request()->has('loai'))
                     <div class="col-md-2">
-                        <a href="{{ route('reports.debts') }}" class="btn btn-light w-100 text-muted">Xóa lọc</a>
+                        <label class="form-label text-muted small fw-semibold">Đến ngày</label>
+                        <input type="date" name="to_date" class="form-control" value="{{ request('to_date') }}">
                     </div>
-                    @endif
-                     <!-- Nút Xuất Excel-->
-                    <div>
-                        <a href="{{ route('reports.debts.export', request()->query()) }}" class="btn btn-success">
-                            <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
+                    <div class="col-md-3 d-flex gap-2 justify-content-end align-items-end">
+                        <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-funnel me-1"></i>Lọc</button>
+                        @if(request()->has('search') || request()->has('loai') || request()->has('from_date'))
+                            <a href="{{ route('reports.debts') }}" class="btn btn-light"><i class="bi bi-x-circle"></i></a>
+                        @endif
+                        <a href="{{ route('reports.debts.export', request()->query()) }}" class="btn btn-success" title="Xuất Excel">
+                            <i class="bi bi-file-earmark-excel"></i> Xuất Excel
                         </a>
                     </div>
                 </form>
@@ -132,28 +135,28 @@
                                     <td class="ps-4">
                                         @if($debt->loai_thanh_toan == 'nhap')
                                             <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle mb-1"><i class="bi bi-box-arrow-in-down me-1"></i>Phiếu Nhập</span><br>
-                                            <strong class="text-dark">{{ $debt->ma_phieu_nhap }}</strong>
+                                            <strong class="text-dark">{{ $debt->ma_chung_tu }}</strong>
                                         @else
                                             <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle mb-1"><i class="bi bi-box-arrow-up me-1"></i>Phiếu Xuất</span><br>
-                                            <strong class="text-dark">{{ $debt->ma_phieu_xuat }}</strong>
+                                            <strong class="text-dark">{{ $debt->ma_chung_tu }}</strong>
                                         @endif
                                     </td>
                                     <td>
-                                        {{ $debt->ngay_thanh_toan ? \Carbon\Carbon::parse($debt->ngay_thanh_toan)->format('d/m/Y') : 'N/A' }}
+                                        {{ $debt->ngay_gd ? \Carbon\Carbon::parse($debt->ngay_gd)->format('d/m/Y') : 'N/A' }}
                                     </td>
                                     <td>
-                                        @if($debt->loai_thanh_toan == 'nhap' && $debt->phieuNhap && $debt->phieuNhap->nhaCungCap)
-                                            <div class="fw-semibold text-primary"><i class="bi bi-building me-1 text-muted"></i>{{ $debt->phieuNhap->nhaCungCap->ten_ncc }}</div>
-                                            <small class="text-muted">{{ $debt->phieuNhap->nhaCungCap->so_dien_thoai }}</small>
-                                        @elseif($debt->loai_thanh_toan == 'xuat' && $debt->phieuXuat && $debt->phieuXuat->khachHang)
-                                            <div class="fw-semibold text-primary"><i class="bi bi-person me-1 text-muted"></i>{{ $debt->phieuXuat->khachHang->ho_ten_kh }}</div>
-                                            <small class="text-muted">{{ $debt->phieuXuat->khachHang->so_dien_thoai }}</small>
+                                        @if($debt->loai_thanh_toan == 'nhap')
+                                            <div class="fw-semibold text-primary"><i class="bi bi-building me-1 text-muted"></i>{{ $debt->doi_tuong }}</div>
+                                            <small class="text-muted">{{ $debt->sdt }}</small>
+                                        @elseif($debt->loai_thanh_toan == 'xuat')
+                                            <div class="fw-semibold text-primary"><i class="bi bi-person me-1 text-muted"></i>{{ $debt->doi_tuong }}</div>
+                                            <small class="text-muted">{{ $debt->sdt }}</small>
                                         @else
                                             <span class="text-muted fst-italic">Không xác định</span>
                                         @endif
                                     </td>
                                     <td class="text-end text-muted">{{ number_format($debt->tong_tien) }}đ</td>
-                                    <td class="text-end text-success">{{ number_format($debt->so_tien_tt) }}đ</td>
+                                    <td class="text-end text-success">{{ number_format($debt->so_tien_da_tra ?? 0) }}đ</td>
                                     <td class="text-end pe-4 fw-bold {{ $debt->loai_thanh_toan == 'nhap' ? 'text-danger' : 'text-warning' }}">
                                         {{ number_format($debt->so_tien_con_no) }}đ
                                     </td>
