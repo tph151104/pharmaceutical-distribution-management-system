@@ -95,8 +95,21 @@
                             <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#productModal">
                                 <i class="bi bi-plus-circle me-1"></i> Thêm sản phẩm
                             </button>
-                        </div>
+                        </div> 
+                                         
                     </form>
+                    <div class="col-12 col-md-4 d-grid">
+                            <form action="{{ route('products.import') }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                <label class="form-label small text-muted mb-1">Import Excel</label>
+                                <div class="input-group">
+                                    <input type="file" name="file_excel" class="form-control form-control-sm" accept=".xlsx,.xls,.csv" required>
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="bi bi-file-earmark-excel me-1"></i> Import
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                 </div>
             </div>
 

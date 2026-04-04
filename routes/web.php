@@ -81,6 +81,8 @@ Route::prefix('products')->name('products.')->group(function () {
     Route::post('/', [ThuocController::class, 'store'])->name('store');
     Route::put('/{id}', [ThuocController::class, 'update'])->name('update');
     Route::delete('/{id}', [ThuocController::class, 'destroy'])->name('destroy');
+    //Route::post('/products/import', [ThuocController::class, 'import'])->name('products.import');
+    Route::post('/import', [ThuocController::class, 'import'])->name('import');
 
     // Quản lý Nhóm & Đơn vị
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');

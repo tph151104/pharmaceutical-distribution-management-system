@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Maatwebsite\Excel\Facades\Excel;//thêm vào để import excel
+use App\Imports\ThuocImport;
+
 use App\Models\Thuoc;
 use App\Models\NhomThuoc;
 use App\Models\DonViTinh;
@@ -157,5 +160,34 @@ class ThuocController extends Controller
         $thuoc->delete();
 
         return redirect()->route('products.index')->with('success', 'Đã xóa sản phẩm thành công!');
+    }
+
+    /**
+     * Xử lý file Excel Import
+     */
+    public function import(Request $request)
+    {
+        // 1. Kiểm tra xem người dùng đã chọn file chưa và định dạng có đúng không
+        $request->validate([
+            'file_excel' => 'required|mimes:xlsx,xls,csv|max:5120', // Tối đa 5MB
+        ], [
+            'file_excel.required' => 'Vui lòng chọn file Excel.',
+            'file_excel.mimes' => 'Định dạng file không hợp lệ. Chỉ chấp nhận .xlsx, .xls, .csv',
+        ]);
+
+        try {
+            // 2. Thực hiện Import bằng file class ThuocImport vừa tạo
+            Excel::import(new ThuocImport, $request->file('file_excel'));
+
+            // 3. Trả về thông báo thành công
+            return redirect()->route('products.index')->with('success', 'Đã import dữ liệu thuốc từ Excel thành công!');
+            
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            // Lỗi do dữ liệu Excel không khớp (nếu bạn có dùng validate trong file Import)
+            return redirect()->route('products.index')->with('error', 'Lỗi dữ liệu trong file Excel. Vui lòng kiểm tra lại cấu trúc file.');
+        } catch (\Exception $e) {
+            // Lỗi hệ thống khác (ví dụ sai tên cột, thiếu cột...)
+            return redirect()->route('products.index')->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
+        }
     }
 }

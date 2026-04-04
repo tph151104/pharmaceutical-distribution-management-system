@@ -47,7 +47,7 @@ class TonKho extends Model
         return $this->belongsTo(PhieuNhap::class, 'ma_phieu_nhap', 'ma_phieu_nhap');
     }
 
-    // Custom relation vì khoá chính phức tạp. Tạm thời dùng hasOne nhưng cần query thêm điều kiện ở nơi gọi
+    // Custom relation vì khoá chính phức tạp.dùng hasOne nhưng cần query thêm điều kiện ở nơi gọi
     public function chiTietPhieuNhap()
     {
         return $this->hasOne(ChiTietPhieuNhap::class, 'ma_phieu_nhap', 'ma_phieu_nhap')
