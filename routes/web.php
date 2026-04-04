@@ -51,6 +51,7 @@ Route::prefix('batches')->name('batches.')->group(function () {
     Route::post('/adjust', [TonKhoController::class, 'adjustStock'])->name('adjust');
     Route::post('/isolate', [TonKhoController::class, 'isolate'])->name('isolate');
 });
+use App\Http\Controllers\ThuocController;
 
 Route::prefix('imports')->name('imports.')->group(function () {
     Route::get('/', [PhieuNhapController::class, 'index'])->name('index');
@@ -62,6 +63,9 @@ Route::prefix('imports')->name('imports.')->group(function () {
     Route::post('/{id}/inspect', [PhieuNhapController::class, 'saveDraft'])->name('saveDraft');
     Route::post('/{id}/arrived', [PhieuNhapController::class, 'markArrived'])->name('markArrived');
     Route::delete('/{id}', [PhieuNhapController::class, 'destroy'])->name('destroy');
+
+    Route::get('/advanced-search', [PhieuNhapController::class, 'advancedSearch'])->name('advancedSearch');
+    
 });
 
 use App\Http\Controllers\InventoryTransferController;
@@ -72,7 +76,6 @@ Route::prefix('transfers')->name('transfers.')->group(function () {
     Route::get('/export', [InventoryTransferController::class, 'exportHistory'])->name('export');
 });
 
-use App\Http\Controllers\ThuocController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\UnitController;
 
@@ -92,6 +95,7 @@ Route::prefix('products')->name('products.')->group(function () {
     Route::post('/units', [UnitController::class, 'store'])->name('units.store');
     Route::put('/units/{id}', [UnitController::class, 'update'])->name('units.update');
     Route::delete('/units/{id}', [UnitController::class, 'destroy'])->name('units.destroy');
+
 });
 
 use App\Http\Controllers\NhaCungCapController;

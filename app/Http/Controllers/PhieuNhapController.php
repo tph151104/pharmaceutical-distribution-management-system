@@ -6,6 +6,7 @@ use App\Models\PhieuNhap;
 use App\Models\ChiTietPhieuNhap;
 use App\Models\TonKho;
 use App\Models\NhaCungCap;
+use App\Models\NhomThuoc;
 use App\Models\Thuoc;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -39,9 +40,37 @@ class PhieuNhapController extends Controller
     {
         $nhaCungCaps = NhaCungCap::all();
         $thuocs = Thuoc::all();
-        return view('admin.inventory.imports.create', compact('nhaCungCaps', 'thuocs'));
+        $nhom_thuocs = NhomThuoc::all();//để tìm kiếm
+        return view('admin.inventory.imports.create', compact('nhaCungCaps', 'thuocs','nhom_thuocs') );
     }
 
+    /**
+     * AJAX: Xử lý tìm kiếm thuốc nâng cao
+     */
+    public function advancedSearch(Request $request)
+    {
+        // Lấy thông tin thuốc kèm theo Nhóm và ĐVT để hiển thị ra bảng
+        $query = Thuoc::with(['nhomThuoc', 'donViTinh']);
+
+        // Lọc theo từ khóa (Mã hoặc Tên)
+        if ($request->has('keyword') && $request->keyword != '') {
+            $keyword = $request->keyword;
+            $query->where(function($q) use ($keyword) {
+                $q->where('ten_thuoc', 'like', "%{$keyword}%")
+                  ->orWhere('ma_thuoc', 'like', "%{$keyword}%");
+            });
+        }
+
+        // Lọc theo Nhóm thuốc
+        if ($request->has('nhom_thuoc') && $request->nhom_thuoc != '') {
+            $query->where('ma_nhom', $request->nhom_thuoc);
+        }
+
+        // Giới hạn 50 kết quả để giao diện không bị đơ nếu database quá lớn
+        $thuocs = $query->limit(50)->get();
+
+        return response()->json($thuocs);
+    }
     /**
      * Xử lý lưu Phiếu nhập (Quản lý lập phiếu)
      */
@@ -192,7 +221,8 @@ class PhieuNhapController extends Controller
 
         $nhaCungCaps = NhaCungCap::all();
         $thuocs = Thuoc::all();
-        return view('admin.inventory.imports.edit', compact('phieuNhap', 'nhaCungCaps', 'thuocs'));
+        $nhom_thuocs = NhomThuoc::all();//để tìm kiếm
+        return view('admin.inventory.imports.edit', compact('phieuNhap', 'nhaCungCaps', 'thuocs','nhom_thuocs'));
     }
 
     /**

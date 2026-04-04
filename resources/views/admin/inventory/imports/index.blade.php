@@ -103,7 +103,6 @@
                                         @php
                                             $daNhapMotPhan = $phieu->chiTiet->sum('so_luong_thuc_te') > 0;
                                         @endphp
-                                        <!-- Actions when waiting for goods -->
                                         @if(!$daNhapMotPhan)
                                         <a href="{{ route('imports.edit', $phieu->ma_phieu_nhap) }}" class="btn btn-sm btn-outline-primary me-2" title="Sửa đơn hàng">
                                             <i class="bi bi-pencil"></i> Sửa
@@ -125,12 +124,10 @@
                                         </form>
                                         @endif
                                     @elseif($phieu->trang_thai_phieu_nhap == 'cho_nhap_kho')
-                                        <!-- Actions when goods have arrived, waiting for inspection -->
                                         <a href="{{ route('imports.inspect', $phieu->ma_phieu_nhap) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-box-seam me-1"></i> Thực hiện kiểm hàng
                                         </a>
                                     @else
-                                        <!-- Finished or Canceled -->
                                         <a href="{{ route('imports.inspect', $phieu->ma_phieu_nhap) }}" class="btn btn-sm btn-outline-secondary">
                                             <i class="bi bi-eye me-1"></i> Xem chi tiết
                                         </a>
