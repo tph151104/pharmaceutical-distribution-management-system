@@ -8,19 +8,7 @@
             <h1 class="content-header-title mb-1">Báo Cáo Tồn Kho Theo Lô</h1>
             <p class="text-muted small mb-0">Theo dõi chi tiết số lượng tồn, hạn sử dụng và cảnh báo hàng sắp hết hạn.</p>
         </div>
-        <div class="d-flex gap-2">
-            <!-- Form tìm kiếm nhanh tên thuốc & trạng thái -->
-            <form action="{{ route('reports.stock') }}" method="GET" class="d-flex gap-2">
-                <input type="text" name="search" class="form-control form-control-sm" placeholder="Tìm tên thuốc/số lô..." value="{{ request('search') }}">
-                <select name="trang_thai_lo" class="form-select form-select-sm" style="width: auto;">
-                    <option value="">-- Trạng thái lô --</option>
-                    <option value="dang_ban" {{ request('trang_thai_lo') == 'dang_ban' ? 'selected' : '' }}>Đang bán</option>
-                    <option value="ngung_ban" {{ request('trang_thai_lo') == 'ngung_ban' ? 'selected' : '' }}>Ngừng bán</option>
-                    <option value="cho_duyet" {{ request('trang_thai_lo') == 'cho_duyet' ? 'selected' : '' }}>Chờ duyệt</option>
-                    <option value="huy_bo" {{ request('trang_thai_lo') == 'huy_bo' ? 'selected' : '' }}>Hủy bỏ (Cách ly)</option>
-                </select>
-                <button type="submit" class="btn btn-sm btn-primary px-3">Lọc</button>
-            </form>
+        <div>
             <a href="{{ route('reports.stock.export', request()->query()) }}" class="btn btn-success btn-sm px-3">
                 <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
             </a>
@@ -31,9 +19,53 @@
 @section('content')
 <div class="row">
     <div class="col-12">
+        <!-- Bộ lọc -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <form action="{{ route('reports.stock') }}" method="GET" class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-semibold">Tìm tên thuốc / Số lô</label>
+                        <input type="text" name="search" class="form-control form-control-sm" placeholder="Nhập tên thuốc hoặc số lô..." value="{{ request('search') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-semibold">Trạng thái lô</label>
+                        <select name="trang_thai_lo" class="form-select form-select-sm">
+                            <option value="">-- Tất cả --</option>
+                            <option value="dang_ban" {{ request('trang_thai_lo') == 'dang_ban' ? 'selected' : '' }}>Đang bán</option>
+                            <option value="ngung_ban" {{ request('trang_thai_lo') == 'ngung_ban' ? 'selected' : '' }}>Ngừng bán</option>
+                            <option value="cho_duyet" {{ request('trang_thai_lo') == 'cho_duyet' ? 'selected' : '' }}>Chờ duyệt</option>
+                            <option value="huy_bo" {{ request('trang_thai_lo') == 'huy_bo' ? 'selected' : '' }}>Hủy bỏ (Cách ly)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small fw-semibold">Khu vực kho</label>
+                        <select name="ma_khu_vuc" class="form-select form-select-sm">
+                            <option value="">-- Tất cả khu vực --</option>
+                            @foreach($khuVucs as $kv)
+                                <option value="{{ $kv->ma_khu_vuc }}" {{ request('ma_khu_vuc') == $kv->ma_khu_vuc ? 'selected' : '' }}>
+                                    {{ $kv->ten_khu_vuc }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                            <i class="bi bi-filter me-1"></i> Lọc dữ liệu
+                        </button>
+                        @if(request()->anyFilled(['search', 'trang_thai_lo', 'ma_khu_vuc']))
+                            <a href="{{ route('reports.stock') }}" class="btn btn-light btn-sm border">Xóa</a>
+                        @endif
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-layers me-2"></i>Thống Kê Tồn Kho Theo Lô Hàng</h5>
+                <div class="d-flex align-items-center">
+                    <h5 class="mb-0 fw-bold text-primary me-3"><i class="bi bi-layers me-2"></i>Thống Kê Tồn Kho</h5>
+                    <span class="badge bg-primary rounded-pill">Tổng: {{ $tonKho->total() }}</span>
+                </div>
                 <div>
                    <span class="badge bg-danger me-1">Đã hết hạn / &lt; 3 tháng</span>
                    <span class="badge bg-warning text-dark me-1">Sắp hết hạn (&lt; 6 tháng)</span>
@@ -79,8 +111,13 @@
                                     <td class="fw-semibold text-dark">{{ $ton->thuoc->ten_thuoc ?? 'N/A' }}</td>
                                     <td><span class="badge bg-light text-dark border border-secondary font-monospace">{{ $ton->so_lo }}</span></td>
                                     <td>
-                                        @if($ton->chiTietKhuVuc && $ton->chiTietKhuVuc->count() > 0)
-                                            @foreach($ton->chiTietKhuVuc as $kv)
+                                        @php
+                                            $khuVucs = $ton->chiTietKhuVuc
+                                                ->where('ma_phieu_nhap', $ton->ma_phieu_nhap)
+                                                ->where('so_lo', $ton->so_lo);
+                                        @endphp
+                                        @if($khuVucs->count() > 0)
+                                            @foreach($khuVucs as $kv)
                                                 <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle mb-1"><i class="bi bi-geo-alt me-1"></i>{{ $kv->khuVuc->ten_khu_vuc ?? $kv->ma_khu_vuc }}</span><br>
                                             @endforeach
                                         @else

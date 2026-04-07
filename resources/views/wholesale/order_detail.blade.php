@@ -231,7 +231,7 @@
             <!-- Modal Trả Hàng -->
             <div class="modal fade" id="modalReturnOrder" tabindex="-1">
                 <div class="modal-dialog modal-lg">
-                    <form action="{{ route('wholesale.orders.return', $donHang->ma_don_hang) }}" method="POST">
+                    <form action="{{ route('wholesale.orders.return', $donHang->ma_don_hang) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="modal-content">
                             <div class="modal-header bg-danger text-white">
@@ -274,6 +274,11 @@
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Lý do trả hàng tổng quát <span class="text-danger">*</span></label>
                                     <textarea name="ly_do_chung" class="form-control" rows="2" placeholder="Giải thích thêm lý do trả hàng..." required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Hình ảnh minh chứng <span class="text-danger">*</span></label>
+                                    <input type="file" name="minh_chung_image" class="form-control" accept="image/*" required>
+                                    <div class="form-text text-muted">Vui lòng chụp ảnh tình trạng hàng hóa thực tế để nhân viên kho kiểm tra (tối đa 5MB).</div>
                                 </div>
                             </div>
                             <div class="modal-footer">

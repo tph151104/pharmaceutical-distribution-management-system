@@ -300,22 +300,22 @@
                     <div class="row g-4">
                         @if($phieuXuat->image1)
                             <div class="col-md-3">
-                                <a href="{{ Storage::url($phieuXuat->image1) }}" target="_blank">
-                                    <img src="{{ Storage::url($phieuXuat->image1) }}" class="img-thumbnail" alt="Image 1">
+                                <a href="{{ asset($phieuXuat->image1) }}" target="_blank">
+                                    <img src="{{ asset($phieuXuat->image1) }}" class="img-thumbnail" alt="Image 1">
                                 </a>
                             </div>
                         @endif
                         @if($phieuXuat->image2)
                             <div class="col-md-3">
-                                <a href="{{ Storage::url($phieuXuat->image2) }}" target="_blank">
-                                    <img src="{{ Storage::url($phieuXuat->image2) }}" class="img-thumbnail" alt="Image 2">
+                                <a href="{{ asset($phieuXuat->image2) }}" target="_blank">
+                                    <img src="{{ asset($phieuXuat->image2) }}" class="img-thumbnail" alt="Image 2">
                                 </a>
                             </div>
                         @endif
                         @if($phieuXuat->giay_to_an_toan)
                             <div class="col-md-3">
                                 <div class="card bg-light border-0 text-center py-4 h-100">
-                                    <a href="{{ Storage::url($phieuXuat->giay_to_an_toan) }}" target="_blank" class="text-decoration-none text-dark">
+                                    <a href="{{ asset($phieuXuat->giay_to_an_toan) }}" target="_blank" class="text-decoration-none text-dark">
                                         <i class="bi bi-file-earmark-pdf fs-1 text-danger"></i>
                                         <div class="mt-2 fw-medium">Giấy tờ an toàn</div>
                                     </a>
@@ -325,7 +325,7 @@
                         @if($phieuXuat->tai_lieu_lien_quan)
                             <div class="col-md-3">
                                 <div class="card bg-light border-0 text-center py-4 h-100">
-                                    <a href="{{ Storage::url($phieuXuat->tai_lieu_lien_quan) }}" target="_blank" class="text-decoration-none text-dark">
+                                    <a href="{{ asset($phieuXuat->tai_lieu_lien_quan) }}" target="_blank" class="text-decoration-none text-dark">
                                         <i class="bi bi-file-earmark-text fs-1 text-primary"></i>
                                         <div class="mt-2 fw-medium">Tài liệu khác</div>
                                     </a>
@@ -341,6 +341,39 @@
                 @endif
             </div>
         </div>
+
+        <!-- THAO TÁC CẬP NHẬT TRẠNG THÁI (DÀNH CHO ADMIN) -->
+        <div class="card shadow-sm border-0 mb-4 bg-light rounded-3">
+            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h6 class="mb-1 fw-bold text-dark">Tiến độ Giao Hàng & Trạng Thái</h6>
+                    <small class="text-muted">Cập nhật nhanh trạng thái giao hàng hoặc hoàn tác nếu có sai sót.</small>
+                </div>
+                <div class="d-flex gap-2">
+                    @if($phieuXuat->trang_thai_phieu_xuat == 'da_xuat_kho' || $phieuXuat->trang_thai_phieu_xuat == 'da_van_chuyen')
+                        <form action="{{ route('sales.complete', $phieuXuat->ma_phieu_xuat) }}" method="POST" onsubmit="return confirm('Khi xác nhận Hoàn thành, 3 ngày sau đơn hàng sẽ chốt quyền đổi trả. Tiếp tục?');">
+                            @csrf
+                            <button type="submit" class="btn btn-success px-4 fw-medium"><i class="bi bi-check-circle me-2"></i>Xác nhận Đã Giao Hàng Xong</button>
+                        </form>
+                        
+                        <!-- Hoàn tác nếu lỡ bấm xuất -->
+                        <form action="{{ route('sales.revert', $phieuXuat->ma_phieu_xuat) }}" method="POST" onsubmit="return confirm('Chức năng này sẽ đưa hàng về lại Kho (Chờ xuất). Bạn có chắc?');">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-danger"><i class="bi bi-arrow-counterclockwise"></i></button>
+                        </form>
+                    @elseif($phieuXuat->trang_thai_phieu_xuat == 'da_hoan_thanh')
+                        <div class="alert alert-success mb-0 px-4 py-2 border border-success border-opacity-50">
+                            <i class="bi bi-check-circle-fill me-2"></i>Đơn hàng đã hoàn thành!
+                        </div>
+                        <form action="{{ route('sales.undoComplete', $phieuXuat->ma_phieu_xuat) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn Hoàn tác việc Đã giao hàng? Trạng thái sẽ trở về Đã xuất kho.');">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-danger px-4 fw-medium"><i class="bi bi-arrow-return-left me-2"></i>Hoàn tác Đã Giao</button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        </div>
     @endif
 </div>
 @endsection
+

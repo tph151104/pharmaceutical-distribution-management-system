@@ -82,7 +82,7 @@
                                                 </button>
                                             </form>
                                         @endif
-                                        @if(!in_array($dh->trang_thai_dh, ['da_hoan_thanh', 'da_huy']))
+                                        @if(!in_array($dh->trang_thai_dh, ['dang_van_chuyen', 'da_hoan_thanh', 'da_huy']))
                                             <form method="POST" action="{{ route('admin.orders.cancel', $dh->ma_don_hang) }}" class="d-inline" onsubmit="return confirm('Xác nhận hủy đơn hàng này?')">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Hủy đơn">

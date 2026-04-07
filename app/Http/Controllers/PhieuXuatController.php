@@ -178,11 +178,12 @@ class PhieuXuatController extends Controller
         DB::beginTransaction();
         try {
             // 1. Lưu ảnh/tài liệu
-            $uploads = [];
             foreach (['image1', 'image2', 'giay_to_an_toan', 'tai_lieu_lien_quan'] as $field) {
                 if ($request->hasFile($field)) {
-                    $uploads[$field] = $request->file($field)->store('exports', 'public');
-                    $phieuXuat->$field = $uploads[$field];
+                    $file = $request->file($field);
+                    $name = time() . "_{$field}." . $file->extension();
+                    $file->move(public_path('uploads/exports'), $name);
+                    $phieuXuat->$field = 'uploads/exports/' . $name;
                 }
             }
 
@@ -338,8 +339,8 @@ class PhieuXuatController extends Controller
     {
         $phieuXuat = PhieuXuat::findOrFail($id);
         
-        if ($phieuXuat->trang_thai_phieu_xuat !== 'da_van_chuyen') {
-            return back()->withErrors(['error' => 'Chỉ phiếu "Đang vận chuyển" mới có thể xác nhận hoàn thành.']);
+        if (!in_array($phieuXuat->trang_thai_phieu_xuat, ['da_van_chuyen', 'da_xuat_kho'])) {
+            return back()->withErrors(['error' => 'Trạng thái không hợp lệ để xác nhận hoàn thành (chỉ thao tác được khi Đang vận chuyển hoặc Đã xuất kho).']);
         }
 
         DB::beginTransaction();
@@ -347,11 +348,44 @@ class PhieuXuatController extends Controller
             $phieuXuat->trang_thai_phieu_xuat = 'da_hoan_thanh';
             $phieuXuat->save();
 
-            // Không tự động cập nhật Đơn Hàng nữa, để Khách tự xác nhận hoặc 3 ngày auto-complete
-            // (Theo yêu cầu mới của Khách Hàng)
-
             DB::commit();
             return back()->with('success', 'Đã xác nhận Giao hàng hoàn thành.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Lỗi: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Hoàn tác xác nhận hoàn thành giao hàng
+     */
+    public function undoCompleted($id)
+    {
+        $phieuXuat = PhieuXuat::findOrFail($id);
+        
+        if ($phieuXuat->trang_thai_phieu_xuat !== 'da_hoan_thanh') {
+            return back()->withErrors(['error' => 'Chỉ có thể hoàn tác từ trạng thái Đã hoàn thành.']);
+        }
+
+        if ($phieuXuat->ma_don_hang && \App\Models\KhachTraHang::where('ma_don_hang', $phieuXuat->ma_don_hang)->exists()) {
+             return back()->withErrors(['error' => 'Không thể hoàn tác vì đơn hàng này đã được khách yêu cầu trả hàng.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            $phieuXuat->trang_thai_phieu_xuat = 'da_xuat_kho';
+            $phieuXuat->save();
+
+            if ($phieuXuat->ma_don_hang) {
+                $donHang = \App\Models\DonHang::find($phieuXuat->ma_don_hang);
+                if ($donHang && $donHang->trang_thai_dh === 'da_hoan_thanh') {
+                    $donHang->trang_thai_dh = 'dang_xuat_kho'; 
+                    $donHang->save();
+                }
+            }
+
+            DB::commit();
+            return back()->with('success', 'Đã hoàn tác trạng thái hoàn thành giao hàng.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Lỗi: ' . $e->getMessage()]);

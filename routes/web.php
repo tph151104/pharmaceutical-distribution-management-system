@@ -37,6 +37,7 @@ Route::prefix('sales')->name('sales.')->group(function () {
     Route::post('/{id}/confirm', [PhieuXuatController::class, 'confirm'])->name('confirm');
     Route::post('/{id}/shipping', [PhieuXuatController::class, 'markAsShipping'])->name('shipping');
     Route::post('/{id}/complete', [PhieuXuatController::class, 'markAsCompleted'])->name('complete');
+    Route::post('/{id}/undo-complete', [PhieuXuatController::class, 'undoCompleted'])->name('undoComplete');
     Route::post('/{id}/revert', [PhieuXuatController::class, 'revertToPreparing'])->name('revert');
     Route::delete('/{id}', [PhieuXuatController::class, 'destroy'])->name('destroy');
     Route::get('/{id}/print', [PhieuXuatController::class, 'print'])->name('print');

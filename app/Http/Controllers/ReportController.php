@@ -34,6 +34,14 @@ class ReportController extends Controller
             $query->where('trang_thai_lo', $request->trang_thai_lo);
         }
 
+        // Lọc theo khu vực
+        if ($request->has('ma_khu_vuc') && $request->ma_khu_vuc != '') {
+            $query->whereHas('chiTietKhuVuc', function($q) use ($request) {
+                $q->where('ma_khu_vuc', $request->ma_khu_vuc)
+                  ->where('so_luong', '>', 0);
+            });
+        }
+
         return $query;
     }
 
@@ -52,11 +60,15 @@ class ReportController extends Controller
         $tonKho = $query->orderBy('han_su_dung', 'asc')
             ->paginate(50);
 
+        // Lấy danh sách khu vực để làm bộ lọc
+        $khuVucs = \App\Models\KhuVucKho::where('trang_thai', true)->get();
+
         return view('admin.inventory.reports.stock', compact(
             'tonKho', 
             'today', 
             'threeMonthsFromNow', 
-            'sixMonthsFromNow'
+            'sixMonthsFromNow',
+            'khuVucs'
         ));
     }
 

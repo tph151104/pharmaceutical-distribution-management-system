@@ -27,6 +27,11 @@ class PhieuNhapController extends Controller
         
         if ($request->has('trang_thai') && $request->trang_thai != '') {
             $query->where('trang_thai_phieu_nhap', $request->trang_thai);
+        }       
+        if ($request->has('search_ncc') && $request->search_ncc != '') {
+            $query->whereHas('nhaCungCap', function($q) use ($request) {
+                $q->where('ten_ncc', 'like', '%' . $request->search_ncc . '%');
+            });
         }
 
         $phieuNhaps = $query->paginate(15);
@@ -215,6 +220,10 @@ class PhieuNhapController extends Controller
             return redirect()->route('imports.index')->withErrors(['error' => 'Không thể sửa phiếu nhập đã hàng về hoặc đã hoàn tất.']);
         }
 
+        if (str_starts_with($phieuNhap->ma_phieu_nhap, 'PN_TRA_')) {
+            return redirect()->route('imports.index')->withErrors(['error' => 'Phiếu nhập trả hàng không được phép sửa đổi thủ công để đảm bảo tính toàn vẹn dữ liệu.']);
+        }
+
         if ($phieuNhap->chiTiet->sum('so_luong_thuc_te') > 0) {
             return redirect()->route('imports.index')->withErrors(['error' => 'Không thể sửa do đã có một phần hàng hóa được nhập về.']);
         }
@@ -234,6 +243,10 @@ class PhieuNhapController extends Controller
         
         if ($phieuNhap->trang_thai_phieu_nhap != 'doi_hang_ve') {
             return back()->withErrors(['error' => 'Không thể sửa phiếu này.']);
+        }
+
+        if (str_starts_with($phieuNhap->ma_phieu_nhap, 'PN_TRA_')) {
+            return back()->withErrors(['error' => 'Phiếu nhập trả hàng không được phép sửa đổi thủ công.']);
         }
 
         if ($phieuNhap->chiTiet->sum('so_luong_thuc_te') > 0) {
@@ -502,28 +515,31 @@ class PhieuNhapController extends Controller
                         $tonKho->ngay_nhap_lo = Carbon::now();
                         $tonKho->save();
 
-                        // Thêm số lượng vào Khu vực Tiếp nhận (KV01)
+                        $targetArea = str_starts_with($id, 'PN_TRA_') ? 'KV04_CHO_XU_LY' : 'KV01_TIEP_NHAN';
+                        
+                        // Thêm số lượng vào Khu vực tương ứng
                         $khuVuc = \App\Models\TonKhoKhuVuc::firstOrNew([
                             'ma_thuoc' => $chiTiet->ma_thuoc,
                             'ma_phieu_nhap' => $id,
                             'so_lo' => $chiTiet->so_lo,
-                            'ma_khu_vuc' => 'KV01_TIEP_NHAN'
+                            'ma_khu_vuc' => $targetArea
                         ]);
                         $khuVuc->so_luong += $hangMoiVe;
                         $khuVuc->save();
 
-                        // Ghi log dịch chuyển kho (Nhập mới vào KV01)
+                        // Ghi log dịch chuyển kho (Nhập mới)
+                        $areaLabel = $targetArea === 'KV04_CHO_XU_LY' ? 'Chờ Xử Lý' : 'Tiếp Nhận';
                         \App\Models\LichSuDichChuyenKho::create([
                             'ma_phieu_chuyen' => 'CHUP-' . now()->format('YmdHis') . '-' . strtoupper(\Illuminate\Support\Str::random(4)),
                             'ma_thuoc' => $chiTiet->ma_thuoc,
                             'ma_phieu_nhap' => $id,
                             'so_lo' => $chiTiet->so_lo,
                             'tu_khu_vuc' => null,
-                            'den_khu_vuc' => 'KV01_TIEP_NHAN',
+                            'den_khu_vuc' => $targetArea,
                             'so_luong_chuyen' => $hangMoiVe,
                             'nguoi_thuc_hien' => 'USR001', // Tạm fix cứng
                             'ngay_chuyen' => Carbon::now(),
-                            'ly_do_chuyen' => 'Tự động nhập vào kho Tiếp nhận sau khi xác nhận kiểm đếm',
+                            'ly_do_chuyen' => "Tự động nhập vào kho {$areaLabel} sau khi xác nhận kiểm đếm",
                         ]);
 
                         // Ghi log nhập kho tổng (cũ)

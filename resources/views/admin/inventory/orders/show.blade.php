@@ -98,7 +98,7 @@
                             <i class="bi bi-box-arrow-right me-1"></i>Tạo Phiếu xuất kho
                         </a>
                     @endif
-                    @if(!in_array($donHang->trang_thai_dh, ['da_hoan_thanh', 'da_huy']))
+                    @if(!in_array($donHang->trang_thai_dh, ['dang_van_chuyen', 'da_hoan_thanh', 'da_huy']))
                         <form method="POST" action="{{ route('admin.orders.cancel', $donHang->ma_don_hang) }}" onsubmit="return confirm('Xác nhận hủy đơn hàng?')">
                             @csrf
                             <button type="submit" class="btn btn-outline-danger w-100">

@@ -23,6 +23,7 @@ class KhachTraHang extends Model
         'nguoi_duyet',
         'ngay_duyet',
         'ghi_chu_admin',
+        'minh_chung_image',
     ];
 
     protected $casts = [

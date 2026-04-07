@@ -32,9 +32,13 @@
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body">
             <form action="{{ route('imports.index') }}" method="GET" class="row g-2 align-items-end">
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                     <label class="form-label small text-muted mb-1">Mã Phiếu</label>
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Nhập mã phiếu..." value="{{ request('search') }}">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Mã phiếu..." value="{{ request('search') }}">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label small text-muted mb-1">Tên nhà cung cấp</label>
+                    <input type="text" name="search_ncc" class="form-control form-control-sm" placeholder="Tên nhà cung cấp..." value="{{ request('search_ncc') }}">
                 </div>
                 <div class="col-12 col-md-3">
                     <label class="form-label small text-muted mb-1">Trạng thái phiếu</label>
@@ -46,13 +50,14 @@
                         <option value="da_huy" {{ request('trang_thai') == 'da_huy' ? 'selected' : '' }}>Đã hủy</option>
                     </select>
                 </div>
-                <div class="col-12 col-md-2 d-grid">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-search"></i>
-                        Tìm phiếu
+                <div class="col-12 col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                        <i class="bi bi-search me-1"></i> Tìm phiếu
                     </button>
-                    @if(request()->anyFilled(['search', 'trang_thai']))
-                        <a href="{{ route('imports.index') }}" class="btn btn-light btn-sm mt-1">Xóa lọc</a>
+                    @if(request()->anyFilled(['search', 'trang_thai', 'search_ncc']))
+                        <a href="{{ route('imports.index') }}" class="btn btn-light btn-sm border">
+                            <i class="bi bi-x-circle me-1"></i> Xóa lọc
+                        </a>
                     @endif
                 </div>
             </form>
@@ -103,7 +108,7 @@
                                         @php
                                             $daNhapMotPhan = $phieu->chiTiet->sum('so_luong_thuc_te') > 0;
                                         @endphp
-                                        @if(!$daNhapMotPhan)
+                                        @if(!$daNhapMotPhan && !str_starts_with($phieu->ma_phieu_nhap, 'PN_TRA_'))
                                         <a href="{{ route('imports.edit', $phieu->ma_phieu_nhap) }}" class="btn btn-sm btn-outline-primary me-2" title="Sửa đơn hàng">
                                             <i class="bi bi-pencil"></i> Sửa
                                         </a>

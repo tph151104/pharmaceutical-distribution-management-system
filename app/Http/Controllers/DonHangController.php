@@ -64,8 +64,9 @@ class DonHangController extends Controller
     {
         $donHang = DonHang::findOrFail($id);
 
-        if (in_array($donHang->trang_thai_dh, ['da_hoan_thanh', 'da_huy'])) {
-            return back()->withErrors(['error' => 'Không thể hủy đơn hàng đã hoàn thành hoặc đã hủy.']);
+        if (in_array($donHang->trang_thai_dh, ['dang_van_chuyen', 'da_hoan_thanh', 'da_huy'])) {
+            $statusName = $donHang->tenTrangThai;
+            return back()->withErrors(['error' => "Không thể hủy đơn hàng đang ở trạng thái {$statusName}."]);
         }
 
         $donHang->update(['trang_thai_dh' => 'da_huy']);

@@ -85,7 +85,7 @@
             @if($thanhToan->giay_phep_tt_image)
             <div class="mb-4 text-center">
                 <h6 class="fw-bold mb-3">MINH CHỨNG THANH TOÁN</h6>
-                <img src="{{ asset('storage/' . $thanhToan->giay_phep_tt_image) }}" alt="Minh chứng thanh toán" class="img-fluid border rounded shadow-sm" style="max-height: 400px; object-fit: contain;">
+                <img src="{{ asset($thanhToan->giay_phep_tt_image) }}" alt="Minh chứng thanh toán" class="img-fluid border rounded shadow-sm" style="max-height: 400px; object-fit: contain;">
             </div>
             @endif
 

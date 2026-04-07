@@ -65,9 +65,23 @@
                     <h6 class="fw-bold text-dark"><i class="bi bi-chat-quote me-2"></i>Lý do chi tiết khách hàng ghi chú:</h6>
                     <p class="mb-0 fst-italic">"{{ $traHang->ly_do_chung }}"</p>
                 </div>
+                
+            </div>       
+             <!-- Ảnh minh chứng -->
+            @if($traHang->minh_chung_image)
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white"><h6 class="mb-0 fw-bold">Ảnh minh chứng</h6></div>
+                <div class="card-body text-center">
+                    <a href="{{ asset($traHang->minh_chung_image) }}" target="_blank">
+                        <img src="{{ asset($traHang->minh_chung_image) }}" class="img-fluid rounded border img-thumbnail" style="max-height: 250px;" alt="Ảnh minh chứng">
+                    </a>
+                    <div class="small text-muted mt-2">Bấm vào ảnh để xem kích thước đầy đủ</div>
+                </div>
             </div>
+            @endif
         </div>
 
+        
         <!-- Bảng điều khiển / Phê duyệt -->
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm mb-3">
@@ -83,6 +97,8 @@
                     </p>
                 </div>
             </div>
+
+           
 
             @if($traHang->trang_thai == 'cho_duyet')
             <div class="card border-0 shadow-sm border-top border-warning border-3">

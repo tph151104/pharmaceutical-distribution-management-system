@@ -57,9 +57,7 @@ class TonKho extends Model
 
     public function chiTietKhuVuc()
     {
-        return $this->hasMany(TonKhoKhuVuc::class, 'ma_thuoc', 'ma_thuoc')
-                    ->where('ma_phieu_nhap', $this->ma_phieu_nhap)
-                    ->where('so_lo', $this->so_lo);
+        return $this->hasMany(TonKhoKhuVuc::class, 'ma_thuoc', 'ma_thuoc');
     }
 
     /**

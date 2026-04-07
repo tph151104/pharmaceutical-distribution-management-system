@@ -147,8 +147,11 @@ class ThuocController extends Controller
     {
         $thuoc = Thuoc::findOrFail($id);
         
-        // Cần kiểm tra ràng buộc khóa ngoại trước khi xóa (vd: có tồn kho không)
-        // ... (Tuỳ chọn: kiểm tra xem có bảng tồn kho, hoá đơn nào dùng đến ma_thuoc này không)
+        // Kiểm tra xem thuốc này đã có trong tồn kho hay không
+        $hasInventory = \App\Models\TonKho::where('ma_thuoc', $id)->exists();
+        if ($hasInventory) {
+            return redirect()->route('products.index')->with('error', "Không thể xoá thuốc " . $thuoc->ten_thuoc . " vì sản phẩm này đã có dữ liệu trong tồn kho.");
+        }
 
         // Delete images
         for ($i = 1; $i <= 3; $i++) {

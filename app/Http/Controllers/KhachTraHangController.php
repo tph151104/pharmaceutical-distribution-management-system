@@ -60,89 +60,105 @@ class KhachTraHangController extends Controller
 
         DB::beginTransaction();
         try {
-            // Đảm bảo có một Nhà cung cấp (Nhập trả) để không bị lỗi ma_ncc null
-            $nccTraHang = \App\Models\NhaCungCap::firstOrCreate(
-                ['ma_ncc' => 'NCC_TRAHANG'],
-                [
-                    'ten_ncc' => 'Khách Hàng Trả Lại',
-                    'so_dien_thoai' => '0000000000',
-                    'dia_chi' => 'Hệ thống tự động',
-                    'trang_thai' => 1
-                ]
-            );
+            $phieuXuatCu = PhieuXuat::where('ma_don_hang', $traHang->ma_don_hang)->first();
+            $maPxCu = $phieuXuatCu ? $phieuXuatCu->ma_phieu_xuat : null;
 
-            // 1. Tạo Phiếu Nhập đặc biệt mang tính chất Trả hàng
-            $maPhieuNhap = 'PN_TRA_' . time();
+            // Tìm nhà cung cấp từ chi tiết lô gốc đầu tiên
+            $maNcc = null;
+            if ($maPxCu) {
+                $ctPx = \App\Models\ChiTietPhieuXuat::where('ma_phieu_xuat', $maPxCu)->first();
+                if ($ctPx) {
+                    $tkCu = TonKho::where('so_lo', $ctPx->so_lo)->where('ma_thuoc', $ctPx->ma_thuoc)->first();
+                    if ($tkCu) {
+                        $pnCu = PhieuNhap::find($tkCu->ma_phieu_nhap);
+                        if ($pnCu) $maNcc = $pnCu->ma_ncc;
+                    }
+                }
+            }
+
+            if (!$maNcc) {
+                $nccTraHang = \App\Models\NhaCungCap::firstOrCreate(
+                    ['ma_ncc' => 'NCC_TRAHANG'],
+                    ['ten_ncc' => 'Khách Hàng Trả Lại', 'so_dien_thoai' => '0000000000', 'dia_chi' => 'Hệ thống tự động', 'trang_thai' => 1]
+                );
+                $maNcc = $nccTraHang->ma_ncc;
+            }
+
+            // 1. Sinh mã phiếu nhập PN_TRA_YYYYMMDD_xxxx
+            $prefix = 'PN_TRA_' . date('Ymd') . '_';
+            $latest = PhieuNhap::where('ma_phieu_nhap', 'LIKE', $prefix . '%')
+                ->orderBy('ma_phieu_nhap', 'desc')
+                ->first();
+            $newNum = $latest ? ((int) substr($latest->ma_phieu_nhap, -4)) + 1 : 1;
+            $maPhieuNhap = $prefix . str_pad($newNum, 4, '0', STR_PAD_LEFT);
+
             $phieuNhap = PhieuNhap::create([
                 'ma_phieu_nhap' => $maPhieuNhap,
-                'ma_ncc' => $nccTraHang->ma_ncc,
+                'ma_ncc' => $maNcc,
                 'nguoi_nhap' => auth()->id() ?? 'NV001',
                 'ngay_nhap' => now(),
                 'tong_tien' => $traHang->tong_tien_hoan_tra,
-                'trang_thai_tt' => 'da_tt', 
-                'trang_thai_phieu_nhap' => 'da_nhap_kho',
+                'trang_thai_tt' => 'chua_tt', 
+                'trang_thai_phieu_nhap' => 'doi_hang_ve', // Đợi hàng về, y như phiếu nhập thường
                 'image1' => '', 
                 'image2' => '',
                 'giay_to_lien_quan' => '',
                 'tieu_lieu_lien_quan' => 'Khách hàng trả hàng đơn ' . $traHang->ma_don_hang
             ]);
 
-            // 2. Chuyển hàng vào KV04_CHO_XU_LY
-            $soLoTraSuffix = date('Ymd_His');
+            // 2. Chuyển chi tiết theo ds xuất (phân bổ số lượng trả dựa trên các lô đã xuất thực tế)
             foreach ($traHang->chiTiet as $ct) {
-                // Dùng chung 1 biến số lô để tránh lệch dữ liệu
-                $soLoTra = 'LO_TRA_' . $soLoTraSuffix . '_' . $ct->ma_thuoc;
+                $slTraCon = $ct->so_luong_tra;
+                
+                $chiTietXuats = \App\Models\ChiTietPhieuXuat::where('ma_phieu_xuat', $maPxCu)
+                    ->where('ma_thuoc', $ct->ma_thuoc)
+                    ->get();
 
-                ChiTietPhieuNhap::create([
-                    'ma_phieu_nhap' => $maPhieuNhap,
-                    'ma_thuoc' => $ct->ma_thuoc,
-                    'so_lo' => $soLoTra,
-                    'so_lo_sx' => 'LSX_TRA_' . $ct->ma_thuoc,
-                    'ngay_san_xuat' => now()->toDateString(),
-                    'so_dang_ky' => 'DK_TRA',
-                    'han_su_dung' => now()->addYear()->toDateString(),
-                    'so_luong_nhap' => $ct->so_luong_tra,
-                    'so_luong_thuc_te' => $ct->so_luong_tra,
-                    'don_gia_nhap' => $ct->don_gia_tra,
-                    'thanh_tien' => $ct->thanh_tien,
-                ]);
+                // Lặp qua các lô của mã thuốc này từ phiếu xuất để "hồi lại"
+                foreach ($chiTietXuats as $ctx) {
+                    if ($slTraCon <= 0) break;
+                    
+                    $slPhanBo = min($slTraCon, $ctx->so_luong_xuat);
+                    $slTraCon -= $slPhanBo;
 
-                TonKho::create([
-                    'ma_thuoc' => $ct->ma_thuoc,
-                    'so_lo' => $soLoTra,
-                    'ma_phieu_nhap' => $maPhieuNhap,
-                    'ngay_san_xuat' => now()->toDateString(),
-                    'ngay_nhap_lo' => now()->toDateString(),
-                    'han_su_dung' => now()->addYear()->toDateString(),
-                    'so_luong_ton' => $ct->so_luong_tra,
-                    'so_luong_da_xuat' => 0,
-                    'trang_thai_lo' => 'cho_duyet',
-                    'image1' => '',
-                    'image2' => '',
-                    'image3' => '',
-                ]);
+                    // Lấy lại chi tiết nhập cũ để có so_lo_sx, so_dang_ky...
+                    $ctpnCu = ChiTietPhieuNhap::where('ma_thuoc', $ctx->ma_thuoc)
+                        ->where('so_lo', $ctx->so_lo)
+                        ->first();
 
-                TonKhoKhuVuc::create([
-                    'ma_thuoc' => $ct->ma_thuoc,
-                    'so_lo' => $soLoTra,
-                    'ma_phieu_nhap' => $maPhieuNhap,
-                    'ma_khu_vuc' => 'KV04_CHO_XU_LY',
-                    'so_luong' => $ct->so_luong_tra
-                ]);
+                    $soLoSx = $ctpnCu && $ctpnCu->so_lo_sx ? $ctpnCu->so_lo_sx : 'LSX_UNKNOWN';
+                    $ngaySx = $ctpnCu && $ctpnCu->ngay_san_xuat ? $ctpnCu->ngay_san_xuat : now()->toDateString();
+                    $soDk   = $ctpnCu && $ctpnCu->so_dang_ky ? $ctpnCu->so_dang_ky : null;
 
-                InventoryLogService::logMovement(
-                    $ct->ma_thuoc,
-                    $soLoTra,
-                    auth()->id() ?? 'NV001',
-                    $maPhieuNhap,
-                    'nhap', // Sử dụng giá trị enum hợp lệ
-                    'phieu_nhap', // Sử dụng giá trị enum hợp lệ
-                    $ct->so_luong_tra,
-                    0,
-                    $ct->so_luong_tra,
-                    0,
-                    '[HÀNG TRẢ VỀ] Đã tự động cách ly vào KV04_CHO_XU_LY để chờ đánh giá lại.'
-                );
+                    ChiTietPhieuNhap::create([
+                        'ma_phieu_nhap' => $maPhieuNhap,
+                        'ma_thuoc' => $ctx->ma_thuoc,
+                        'so_lo' => $ctx->so_lo,         // Giữ y số lô cũ
+                        'so_lo_sx' => $soLoSx,          // Giữ y lô sản xuất
+                        'ngay_san_xuat' => $ngaySx,
+                        'so_dang_ky' => $soDk,
+                        'han_su_dung' => $ctx->han_su_dung, // Giữ y HSD thực tế lúc xuất
+                        'so_luong_nhap' => $slPhanBo,
+                        'so_luong_thuc_te' => 0, // Bằng 0 vì trạng thái đợi hàng về chờ kiểm đếm
+                        'don_gia_nhap' => $ct->don_gia_tra,
+                        'thanh_tien' => $slPhanBo * $ct->don_gia_tra,
+                    ]);
+
+                    TonKho::create([
+                        'ma_thuoc' => $ctx->ma_thuoc,
+                        'so_lo' => $ctx->so_lo,
+                        'ma_phieu_nhap' => $maPhieuNhap,
+                        'ngay_san_xuat' => $ngaySx,
+                        'ngay_nhap_lo' => null, // Đợi hàng về
+                        'han_su_dung' => $ctx->han_su_dung,
+                        'so_luong_ton' => 0, 
+                        'so_luong_da_xuat' => 0,
+                        'trang_thai_lo' => 'cho_duyet', // Đợi thẩm định vào kho
+                        'image1' => '',
+                        'image2' => '',
+                        'image3' => '',
+                    ]);
+                }
             }
 
             // 3. Đổi trạng thái Yêu cầu Trả hàng (KHÔNG tự động hoàn tiền)

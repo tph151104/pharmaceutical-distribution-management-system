@@ -86,10 +86,18 @@ class WholesaleController extends Controller
         ]);
 
         $thuoc = Thuoc::findOrFail($request->ma_thuoc);
+        $availableStock = $thuoc->tong_ton_kho;
         $cart = session('cart', []);
 
+        $currentQty = isset($cart[$thuoc->ma_thuoc]) ? $cart[$thuoc->ma_thuoc]['so_luong'] : 0;
+        $newQty = $currentQty + $request->so_luong;
+
+        if ($newQty > $availableStock) {
+            return back()->withErrors(['error' => 'Sản phẩm "' . $thuoc->ten_thuoc . '" chỉ còn ' . $availableStock . ' ' . ($thuoc->donViTinh->ten_dvt ?? 'đơn vị') . ' trong kho.']);
+        }
+
         if (isset($cart[$thuoc->ma_thuoc])) {
-            $cart[$thuoc->ma_thuoc]['so_luong'] += $request->so_luong;
+            $cart[$thuoc->ma_thuoc]['so_luong'] = $newQty;
         } else {
             $cart[$thuoc->ma_thuoc] = [
                 'ma_thuoc' => $thuoc->ma_thuoc,
@@ -112,9 +120,12 @@ class WholesaleController extends Controller
     {
         $cart = session('cart', []);
         $tongTien = 0;
-        foreach ($cart as $item) {
+        foreach ($cart as $key => &$item) {
+            $thuoc = Thuoc::find($item['ma_thuoc']);
+            $item['ton_kho'] = $thuoc ? $thuoc->tong_ton_kho : 0;
             $tongTien += $item['don_gia'] * $item['so_luong'];
         }
+        unset($item); // break the reference
 
         $customer = auth('customer')->user();
 
@@ -129,7 +140,16 @@ class WholesaleController extends Controller
         $cart = session('cart', []);
 
         if (isset($cart[$request->ma_thuoc])) {
-            $cart[$request->ma_thuoc]['so_luong'] = max(1, intval($request->so_luong));
+            $thuoc = Thuoc::find($request->ma_thuoc);
+            if ($thuoc) {
+                $availableStock = $thuoc->tong_ton_kho;
+                $newQty = max(1, intval($request->so_luong));
+
+                if ($newQty > $availableStock) {
+                    return back()->withErrors(['error' => 'Sản phẩm "' . $thuoc->ten_thuoc . '" chỉ còn ' . $availableStock . ' trong kho.']);
+                }
+                $cart[$request->ma_thuoc]['so_luong'] = $newQty;
+            }
         }
 
         session(['cart' => $cart]);
@@ -161,9 +181,13 @@ class WholesaleController extends Controller
 
         DB::beginTransaction();
         try {
-            // Tính tổng tiền
+            // Tính tổng tiền & Kiểm tra tồn kho cuối cùng
             $tongTien = 0;
             foreach ($cart as $item) {
+                $thuoc = Thuoc::find($item['ma_thuoc']);
+                if (!$thuoc || $item['so_luong'] > $thuoc->tong_ton_kho) {
+                    return back()->withErrors(['error' => 'Sản phẩm "' . ($thuoc->ten_thuoc ?? $item['ma_thuoc']) . '" hiện không đủ hàng trong kho. Vui lòng cập nhật lại giỏ hàng.']);
+                }
                 $tongTien += $item['don_gia'] * $item['so_luong'];
             }
 
@@ -402,6 +426,13 @@ class WholesaleController extends Controller
             return back()->withErrors(['error' => 'Đơn hàng này đã có yêu cầu trả hàng.']);
         }
 
+        $request->validate([
+            'minh_chung_image' => 'required|image|max:5120',
+        ], [
+            'minh_chung_image.required' => 'Vui lòng đính kèm hình ảnh minh chứng để nhân viên kho kiểm tra.',
+            'minh_chung_image.image' => 'File minh chứng phải là hình ảnh (nhỏ hơn 5MB).'
+        ]);
+
         $items = $request->input('items', []);
         $totalRefund = 0;
         $hasReturn = false;
@@ -446,6 +477,13 @@ class WholesaleController extends Controller
             if (!$hasReturn) {
                 DB::rollBack();
                 return back()->withErrors(['error' => 'Vui lòng chọn ít nhất 1 sản phẩm cần trả.']);
+            }
+
+            if ($request->hasFile('minh_chung_image')) {
+                $file = $request->file('minh_chung_image');
+                $name = time() . '_minhchung.' . $file->extension();
+                $file->move(public_path('uploads/returns'), $name);
+                $khachTra->minh_chung_image = 'uploads/returns/' . $name;
             }
 
             $khachTra->tong_tien_hoan_tra = $totalRefund;

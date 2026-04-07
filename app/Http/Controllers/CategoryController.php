@@ -18,7 +18,6 @@ class CategoryController extends Controller
             'ghi_chu' => 'nullable|string',
         ]);
 
-        // Tự động sinh mã nhóm NT01, NT02
         $latest = NhomThuoc::where('ma_nhom', 'LIKE', 'NT%')
             ->orderByRaw('CAST(SUBSTRING(ma_nhom, 3) AS UNSIGNED) DESC')
             ->first();

@@ -50,14 +50,27 @@
                                         <div class="text-muted small">Mã: {{ $item['ma_thuoc'] }}</div>
                                     </td>
                                     <td class="text-end small">{{ number_format($item['don_gia']) }}đ</td>
-                                    <td class="text-center" style="width: 120px;">
+                                    <td class="text-center" style="width: 150px;">
                                         <form method="POST" action="{{ route('wholesale.cart.update') }}" class="d-inline">
                                             @csrf
                                             <input type="hidden" name="ma_thuoc" value="{{ $item['ma_thuoc'] }}">
-                                            <input type="number" name="so_luong" min="1" value="{{ $item['so_luong'] }}" class="form-control form-control-sm text-center" style="width: 70px; display:inline-block;" onchange="this.form.submit()">
+                                            <div class="input-group input-group-sm mb-1">
+                                                <input type="number" name="so_luong" min="1" max="{{ $item['ton_kho'] }}" 
+                                                       value="{{ $item['so_luong'] }}" 
+                                                       class="form-control text-center" 
+                                                       style="width: 60px;" onchange="this.form.submit()">
+                                            </div>
+                                            <div class="small text-muted" style="font-size: 0.7rem;">
+                                                Kho: <strong>{{ number_format($item['ton_kho']) }}</strong>
+                                            </div>
+                                            @if($item['so_luong'] > $item['ton_kho'])
+                                                <div class="text-danger fw-bold" style="font-size: 0.7rem;">Quá tồn kho!</div>
+                                            @endif
                                         </form>
                                     </td>
-                                    <td class="text-end small fw-semibold text-primary">{{ number_format($item['don_gia'] * $item['so_luong']) }}đ</td>
+                                    <td class="text-end small fw-semibold text-primary">
+                                        {{ number_format($item['don_gia'] * $item['so_luong']) }}đ
+                                    </td>
                                     <td class="text-center">
                                         <form method="POST" action="{{ route('wholesale.cart.remove') }}" class="d-inline">
                                             @csrf

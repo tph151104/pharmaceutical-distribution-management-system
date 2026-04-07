@@ -103,7 +103,10 @@ class ThanhToanController extends Controller
 
             $imagePath = null;
             if ($request->hasFile('minh_chung_tt_image')) {
-                $imagePath = $request->file('minh_chung_tt_image')->store('payments', 'public');
+                $file = $request->file('minh_chung_tt_image');
+                $name = time() . '_giayphep.' . $file->extension();
+                $file->move(public_path('uploads/payments'), $name);
+                $imagePath = 'uploads/payments/' . $name;
             }
 
             $conNoMoi = $soTienConNoHienTai - $soTienTT;

@@ -12,12 +12,7 @@
                 Xem chi tiết tồn kho đến từng lô: số lô, hạn dùng, tồn hiện tại, giá vốn và nhà cung cấp.
             </div>
         </div>
-        <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-download me-1"></i>
-                Xuất Excel
-            </button>
-        </div>
+        
     </div>
 @endsection
 
