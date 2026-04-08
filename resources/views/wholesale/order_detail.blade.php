@@ -294,3 +294,31 @@
         </div>
     </div>
 @endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const returnForm = document.querySelector('#modalReturnOrder form');
+    if (returnForm) {
+        returnForm.addEventListener('submit', function(e) {
+            const inputs = returnForm.querySelectorAll('input[type="number"]');
+            let hasSelection = false;
+            
+            inputs.forEach(input => {
+                if (parseInt(input.value) > 0) {
+                    hasSelection = true;
+                }
+            });
+
+            if (!hasSelection) {
+                e.preventDefault();
+                alert('Vui lòng chọn ít nhất 1 sản phẩm cần trả (nhập số lượng > 0).');
+                return false;
+            }
+
+            return confirm('Bạn có chắc chắn muốn gửi Yêu cầu trả hàng này?');
+        });
+    }
+});
+</script>
+@endsection

@@ -11,10 +11,12 @@ use App\Models\ThanhToan;
 use App\Models\PhieuXuat;
 use App\Models\PhieuNhap;
 use App\Models\ChiTietPhieuNhap;
+use App\Models\ChiTietPhieuXuat;
+use App\Models\NhaCungCap;
 use Illuminate\Support\Facades\DB;
 use App\Services\InventoryLogService;
 
-class KhachTraHangController extends Controller
+class CustomerReturnsController extends Controller
 {
     /**
      * Danh sách Yêu cầu trả hàng
@@ -31,7 +33,23 @@ class KhachTraHangController extends Controller
     public function show($id)
     {
         $traHang = KhachTraHang::with(['khachHang', 'donHang', 'chiTiet.thuoc'])->findOrFail($id);
-        return view('admin.inventory.returns.show', compact('traHang'));
+        
+        // Tìm phiếu nhập liên quan để kiểm tra điều kiện hoàn tác
+        $phieuNhap = PhieuNhap::where('ma_phieu_nhap', 'LIKE', 'PN_TRA_%')
+            ->where('tieu_lieu_lien_quan', 'LIKE', '%' . $id . '%')
+            ->with('chiTiet')
+            ->first();
+
+        $canUndo = false;
+        $receivedCount = 0;
+        if ($phieuNhap && $traHang->trang_thai === 'da_duyet_nhap_kho') {
+            $receivedCount = $phieuNhap->chiTiet->sum('so_luong_thuc_te');
+            if ($receivedCount == 0) {
+                $canUndo = true;
+            }
+        }
+
+        return view('admin.inventory.returns.show', compact('traHang', 'phieuNhap', 'canUndo', 'receivedCount'));
     }
 
     /**
@@ -66,7 +84,7 @@ class KhachTraHangController extends Controller
             // Tìm nhà cung cấp từ chi tiết lô gốc đầu tiên
             $maNcc = null;
             if ($maPxCu) {
-                $ctPx = \App\Models\ChiTietPhieuXuat::where('ma_phieu_xuat', $maPxCu)->first();
+                $ctPx = ChiTietPhieuXuat::where('ma_phieu_xuat', $maPxCu)->first();
                 if ($ctPx) {
                     $tkCu = TonKho::where('so_lo', $ctPx->so_lo)->where('ma_thuoc', $ctPx->ma_thuoc)->first();
                     if ($tkCu) {
@@ -77,7 +95,7 @@ class KhachTraHangController extends Controller
             }
 
             if (!$maNcc) {
-                $nccTraHang = \App\Models\NhaCungCap::firstOrCreate(
+                $nccTraHang = NhaCungCap::firstOrCreate(
                     ['ma_ncc' => 'NCC_TRAHANG'],
                     ['ten_ncc' => 'Khách Hàng Trả Lại', 'so_dien_thoai' => '0000000000', 'dia_chi' => 'Hệ thống tự động', 'trang_thai' => 1]
                 );
@@ -103,14 +121,14 @@ class KhachTraHangController extends Controller
                 'image1' => '', 
                 'image2' => '',
                 'giay_to_lien_quan' => '',
-                'tieu_lieu_lien_quan' => 'Khách hàng trả hàng đơn ' . $traHang->ma_don_hang
+                'tieu_lieu_lien_quan' => "[MA_TRA:{$traHang->ma_tra_hang}] Khách hàng trả hàng đơn " . $traHang->ma_don_hang
             ]);
 
             // 2. Chuyển chi tiết theo ds xuất (phân bổ số lượng trả dựa trên các lô đã xuất thực tế)
             foreach ($traHang->chiTiet as $ct) {
                 $slTraCon = $ct->so_luong_tra;
                 
-                $chiTietXuats = \App\Models\ChiTietPhieuXuat::where('ma_phieu_xuat', $maPxCu)
+                $chiTietXuats = ChiTietPhieuXuat::where('ma_phieu_xuat', $maPxCu)
                     ->where('ma_thuoc', $ct->ma_thuoc)
                     ->get();
 
@@ -193,6 +211,16 @@ class KhachTraHangController extends Controller
         if ($traHang->trang_thai !== 'da_duyet_nhap_kho') {
             return back()->withErrors(['error' => 'Đơn trả hàng chưa được duyệt, không thể hoàn tiền.']);
         }
+
+        // Kiểm tra xem hàng đã về đủ chưa
+        $phieuNhap = PhieuNhap::where('ma_phieu_nhap', 'LIKE', 'PN_TRA_%')
+            ->where('tieu_lieu_lien_quan', 'LIKE', '%' . $traHang->ma_tra_hang . '%')
+            ->first();
+
+        if (!$phieuNhap || $phieuNhap->trang_thai_phieu_nhap !== 'da_nhap_kho') {
+            return back()->withErrors(['error' => 'Hàng chưa về đủ kho, không thể thực hiện hoàn tiền. Phiếu nhập liên quan phải ở trạng thái "Thành công".']);
+        }
+
         if ($traHang->trang_thai_hoan_tien === 'da_hoan') {
             return back()->withErrors(['error' => 'Đơn này đã hoàn tiền đầy đủ.']);
         }
@@ -209,7 +237,7 @@ class KhachTraHangController extends Controller
 
             // Sinh mã thanh toán
             $prefix = 'TTR';
-            $lastTT = \App\Models\ThanhToan::where('ma_thanh_toan', 'like', $prefix . '%')->orderBy('ma_thanh_toan', 'desc')->first();
+            $lastTT = ThanhToan::where('ma_thanh_toan', 'like', $prefix . '%')->orderBy('ma_thanh_toan', 'desc')->first();
             $nextId = 1;
             if ($lastTT && preg_match('/' . $prefix . '(\d+)/', $lastTT->ma_thanh_toan, $matches)) {
                 $nextId = intval($matches[1]) + 1;
@@ -225,7 +253,7 @@ class KhachTraHangController extends Controller
             $conNoMoi = $conLai - $soTienTT;
 
             // Lưu giao dịch hoàn tiền
-            \App\Models\ThanhToan::create([
+            ThanhToan::create([
                 'ma_thanh_toan'    => $maTT,
                 'loai_thanh_toan'  => 'tra_hang',
                 'ma_tra_hang'      => $traHang->ma_tra_hang,
@@ -250,5 +278,65 @@ class KhachTraHangController extends Controller
             DB::rollBack();
             return back()->withErrors(['error' => 'Lỗi: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * Hoàn tác duyệt đơn trả hàng
+     * Chỉ thực hiện khi chưa có hàng thực tế nào về kho
+     */
+    public function undoApprove($id)
+    {
+        $traHang = KhachTraHang::findOrFail($id);
+
+        if ($traHang->trang_thai !== 'da_duyet_nhap_kho') {
+            return back()->withErrors(['error' => 'Đơn này không ở trạng thái có thể hoàn tác.']);
+        }
+
+        // Tìm phiếu nhập liên quan
+        $phieuNhap = PhieuNhap::where('ma_phieu_nhap', 'LIKE', 'PN_TRA_%')
+            ->where('tieu_lieu_lien_quan', 'LIKE', '%' . $id . '%')
+            ->with(['chiTiet', 'cacThanhToan'])
+            ->first();
+
+        if ($phieuNhap) {
+            // Kiểm tra hàng về
+            $received = $phieuNhap->chiTiet->sum('so_luong_thuc_te');
+            if ($received > 0) {
+                return back()->withErrors(['error' => 'Không thể hoàn tác do đã có hàng được tiếp nhận tại kho.']);
+            }
+
+            // Kiểm tra thanh toán (thực tế processRefund đã chặn, nhưng check cho chắc)
+            if ($traHang->thanhToans()->count() > 0) {
+                return back()->withErrors(['error' => 'Đơn đã có phát sinh hoàn tiền, không thể hoàn tác.']);
+            }
+
+            DB::beginTransaction();
+            try {
+                $maPN = $phieuNhap->ma_phieu_nhap;
+
+                // Xóa Tồn kho khu vực (nếu lỡ có) và Tồn kho (lô ảo mới tạo)
+                TonKhoKhuVuc::where('ma_phieu_nhap', $maPN)->delete();
+                TonKho::where('ma_phieu_nhap', $maPN)->delete();
+                
+                // Xóa Chi tiết và Phiếu nhập
+                ChiTietPhieuNhap::where('ma_phieu_nhap', $maPN)->delete();
+                $phieuNhap->delete();
+
+                // Lùi trạng thái đơn trả
+                $traHang->trang_thai = 'cho_duyet';
+                $traHang->nguoi_duyet = null;
+                $traHang->ngay_duyet = null;
+                $traHang->ghi_chu_admin = null;
+                $traHang->save();
+
+                DB::commit();
+                return redirect()->route('admin.returns.show', $id)->with('success', 'Đã hoàn tác duyệt đơn trả thành công.');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return back()->withErrors(['error' => 'Lỗi khi hoàn tác: ' . $e->getMessage()]);
+            }
+        }
+
+        return back()->withErrors(['error' => 'Không tìm thấy phiếu nhập liên quan để hoàn tác.']);
     }
 }

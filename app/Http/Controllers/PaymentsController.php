@@ -10,7 +10,7 @@ use App\Models\KhachTraHang;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class ThanhToanController extends Controller
+class PaymentsController extends Controller
 {
     /**
      * Hiển thị danh sách công nợ (cả Phải thu, Phải trả và Hoàn trả đơn hàng KH).

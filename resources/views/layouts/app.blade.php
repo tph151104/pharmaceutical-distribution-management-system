@@ -196,6 +196,8 @@
         </div>
     </div>
 
+    @php $user = Auth::guard('admin')->user(); @endphp
+
     <ul class="sidebar-nav">
         <li>
             <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -204,6 +206,8 @@
             </a>
         </li>
 
+        {{-- ═══ KHO HÀNG: Admin(1), NV Kho(2), Trưởng kho(5) ═══ --}}
+        @if($user->hasRole(1, 2, 5))
         <li class="sidebar-section-title">Kho hàng</li>
         <li>
             <a href="{{ route('imports.index') }}" class="sidebar-link {{ request()->routeIs('imports.*') ? 'active' : '' }}">
@@ -217,84 +221,158 @@
                 <span>Xuất kho bán sỉ</span>
             </a>
         </li>
+        @endif
+
+        {{-- ═══ ĐƠN HÀNG: Admin(1), NV Kho(2), NV BH(3), Trưởng kho(5) ═══ --}}
+        @if($user->hasRole(1, 2, 3, 5))
         <li>
             <a href="{{ route('admin.orders.index') }}" class="sidebar-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-box-seam"></i></span>
                 <span>Quản lý Đơn hàng</span>
             </a>
         </li>
+        @endif
+
+        {{-- ═══ TỒN KHO: Admin(1), NV Kho(2), Trưởng kho(5) full; NV BH(3), KT(4) read-only ═══ --}}
+        @if($user->hasRole(1, 2, 5))
         <li>
             <a href="{{ route('batches.index') }}" class="sidebar-link {{ request()->routeIs('batches.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-layers"></i></span>
                 <span>Tồn kho theo lô</span>
             </a>
         </li>
+        @elseif($user->hasRole(3, 4))
+        <li>
+            <a href="{{ route('batches.index') }}" class="sidebar-link {{ request()->routeIs('batches.*') ? 'active' : '' }}">
+                <span class="sidebar-link-icon"><i class="bi bi-layers"></i></span>
+                <span>Tồn kho (xem)</span>
+                <span class="sidebar-badge badge bg-light text-muted">Xem</span>
+            </a>
+        </li>
+        @endif
+
+        {{-- ═══ ĐIỀU CHUYỂN KHO: Admin(1), NV Kho(2), Trưởng kho(5) ═══ --}}
+        @if($user->hasRole(1, 2, 5))
         <li>
             <a href="{{ route('transfers.index') }}" class="sidebar-link {{ request()->routeIs('transfers.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-arrow-left-right"></i></span>
                 <span>Luân chuyển khu vực</span>
             </a>
         </li>
+        @endif
+
+        {{-- ═══ TRẢ HÀNG: Tất cả roles ═══ --}}
         <li>
             <a href="{{ route('admin.returns.index') }}" class="sidebar-link {{ request()->routeIs('admin.returns.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-arrow-return-left"></i></span>
                 <span>Yêu cầu Khách Trả Hàng</span>
+                @if($user->hasRole(4))
+                <span class="sidebar-badge badge bg-light text-muted">Xem</span>
+                @endif
             </a>
         </li>
 
+        {{-- ═══════════ DANH MỤC ═══════════ --}}
+        @if($user->hasRole(1, 2, 3, 4, 5))
         <li class="sidebar-section-title">Danh mục</li>
+        @endif
+
+        {{-- Danh mục thuốc: Admin(1), Trưởng kho(5) CRUD; NV Kho(2) xem --}}
+        @if($user->hasRole(1, 2, 5))
         <li>
             <a href="{{ route('products.index') }}" class="sidebar-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-capsule"></i></span>
                 <span>Danh mục thuốc / sản phẩm</span>
+                <!-- @if($user->hasRole(2))
+                <span class="sidebar-badge badge bg-light text-muted">Xem</span>
+                @endif -->
             </a>
         </li>
+        @endif
+
+        {{-- Nhà cung cấp: Admin(1), Trưởng kho(5) CRUD; Kế toán(4) xem --}}
+        @if($user->hasRole(1, 4, 5))
         <li>
             <a href="{{ route('suppliers.index') }}" class="sidebar-link {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-building"></i></span>
                 <span>Nhà cung cấp</span>
+                @if($user->hasRole(4))
+                <span class="sidebar-badge badge bg-light text-muted">Xem</span>
+                @endif
             </a>
         </li>
+        @endif
+
+        {{-- Khách hàng: Admin(1), NV BH(3) full; Trưởng kho(5), KT(4) xem --}}
+        @if($user->hasRole(1, 3, 4, 5))
         <li>
             <a href="{{ route('customers.index') }}" class="sidebar-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-people"></i></span>
                 <span>Quản lý khách hàng</span>
+                @if($user->hasRole(4, 5))
+                <span class="sidebar-badge badge bg-light text-muted">Xem</span>
+                @endif
             </a>
         </li>
+        @endif
+
+        {{-- Thanh toán: Admin(1), Kế toán(4) --}}
+        @if($user->hasRole(1, 4))
         <li>
-            <a href="{{ route('payments.index') }}" class="sidebar-link">
+            <a href="{{ route('payments.index') }}" class="sidebar-link {{ request()->routeIs('payments.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-cash-coin"></i></span>
                 <span>Xử lý thanh toán</span>
             </a>
         </li>
-        
+        @endif
+
+        {{-- ═══════════ BÁO CÁO ═══════════ --}}
+        @if($user->hasRole(1, 2, 3, 4, 5))
         <li class="sidebar-section-title">Báo cáo & Công nợ</li>
+        @endif
+
+        {{-- BC Tồn kho: Admin(1), Trưởng kho(5), NV Kho(2), Kế toán(4) --}}
+        @if($user->hasRole(1, 2, 4, 5))
         <li>
-            <a href="{{ route('reports.stock') }}" class="sidebar-link {{ request()->routeIs('reports.stock') ? 'active' : '' }}">
+            <a href="{{ route('reports.stock') }}" class="sidebar-link {{ request()->routeIs('reports.stock*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-clipboard-data"></i></span>
                 <span>Báo cáo tồn kho</span>
             </a>
         </li>
+        @endif
+
+        {{-- Lịch sử XNK: Admin(1), Trưởng kho(5), NV Kho(2) --}}
+        @if($user->hasRole(1, 2, 5))
         <li>
-            <a href="{{ route('reports.movements') }}" class="sidebar-link {{ request()->routeIs('reports.movements') ? 'active' : '' }}">
+            <a href="{{ route('reports.movements') }}" class="sidebar-link {{ request()->routeIs('reports.movements*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-clock-history"></i></span>
                 <span>Lịch sử nhập xuất kho</span>
             </a>
         </li>
+        @endif
+
+        {{-- Công nợ: Admin(1), NV BH(3), Kế toán(4) --}}
+        @if($user->hasRole(1, 3, 4))
         <li>
-            <a href="{{ route('reports.debts') }}" class="sidebar-link {{ request()->routeIs('reports.debts') ? 'active' : '' }}">
+            <a href="{{ route('reports.debts') }}" class="sidebar-link {{ request()->routeIs('reports.debts*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-cash-coin"></i></span>
                 <span>Công nợ NCC & KH</span>
             </a>
         </li>
+        @endif
 
+        {{-- ═══════════ HỆ THỐNG ═══════════ --}}
         <li class="sidebar-section-title">Hệ thống</li>
+
+        {{-- Quản lý người dùng: Chỉ Admin(1) --}}
+        @if($user->hasRole(1))
         <li>
-            <a href="#" class="sidebar-link">
+            <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-person-fill-gear"></i></span>
                 <span>Quản lý người dùng</span>
             </a>
         </li>
+        @endif
     </ul>
 </div>
 
@@ -323,13 +401,24 @@
                     </button>
                     <div class="dropdown">
                         <button class="btn btn-light border-0 d-flex align-items-center gap-2" data-bs-toggle="dropdown">
-                            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
+                            @php
+                                $roleBgColors = [
+                                    1 => 'bg-danger-subtle text-danger',
+                                    2 => 'bg-warning-subtle text-warning',
+                                    3 => 'bg-success-subtle text-success',
+                                    4 => 'bg-info-subtle text-info',
+                                    5 => 'bg-primary-subtle text-primary',
+                                ];
+                                $initials = mb_strtoupper(mb_substr($user->ho_ten_nd, 0, 2));
+                                $avatarClass = $roleBgColors[$user->role] ?? 'bg-secondary-subtle text-secondary';
+                            @endphp
+                            <div class="rounded-circle {{ $avatarClass }} d-flex align-items-center justify-content-center"
                                  style="width:32px;height:32px;">
-                                <span class="fw-semibold">AD</span>
+                                <span class="fw-semibold" style="font-size: 0.75rem;">{{ $initials }}</span>
                             </div>
                             <div class="text-start d-none d-sm-block">
-                                <div class="small fw-semibold">Admin</div>
-                                <div class="small text-muted">Quản trị hệ thống</div>
+                                <div class="small fw-semibold">{{ $user->ho_ten_nd }}</div>
+                                <div class="small text-muted">{{ $user->role_name }}</div>
                             </div>
                             <i class="bi bi-chevron-down small ms-1"></i>
                         </button>
@@ -338,7 +427,14 @@
                             <li><a class="dropdown-item" href="{{ route('account.profile') }}"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a></li>
                             <li><a class="dropdown-item" href="{{ route('account.password') }}"><i class="bi bi-shield-lock me-2"></i>Đổi mật khẩu</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+                            <li>
+                                <form method="POST" action="{{ route('admin.auth.logout') }}">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                                    </button>
+                                </form>
+                            </li>
                         </ul>
                     </div>
                 </div>

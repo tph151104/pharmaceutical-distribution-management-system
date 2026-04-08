@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\DonHang;
+use Illuminate\Support\Facades\DB;
 
-class DonHangController extends Controller
+class OrderController extends Controller
 {
     /**
      * Danh sách đơn hàng (Admin)
@@ -43,16 +44,16 @@ class DonHangController extends Controller
             return back()->withErrors(['error' => 'Chỉ có thể duyệt đơn hàng đang Chờ xử lý.']);
         }
 
-        \Illuminate\Support\Facades\DB::beginTransaction();
+        DB::beginTransaction();
         try {
             // Đổi trạng thái đơn hàng sang đã duyệt (Kế toán duyệt)
             // Lát thủ kho sẽ tạo Phiếu xuất từ đơn hàng này.
             $donHang->update(['trang_thai_dh' => 'da_duyet']);
 
-            \Illuminate\Support\Facades\DB::commit();
+            DB::commit();
             return back()->with('success', 'Đã duyệt đơn hàng ' . $donHang->ma_don_hang . ' thành công. Đơn hàng đang chờ thủ kho xuất hàng.');
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\DB::rollBack();
+            DB::rollBack();
             return back()->withErrors(['error' => 'Lỗi khi duyệt đơn: ' . $e->getMessage()]);
         }
     }
@@ -79,49 +80,18 @@ class DonHangController extends Controller
      */
     public function export(Request $request)
     {
-        $query = DonHang::with('khachHang');
+        $query = DonHang::with(['khachHang', 'chiTiet']);
 
         if ($status = $request->get('status')) {
             $query->where('trang_thai_dh', $status);
         }
 
         $donHangs = $query->orderBy('created_at', 'desc')->get();
+        $fileName = 'Danh_Sach_Don_Hang_' . date('Y_m_d_H_i') . '.xls';
 
-        $filename = "don_hang_" . date('Ymd_His') . ".csv";
-
-        $headers = [
-            "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
-        ];
-
-        $columns = ['Mã đơn hàng', 'Khách hàng', 'Số điện thoại', 'Ngày đặt', 'Tổng tiền', 'Trạng thái'];
-
-        $callback = function() use($donHangs, $columns) {
-            $file = fopen('php://output', 'w');
-            
-            // Thêm BOM để Excel đọc đúng tiếng Việt UTF-8
-            fputs($file, "\xEF\xBB\xBF");
-            
-            fputcsv($file, $columns);
-
-            foreach ($donHangs as $dh) {
-                fputcsv($file, [
-                    $dh->ma_don_hang,
-                    $dh->khachHang->ten_kh ?? '',
-                    $dh->khachHang->dien_thoai ?? '',
-                    $dh->ngay_dat ? $dh->ngay_dat->format('d/m/Y H:i') : '',
-                    $dh->tong_tien,
-                    $dh->tenTrangThai
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return response(view('admin.inventory.orders.export', compact('donHangs')))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
     }
 
     /**

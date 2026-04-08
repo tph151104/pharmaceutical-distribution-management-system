@@ -20,7 +20,7 @@ class InventoryTransferController extends Controller
     {
         $khuVucs = KhuVucKho::where('trang_thai', true)->get();
 
-        $query = TonKhoKhuVuc::with(['thuoc', 'khuVuc'])->where('so_luong', '>', 0);
+        $query = TonKhoKhuVuc::with(['thuoc', 'khuVuc', 'phieuNhap'])->where('so_luong', '>', 0);
 
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
@@ -160,52 +160,10 @@ class InventoryTransferController extends Controller
         $query = $this->buildHistoryQuery($request);
         $histories = $query->orderBy('ngay_chuyen', 'desc')->get();
 
-        $fileName = 'lich_su_luan_chuyen_' . date('Ymd_His') . '.csv';
+        $fileName = 'Lich_Su_Dich_Chuyen_' . date('Y_m_d_H_i') . '.xls';
 
-        $headers = [
-            "Content-type"        => "text/csv; charset=UTF-8",
-            "Content-Disposition" => "attachment; filename=$fileName",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
-        ];
-
-        $callback = function() use($histories) {
-            $file = fopen('php://output', 'w');
-            fputs($file, "\xEF\xBB\xBF"); // BOM
-
-            fputcsv($file, [
-                'Ma Phieu Chuyen',
-                'Thoi Gian',
-                'Nguoi Thuc Hien',
-                'Tu Khu Vuc',
-                'Den Khu Vuc',
-                'Ma Thuoc',
-                'Ten Thuoc',
-                'So Lo',
-                'Ma Phieu Nhap',
-                'So Luong',
-                'Ly Do'
-            ]);
-
-            foreach ($histories as $log) {
-                fputcsv($file, [
-                    $log->ma_phieu_chuyen,
-                    $log->ngay_chuyen ? \Carbon\Carbon::parse($log->ngay_chuyen)->format('d/m/Y H:i:s') : '',
-                    $log->nguoiThucHien->ho_ten ?? $log->nguoi_thuc_hien,
-                    $log->tuKhuVucKho->ten_khu_vuc ?? 'N/A',
-                    $log->denKhuVucKho->ten_khu_vuc ?? 'N/A',
-                    $log->ma_thuoc,
-                    $log->thuoc->ten_thuoc ?? 'N/A',
-                    $log->so_lo,
-                    $log->ma_phieu_nhap,
-                    $log->so_luong_chuyen,
-                    $log->ly_do_chuyen
-                ]);
-            }
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return response(view('admin.inventory.transfers.export', compact('histories')))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
     }
 }

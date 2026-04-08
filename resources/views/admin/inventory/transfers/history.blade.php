@@ -77,11 +77,11 @@
                             <td>
                                 <div class="d-flex align-items-center justify-content-between p-2 border rounded bg-light" style="min-width: 260px;">
                                     <span class="badge {{ $log->tu_khu_vuc ? 'bg-secondary' : 'bg-warning text-dark' }} text-truncate" style="max-width: 100px;">
-                                        {{ $log->tuKhuVucKho->ten_khu_vuc ?? 'Nhập mới' }}
+                                        {{ $log->tuKhuVucKho->ten_khu_vuc ?? $log->tu_khu_vuc ?? 'Nhập mới' }}
                                     </span>
                                     <i class="bi bi-arrow-right text-muted mx-2"></i>
                                     <span class="badge bg-info text-dark border border-info-subtle text-truncate" style="max-width: 100px;">
-                                        {{ $log->denKhuVucKho->ten_khu_vuc ?? 'N/A' }}
+                                        {{ $log->denKhuVucKho->ten_khu_vuc ?? $log->den_khu_vuc ?? 'N/A' }}
                                     </span>
                                 </div>
                             </td>

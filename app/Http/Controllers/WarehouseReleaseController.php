@@ -6,11 +6,14 @@ use Illuminate\Http\Request;
 use App\Models\PhieuXuat;
 use App\Models\ChiTietPhieuXuat;
 use App\Models\TonKho;
+use App\Models\TonKhoKhuVuc;
 use App\Models\DonHang;
 use App\Models\ThanhToan;
+use App\Models\KhachTraHang;
+use App\Services\InventoryLogService;
 use Illuminate\Support\Facades\DB;
 
-class PhieuXuatController extends Controller
+class WarehouseReleaseController extends Controller
 {
     /**
      * Danh sách phiếu xuất kho
@@ -22,10 +25,30 @@ class PhieuXuatController extends Controller
         if ($status = $request->get('status')) {
             $query->where('trang_thai_phieu_xuat', $status);
         }
+        
 
         $phieuXuats = $query->orderBy('created_at', 'desc')->paginate(15);
 
         return view('admin.inventory.sales.index', compact('phieuXuats'));
+    }
+
+    /**
+     * Xuất Excel Phiếu Xuất
+     */
+    public function export(Request $request)
+    {
+        $query = PhieuXuat::with('khachHang');
+
+        if ($status = $request->get('status')) {
+            $query->where('trang_thai_phieu_xuat', $status);
+        }
+
+        $phieuXuats = $query->orderBy('created_at', 'desc')->get();
+        $fileName = 'Danh_Sach_Phieu_Xuat_' . date('Y_m_d_H_i') . '.xls';
+
+        return response(view('admin.inventory.sales.export', compact('phieuXuats')))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
     }
 
     /**
@@ -58,7 +81,6 @@ class PhieuXuatController extends Controller
 
         DB::beginTransaction();
         try {
-            // Sinh mã phiếu xuất tự động
             $prefix = 'PX_' . $donHang->ma_don_hang . '_';
 
             $lastPX = PhieuXuat::where('ma_phieu_xuat', 'like', $prefix . '%')->orderBy('ma_phieu_xuat', 'desc')->first();
@@ -108,7 +130,7 @@ class PhieuXuatController extends Controller
         if ($phieuXuat->trang_thai_phieu_xuat === 'dang_chuan_bi') {
             foreach ($phieuXuat->donHang->chiTiet as $ctdh) {
                 // Chỉ tìm các lô thuốc còn tồn ở khu vực Sẵn Sàng Bán (KV03), đang bán, còn hạn theo FEFO
-                $lots = \App\Models\TonKhoKhuVuc::select('ton_kho_khu_vuc.*', 'ton_kho.han_su_dung', 'ton_kho.so_luong_ton as tong_ton')
+                $lots = TonKhoKhuVuc::select('ton_kho_khu_vuc.*', 'ton_kho.han_su_dung', 'ton_kho.so_luong_ton as tong_ton')
                     ->join('ton_kho', function ($join) {
                         $join->on('ton_kho_khu_vuc.ma_thuoc', '=', 'ton_kho.ma_thuoc')
                              ->on('ton_kho_khu_vuc.ma_phieu_nhap', '=', 'ton_kho.ma_phieu_nhap')
@@ -201,7 +223,7 @@ class PhieuXuatController extends Controller
                         ->where('ma_phieu_nhap', $info['ma_phieu_nhap'])
                         ->first();
 
-                    $tonKhoKhuVuc = \App\Models\TonKhoKhuVuc::where('ma_thuoc', $maThuoc)
+                    $tonKhoKhuVuc = TonKhoKhuVuc::where('ma_thuoc', $maThuoc)
                         ->where('so_lo', $soLo)
                         ->where('ma_phieu_nhap', $info['ma_phieu_nhap'])
                         ->where('ma_khu_vuc', 'KV03_THANH_PHAM')
@@ -223,7 +245,7 @@ class PhieuXuatController extends Controller
                     $tonKho->save();
 
                     // Ghi log xuất kho
-                    \App\Services\InventoryLogService::logMovement(
+                    InventoryLogService::logMovement(
                         $maThuoc,
                         $soLo,
                         $phieuXuat->nguoi_tao_phieu ?? 'NV001',
@@ -367,7 +389,7 @@ class PhieuXuatController extends Controller
             return back()->withErrors(['error' => 'Chỉ có thể hoàn tác từ trạng thái Đã hoàn thành.']);
         }
 
-        if ($phieuXuat->ma_don_hang && \App\Models\KhachTraHang::where('ma_don_hang', $phieuXuat->ma_don_hang)->exists()) {
+        if ($phieuXuat->ma_don_hang && KhachTraHang::where('ma_don_hang', $phieuXuat->ma_don_hang)->exists()) {
              return back()->withErrors(['error' => 'Không thể hoàn tác vì đơn hàng này đã được khách yêu cầu trả hàng.']);
         }
 
@@ -377,7 +399,7 @@ class PhieuXuatController extends Controller
             $phieuXuat->save();
 
             if ($phieuXuat->ma_don_hang) {
-                $donHang = \App\Models\DonHang::find($phieuXuat->ma_don_hang);
+                $donHang = DonHang::find($phieuXuat->ma_don_hang);
                 if ($donHang && $donHang->trang_thai_dh === 'da_hoan_thanh') {
                     $donHang->trang_thai_dh = 'dang_xuat_kho'; 
                     $donHang->save();
@@ -442,7 +464,7 @@ class PhieuXuatController extends Controller
                     ->first();
 
                 if ($tonKho) {
-                    $tonKhoKhuVuc = \App\Models\TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
+                    $tonKhoKhuVuc = TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
                         ->where('so_lo', $tonKho->so_lo)
                         ->where('ma_phieu_nhap', $tonKho->ma_phieu_nhap)
                         ->where('ma_khu_vuc', 'KV03_THANH_PHAM')
@@ -460,7 +482,7 @@ class PhieuXuatController extends Controller
                         $tonKhoKhuVuc->so_luong += $ct->so_luong_xuat;
                         $tonKhoKhuVuc->save();
                     } else {
-                        \App\Models\TonKhoKhuVuc::create([
+                        TonKhoKhuVuc::create([
                             'ma_thuoc' => $tonKho->ma_thuoc,
                             'ma_phieu_nhap' => $tonKho->ma_phieu_nhap,
                             'so_lo' => $tonKho->so_lo,
@@ -470,7 +492,7 @@ class PhieuXuatController extends Controller
                     }
 
                     // Ghi log hoàn trả
-                    \App\Services\InventoryLogService::logMovement(
+                    InventoryLogService::logMovement(
                         $ct->ma_thuoc,
                         $ct->so_lo,
                         auth()->id() ?? 'NV001',

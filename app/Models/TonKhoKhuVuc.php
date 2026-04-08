@@ -26,6 +26,11 @@ class TonKhoKhuVuc extends Model
         return $this->belongsTo(Thuoc::class, 'ma_thuoc', 'ma_thuoc');
     }
 
+    public function phieuNhap()
+    {
+        return $this->belongsTo(PhieuNhap::class, 'ma_phieu_nhap', 'ma_phieu_nhap');
+    }
+
     protected $tonKhoCache = null;
 
     // Accessor that replaces the broken composite-key relationship

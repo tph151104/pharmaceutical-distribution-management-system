@@ -66,7 +66,7 @@
                 <thead class="table-light">
                     <tr>
                         <th class="py-3 text-secondary" style="min-width: 250px;">Thông tin Thuốc</th>
-                        <th class="py-3 text-secondary">Số Lô / HSD</th>
+                        <th class="py-3 text-secondary">Mã phiếu nhập / Số Lô / HSD</th>
                         <th class="py-3 text-secondary">Khu vực hiện tại</th>
                         <th class="py-3 text-center text-secondary">Số lượng tồn</th>
                         <th class="py-3 text-end text-secondary">Thao tác</th>
@@ -95,7 +95,9 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="fw-semibold text-dark mb-1">Lô: {{ $item->so_lo }}</div>
+                                <div class="fw-semibold text-dark mb-1">Mã phiếu nhập: {{ $item->ma_phieu_nhap }}</div>
+                                <div class="small text-muted">Số lô: {{ $item->so_lo }}</div>
+                                <div class="small text-muted">Ngày nhập: {{ $item->phieuNhap ? ($item->phieuNhap->ngay_nhap ? \Carbon\Carbon::parse($item->phieuNhap->ngay_nhap)->format('d/m/Y') : 'N/A') : 'N/A' }}</div>
                                 <div class="small text-muted">
                                     HSD: {{ ($item->tonKho && $item->tonKho->han_su_dung) ? $item->tonKho->han_su_dung->format('d/m/Y') : 'N/A' }}
                                     @if($item->tonKho && $item->tonKho->han_su_dung && $item->tonKho->han_su_dung < now())
@@ -105,7 +107,7 @@
                             </td>
                             <td>
                                 <span class="badge bg-info text-dark rounded-pill px-3 py-2 border border-info-subtle">
-                                    {{ $item->khuVuc->ten_khu_vuc ?? 'N/A' }}
+                                    {{ $item->khuVuc->ten_khu_vuc ?? $item->ma_khu_vuc ?? 'N/A' }}
                                 </span>
                             </td>
                             <td class="text-center fw-bold text-dark fs-5">

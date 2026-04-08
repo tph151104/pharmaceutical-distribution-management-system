@@ -8,10 +8,11 @@ use App\Imports\ThuocImport;
 use App\Models\Thuoc;
 use App\Models\NhomThuoc;
 use App\Models\DonViTinh;
+use App\Models\TonKho;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
-class ThuocController extends Controller
+class MedicineController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -148,7 +149,7 @@ class ThuocController extends Controller
         $thuoc = Thuoc::findOrFail($id);
         
         // Kiểm tra xem thuốc này đã có trong tồn kho hay không
-        $hasInventory = \App\Models\TonKho::where('ma_thuoc', $id)->exists();
+        $hasInventory = TonKho::where('ma_thuoc', $id)->exists();
         if ($hasInventory) {
             return redirect()->route('products.index')->with('error', "Không thể xoá thuốc " . $thuoc->ten_thuoc . " vì sản phẩm này đã có dữ liệu trong tồn kho.");
         }

@@ -6,7 +6,7 @@ use App\Models\NhaCungCap;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class NhaCungCapController extends Controller
+class SupplierController extends Controller
 {
     /**
      * Display a listing of the resource.

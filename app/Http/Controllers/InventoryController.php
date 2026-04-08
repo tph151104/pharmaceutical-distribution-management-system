@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\TonKho;
 use App\Models\Thuoc;
+use App\Models\TonKhoKhuVuc;
+use App\Services\InventoryLogService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class TonKhoController extends Controller
+class InventoryController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -31,7 +34,7 @@ class TonKhoController extends Controller
                                          ->on('ton_kho.so_lo', '=', 'chi_tiet_phieu_nhap.so_lo');
                                 })
                                 ->where('ton_kho.so_luong_ton', '>', 0)
-                                ->sum(\DB::raw('ton_kho.so_luong_ton * chi_tiet_phieu_nhap.don_gia_nhap'));
+                                ->sum(DB::raw('ton_kho.so_luong_ton * chi_tiet_phieu_nhap.don_gia_nhap'));
 
         // 2. Query danh sách
         $query = TonKho::with(['thuoc', 'phieuNhap.nhaCungCap', 'chiTietPhieuNhap']);
@@ -104,7 +107,7 @@ class TonKhoController extends Controller
         $tonKho->save();
 
         if ($oldStatus != $tonKho->trang_thai_lo) {
-            \App\Services\InventoryLogService::logMovement(
+            InventoryLogService::logMovement(
                 $tonKho->ma_thuoc,
                 $tonKho->so_lo,
                 'NV001', // Tạm fix
@@ -157,7 +160,7 @@ class TonKhoController extends Controller
         $tonKho->save();
 
         // Ghi log điều chỉnh
-        \App\Services\InventoryLogService::logMovement(
+        InventoryLogService::logMovement(
             $tonKho->ma_thuoc,
             $tonKho->so_lo,
             auth()->id() ?? 'NV001',
@@ -202,7 +205,7 @@ class TonKhoController extends Controller
         }
 
         // Ưu tiên trừ từ KV03, nếu không đủ thì trừ từ các khu vực khác
-        $tonKhuVucs = \App\Models\TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
+        $tonKhuVucs = TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
             ->where('ma_phieu_nhap', $tonKho->ma_phieu_nhap)
             ->where('so_lo', $tonKho->so_lo)
             ->where('so_luong', '>', 0)
@@ -227,7 +230,7 @@ class TonKhoController extends Controller
         }
 
         // Tăng vào khu vực mới (KV04/KV05)
-        $tkvDich = \App\Models\TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
+        $tkvDich = TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
             ->where('ma_phieu_nhap', $tonKho->ma_phieu_nhap)
             ->where('so_lo', $tonKho->so_lo)
             ->where('ma_khu_vuc', $request->ma_khu_vuc_den)
@@ -237,7 +240,7 @@ class TonKhoController extends Controller
             $tkvDich->so_luong += $soLuongIsolate;
             $tkvDich->save();
         } else {
-            \App\Models\TonKhoKhuVuc::create([
+            TonKhoKhuVuc::create([
                 'ma_thuoc' => $tonKho->ma_thuoc,
                 'ma_phieu_nhap' => $tonKho->ma_phieu_nhap,
                 'so_lo' => $tonKho->so_lo,
@@ -247,7 +250,7 @@ class TonKhoController extends Controller
         }
 
         // Ghi log
-        \App\Services\InventoryLogService::logMovement(
+        InventoryLogService::logMovement(
             $tonKho->ma_thuoc,
             $tonKho->so_lo,
             auth()->id() ?? 'NV001',

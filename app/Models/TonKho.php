@@ -105,8 +105,9 @@ class TonKho extends Model
             return "Lô {$this->so_lo} đang ở trạng thái: " . ($tenTrangThai[$this->trang_thai_lo] ?? $this->trang_thai_lo);
         }
 
-        if ($this->han_su_dung < now()->toDateString()) {
-            return "Lô {$this->so_lo} đã hết hạn sử dụng ({$this->han_su_dung->format('d/m/Y')})";
+        if ($this->han_su_dung < (now()->isImmutable() ? now()->toDateString() : now()->toDateString())) {
+            $hsd = $this->han_su_dung instanceof \Carbon\CarbonInterface ? $this->han_su_dung : \Carbon\Carbon::parse($this->han_su_dung);
+            return "Lô {$this->so_lo} đã hết hạn sử dụng ({$hsd->format('d/m/Y')})";
         }
 
         if ($this->so_luong_ton < $soLuongXuat) {

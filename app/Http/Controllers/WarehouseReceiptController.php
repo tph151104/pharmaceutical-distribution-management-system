@@ -5,14 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\PhieuNhap;
 use App\Models\ChiTietPhieuNhap;
 use App\Models\TonKho;
+use App\Models\TonKhoKhuVuc;
+use App\Models\LichSuDichChuyenKho;
 use App\Models\NhaCungCap;
 use App\Models\NhomThuoc;
 use App\Models\Thuoc;
+use App\Services\InventoryLogService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
-class PhieuNhapController extends Controller
+class WarehouseReceiptController extends Controller
 {
     /**
      * Danh sách phiếu nhập
@@ -36,6 +40,34 @@ class PhieuNhapController extends Controller
 
         $phieuNhaps = $query->paginate(15);
         return view('admin.inventory.imports.index', compact('phieuNhaps'));
+    }
+
+    /**
+     * Xuất Excel Phiếu Nhập
+     */
+    public function export(Request $request)
+    {
+        $query = PhieuNhap::with(['nhaCungCap', 'chiTiet'])->orderBy('created_at', 'desc');
+
+        if ($request->has('search') && $request->search != '') {
+            $query->where('ma_phieu_nhap', 'like', '%' . $request->search . '%');
+        }
+        
+        if ($request->has('trang_thai') && $request->trang_thai != '') {
+            $query->where('trang_thai_phieu_nhap', $request->trang_thai);
+        }       
+        if ($request->has('search_ncc') && $request->search_ncc != '') {
+            $query->whereHas('nhaCungCap', function($q) use ($request) {
+                $q->where('ten_ncc', 'like', '%' . $request->search_ncc . '%');
+            });
+        }
+
+        $phieuNhaps = $query->get();
+        $fileName = 'Danh_Sach_Phieu_Nhap_' . date('Y_m_d_H_i') . '.xls';
+
+        return response(view('admin.inventory.imports.export', compact('phieuNhaps')))
+            ->header('Content-Type', 'application/vnd.ms-excel')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
     }
 
     /**
@@ -149,7 +181,7 @@ class PhieuNhapController extends Controller
             // 2. Tạo chi tiết & Tồn kho
             foreach ($request->chi_tiet as $item) {
                 $so_lo = $slPrefix . str_pad($loIndex, 4, '0', STR_PAD_LEFT);
-                $so_lo_sx = 'LSX_' . \Carbon\Carbon::parse($item['ngay_san_xuat'])->format('Ymd');
+                $so_lo_sx = 'LSX_' . Carbon::parse($item['ngay_san_xuat'])->format('Ymd');
                 $loIndex++;
 
                 ChiTietPhieuNhap::create([
@@ -303,7 +335,7 @@ class PhieuNhapController extends Controller
             // Tạo lại chi tiết & Tồn kho nháp
             foreach ($request->chi_tiet as $item) {
                 $so_lo = $slPrefix . str_pad($loIndex, 4, '0', STR_PAD_LEFT);
-                $so_lo_sx = 'LSX_' . \Carbon\Carbon::parse($item['ngay_san_xuat'])->format('Ymd');
+                $so_lo_sx = 'LSX_' . Carbon::parse($item['ngay_san_xuat'])->format('Ymd');
                 $loIndex++;
 
                 ChiTietPhieuNhap::create([
@@ -518,7 +550,7 @@ class PhieuNhapController extends Controller
                         $targetArea = str_starts_with($id, 'PN_TRA_') ? 'KV04_CHO_XU_LY' : 'KV01_TIEP_NHAN';
                         
                         // Thêm số lượng vào Khu vực tương ứng
-                        $khuVuc = \App\Models\TonKhoKhuVuc::firstOrNew([
+                        $khuVuc = TonKhoKhuVuc::firstOrNew([
                             'ma_thuoc' => $chiTiet->ma_thuoc,
                             'ma_phieu_nhap' => $id,
                             'so_lo' => $chiTiet->so_lo,
@@ -529,8 +561,8 @@ class PhieuNhapController extends Controller
 
                         // Ghi log dịch chuyển kho (Nhập mới)
                         $areaLabel = $targetArea === 'KV04_CHO_XU_LY' ? 'Chờ Xử Lý' : 'Tiếp Nhận';
-                        \App\Models\LichSuDichChuyenKho::create([
-                            'ma_phieu_chuyen' => 'CHUP-' . now()->format('YmdHis') . '-' . strtoupper(\Illuminate\Support\Str::random(4)),
+                        LichSuDichChuyenKho::create([
+                            'ma_phieu_chuyen' => 'CHUP-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
                             'ma_thuoc' => $chiTiet->ma_thuoc,
                             'ma_phieu_nhap' => $id,
                             'so_lo' => $chiTiet->so_lo,
@@ -543,7 +575,7 @@ class PhieuNhapController extends Controller
                         ]);
 
                         // Ghi log nhập kho tổng (cũ)
-                        \App\Services\InventoryLogService::logMovement(
+                        InventoryLogService::logMovement(
                             $chiTiet->ma_thuoc,
                             $chiTiet->so_lo,
                             'USR001', // Tạm fix cứng vì chưa có Auth admin form

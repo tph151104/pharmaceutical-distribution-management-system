@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\TonKhoKhuVuc;
 
 class Thuoc extends Model
 {
@@ -51,7 +52,7 @@ class Thuoc extends Model
      */
     public function getTongTonKhoAttribute()
     {
-        return \App\Models\TonKhoKhuVuc::join('ton_kho', function ($join) {
+        return TonKhoKhuVuc::join('ton_kho', function ($join) {
                 $join->on('ton_kho_khu_vuc.ma_thuoc', '=', 'ton_kho.ma_thuoc')
                      ->on('ton_kho_khu_vuc.ma_phieu_nhap', '=', 'ton_kho.ma_phieu_nhap')
                      ->on('ton_kho_khu_vuc.so_lo', '=', 'ton_kho.so_lo');

@@ -9,8 +9,11 @@ use App\Models\DonHang;
 use App\Models\ChiTietDonHang;
 use App\Models\ThanhToan;
 use App\Models\PhieuXuat;
+use App\Models\KhachTraHang;
+use App\Models\ChiTietTraHang;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class WholesaleController extends Controller
 {
@@ -258,7 +261,7 @@ class WholesaleController extends Controller
             ->firstOrFail();
 
         $cartCount = array_sum(array_column(session('cart', []), 'so_luong'));
-        $traHang = \App\Models\KhachTraHang::where('ma_don_hang', $id)->first();
+        $traHang = KhachTraHang::where('ma_don_hang', $id)->first();
 
         return view('wholesale.order_detail', compact('donHang', 'cartCount', 'traHang'));
     }
@@ -280,7 +283,7 @@ class WholesaleController extends Controller
         DB::beginTransaction();
         try {
             // Xóa phiếu xuất nháp liên quan (nếu có)
-            $phieuXuat = \App\Models\PhieuXuat::where('ma_don_hang', $id)
+            $phieuXuat = PhieuXuat::where('ma_don_hang', $id)
                 ->where('trang_thai_phieu_xuat', 'dang_chuan_bi')
                 ->first();
             if ($phieuXuat) {
@@ -316,7 +319,7 @@ class WholesaleController extends Controller
         DB::beginTransaction();
         try {
             // Xóa phiếu xuất nháp liên quan (nếu có)
-            $phieuXuat = \App\Models\PhieuXuat::where('ma_don_hang', $id)
+            $phieuXuat = PhieuXuat::where('ma_don_hang', $id)
                 ->where('trang_thai_phieu_xuat', 'dang_chuan_bi')
                 ->first();
             if ($phieuXuat) {
@@ -370,7 +373,7 @@ class WholesaleController extends Controller
             $donHang->save();
 
             // Cập nhật Phiếu xuất liên quan
-            \App\Models\PhieuXuat::where('ma_don_hang', $id)
+            PhieuXuat::where('ma_don_hang', $id)
                 ->whereIn('trang_thai_phieu_xuat', ['da_van_chuyen'])
                 ->update(['trang_thai_phieu_xuat' => 'da_hoan_thanh']);
 
@@ -421,79 +424,91 @@ class WholesaleController extends Controller
         }
 
         // Kiểm tra đã có yêu cầu trả hàng chưa
-        $exists = \App\Models\KhachTraHang::where('ma_don_hang', $id)->exists();
+        $exists = KhachTraHang::where('ma_don_hang', $id)->exists();
         if ($exists) {
             return back()->withErrors(['error' => 'Đơn hàng này đã có yêu cầu trả hàng.']);
         }
 
         $request->validate([
+            'ly_do_chung' => 'required|string',
             'minh_chung_image' => 'required|image|max:5120',
         ], [
+            'ly_do_chung.required' => 'Vui lòng nhập lý do trả hàng tổng quát.',
             'minh_chung_image.required' => 'Vui lòng đính kèm hình ảnh minh chứng để nhân viên kho kiểm tra.',
             'minh_chung_image.image' => 'File minh chứng phải là hình ảnh (nhỏ hơn 5MB).'
         ]);
 
         $items = $request->input('items', []);
+        $processedItems = [];
         $totalRefund = 0;
-        $hasReturn = false;
 
+        // 1. Validate items and calculate total FIRST
+        foreach ($items as $ct) {
+            $slTra = intval($ct['so_luong'] ?? 0);
+            if ($slTra > 0) {
+                // Lấy thông tin đơn hàng gốc để so sánh số lượng
+                $chiTietMua = ChiTietDonHang::where('ma_don_hang', $id)
+                    ->where('ma_thuoc', $ct['ma_thuoc'])
+                    ->first();
+                
+                if (!$chiTietMua) continue;
+
+                if ($slTra > $chiTietMua->so_luong) {
+                    return back()->withErrors(['error' => 'Số lượng trả của "' . ($chiTietMua->thuoc->ten_thuoc ?? $ct['ma_thuoc']) . '" không được vượt quá số lượng đã mua (' . $chiTietMua->so_luong . ').']);
+                }
+
+                $donGia = $chiTietMua->don_gia;
+                $thanhTien = $slTra * $donGia;
+                $totalRefund += $thanhTien;
+
+                $processedItems[] = [
+                    'ma_thuoc' => $ct['ma_thuoc'],
+                    'so_luong_tra' => $slTra,
+                    'don_gia_tra' => $donGia,
+                    'thanh_tien' => $thanhTien,
+                    'ly_do_chi_tiet' => $ct['ly_do'] ?? ''
+                ];
+            }
+        }
+
+        if (empty($processedItems)) {
+            return back()->withErrors(['error' => 'Vui lòng chọn ít nhất 1 sản phẩm cần trả và nhập số lượng lớn hơn 0.']);
+        }
+
+        // 2. Start database transaction after validation passes
         DB::beginTransaction();
         try {
             $maTraHang = 'TH_' . date('Ymd_His');
 
-            $khachTra = \App\Models\KhachTraHang::create([
+            // Xử lý ảnh minh chứng
+            $imagePath = null;
+            if ($request->hasFile('minh_chung_image')) {
+                $file = $request->file('minh_chung_image');
+                $name = time() . '_minhchung.' . $file->extension();
+                $file->move(public_path('uploads/returns'), $name);
+                $imagePath = 'uploads/returns/' . $name;
+            }
+
+            $khachTra = KhachTraHang::create([
                 'ma_tra_hang' => $maTraHang,
                 'ma_don_hang' => $donHang->ma_don_hang,
                 'ma_kh' => $customer->ma_kh,
                 'ngay_yeu_cau' => now()->toDateString(),
                 'ly_do_chung' => $request->ly_do_chung,
-                'tong_tien_hoan_tra' => 0,
-                'trang_thai' => 'cho_duyet'
+                'tong_tien_hoan_tra' => $totalRefund,
+                'trang_thai' => 'cho_duyet',
+                'minh_chung_image' => $imagePath
             ]);
 
-            foreach ($items as $ct) {
-                if (!empty($ct['so_luong']) && $ct['so_luong'] > 0) {
-                    $hasReturn = true;
-                    // Lấy đơn giá lúc mua
-                    $chiTietMua = \App\Models\ChiTietDonHang::where('ma_don_hang', $id)
-                        ->where('ma_thuoc', $ct['ma_thuoc'])
-                        ->first();
-                    
-                    $donGia = $chiTietMua ? $chiTietMua->don_gia : 0;
-                    $thanhTien = $ct['so_luong'] * $donGia;
-                    $totalRefund += $thanhTien;
-
-                    \App\Models\ChiTietTraHang::create([
-                        'ma_tra_hang' => $maTraHang,
-                        'ma_thuoc' => $ct['ma_thuoc'],
-                        'so_luong_tra' => $ct['so_luong'],
-                        'don_gia_tra' => $donGia,
-                        'thanh_tien' => $thanhTien,
-                        'ly_do_chi_tiet' => $ct['ly_do'] ?? ''
-                    ]);
-                }
+            foreach ($processedItems as $item) {
+                ChiTietTraHang::create(array_merge($item, ['ma_tra_hang' => $maTraHang]));
             }
-
-            if (!$hasReturn) {
-                DB::rollBack();
-                return back()->withErrors(['error' => 'Vui lòng chọn ít nhất 1 sản phẩm cần trả.']);
-            }
-
-            if ($request->hasFile('minh_chung_image')) {
-                $file = $request->file('minh_chung_image');
-                $name = time() . '_minhchung.' . $file->extension();
-                $file->move(public_path('uploads/returns'), $name);
-                $khachTra->minh_chung_image = 'uploads/returns/' . $name;
-            }
-
-            $khachTra->tong_tien_hoan_tra = $totalRefund;
-            $khachTra->save();
 
             DB::commit();
             return back()->with('success', 'Yêu cầu trả hàng đã được gửi và đang chờ duyệt.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => 'Lỗi: ' . $e->getMessage()]);
+            return back()->withErrors(['error' => 'Lỗi khi gửi yêu cầu: ' . $e->getMessage()]);
         }
     }
 }

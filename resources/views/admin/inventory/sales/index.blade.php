@@ -13,6 +13,10 @@
             </div>
         </div>
         <div class="d-flex gap-2">
+            <a href="{{ route('sales.export', request()->query()) }}" class="btn btn-success btn-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i>
+                Xuất Excel
+            </a>
             <a href="{{ route('sales.create') }}" class="btn btn-primary btn-sm">
                 <i class="bi bi-plus-circle me-1"></i>
                 Lập phiếu xuất mới

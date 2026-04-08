@@ -130,13 +130,54 @@
                 </div>
             </div>
             @else
-            <div class="card border-0 shadow-sm border-top border-secondary border-3">
+            <div class="card border-0 shadow-sm border-top border-secondary border-3 mb-3">
                 <div class="card-body">
-                    <h6 class="fw-bold">Lịch sử Duyệt</h6>
+                    <h6 class="fw-bold"><i class="bi bi-clock-history me-2"></i>Lịch sử Duyệt</h6>
                     <p class="mb-1 small">Người xử lý: <strong>{{ $traHang->nguoi_duyet }}</strong></p>
-                    <p class="mb-1 small">Ghi chú: <em>{{ $traHang->ghi_chu_admin ?? 'Không có' }}</em></p>
+                    <p class="mb-2 small">Ghi chú: <em>{{ $traHang->ghi_chu_admin ?? 'Không có' }}</em></p>
+                    
+                    <hr class="my-3">
+                    
+                    <div class="bg-light p-3 rounded mb-3">
+                        <h6 class="small fw-bold mb-2">Thông tin Phiếu nhập trả:</h6>
+                        @if($phieuNhap)
+                            <div class="mb-1 small">Mã: <a href="{{ route('imports.inspect', $phieuNhap->ma_phieu_nhap) }}" target="_blank" class="fw-bold">{{ $phieuNhap->ma_phieu_nhap }}</a></div>
+                            <div class="mb-2 small">Trạng thái: 
+                                @if($phieuNhap->trang_thai_phieu_nhap == 'da_nhap_kho') <span class="badge bg-success">Hàng về đủ</span>
+                                @else <span class="badge bg-warning text-dark">Đợi hàng về</span> @endif
+                            </div>
+                            <div class="mb-0 small">Đã nhận thực tế: <span class="fw-bold text-{{ $receivedCount > 0 ? 'success' : 'muted' }}">{{ $receivedCount }}</span> sản phẩm</div>
+                        @else
+                            <div class="small text-danger">Không tìm thấy phiếu nhập liên quan!</div>
+                        @endif
+                    </div>
+
+                    @if($canUndo)
+                        <form action="{{ route('admin.returns.undoApprove', $traHang->ma_tra_hang) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn HOÀN TÁC việc duyệt này? Phiếu nhập dự kiến sẽ bị xóa và đơn trả về trạng thái Chờ duyệt.')">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-secondary w-100 btn-sm">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Hoàn tác duyệt
+                            </button>
+                        </form>
+                    @else
+                        <div class="alert alert-light border small mb-0">
+                            <i class="bi bi-info-circle me-1"></i> Không thể hoàn tác do hàng đã bắt đầu vào kho hoặc đơn đã thanh toán.
+                        </div>
+                    @endif
                 </div>
             </div>
+
+            <!-- Nút hoàn tiền (Chỉ hiện khi hàng về đủ) -->
+            @if($traHang->trang_thai == 'da_duyet_nhap_kho' && $phieuNhap && $phieuNhap->trang_thai_phieu_nhap == 'da_nhap_kho' && $traHang->trang_thai_hoan_tien != 'da_hoan')
+            <div class="card border-0 shadow-sm border-top border-primary border-3">
+                <div class="card-body">
+                    <h6 class="fw-bold text-primary mb-3">Hoàn tiền khách hàng</h6>
+                    <button type="button" class="btn btn-primary w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#refundModal">
+                        <i class="bi bi-cash-stack me-1"></i> Thực hiện hoàn tiền
+                    </button>
+                </div>
+            </div>
+            @endif
             @endif
         </div>
     </div>
