@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             return confirm('Bạn có chắc chắn muốn gửi Yêu cầu trả hàng này?');
         });
-    }
+    }  
 });
 </script>
 @endsection

@@ -124,7 +124,9 @@
                         <th class="text-nowrap">Trạng thái lô</th>
                         <th class="text-nowrap">Nhà cung cấp</th>
                         <th class="text-nowrap text-center">Tình trạng</th>
+                        @if(Auth::guard('admin')->user()->hasRole(1, 2, 5))
                         <th class="text-nowrap text-center">Thao tác</th>
+                        @endif
                     </tr>
                     </thead>
                     <tbody>
@@ -163,6 +165,7 @@
                             <td class="text-end fw-semibold">{{ number_format($ton->so_luong_ton) }}</td>
                             <td class="text-end">{{ number_format($ton->so_luong_da_xuat) }}</td>
                             <td>
+                                @if(Auth::guard('admin')->user()->hasRole(1, 2, 5))
                                 <form action="{{ route('batches.updateStatus') }}" method="POST" class="m-0">
                                     @csrf
                                     @method('PUT')
@@ -175,6 +178,14 @@
                                         <option value="ngung_ban" {{ $ton->trang_thai_lo == 'ngung_ban' ? 'selected' : '' }}>Ngưng bán</option>
                                     </select>
                                 </form>
+                                @else
+                                    @if($ton->trang_thai_lo == 'cho_duyet') <span class="badge bg-secondary">Chờ duyệt</span>
+                                    @elseif($ton->trang_thai_lo == 'dang_ban') <span class="badge bg-success">Đang bán</span>
+                                    @elseif($ton->trang_thai_lo == 'ngung_ban') <span class="badge bg-warning">Ngưng bán</span>
+                                    @elseif($ton->trang_thai_lo == 'het_han') <span class="badge bg-danger">Hết hạn</span>
+                                    @else <span class="badge bg-light text-dark">{{ $ton->trang_thai_lo }}</span>
+                                    @endif
+                                @endif
                             </td>
                             <td>
                                 <div class="small text-truncate" style="max-width: 150px;" title="{{ $ton->phieuNhap->nhaCungCap->ten_ncc ?? 'N/A' }}">
@@ -196,6 +207,7 @@
                                     @if($ton->image3)<i class="bi bi-card-image text-primary" title="Có ảnh lưu kho 3"></i>@endif
                                 </div>
                             </td>
+                            @if(Auth::guard('admin')->user()->hasRole(1, 2, 5))
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-outline-warning" title="Điều chỉnh tồn kho"
                                     onclick="openAdjustModal('{{ $ton->ma_thuoc }}', '{{ $ton->ma_phieu_nhap }}', '{{ $ton->so_lo }}', '{{ addslashes($ton->thuoc->ten_thuoc ?? 'N/A') }}', {{ $ton->so_luong_ton }})">
@@ -206,6 +218,7 @@
                                     <i class="bi bi-shield-x"></i>
                                 </button>
                             </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
@@ -226,6 +239,7 @@
         </div>
     </div>
 
+    @if(Auth::guard('admin')->user()->hasRole(1, 2, 5))
     <!-- Modal Điều chỉnh Tồn kho -->
     <div class="modal fade" id="modalAdjustStock" tabindex="-1">
         <div class="modal-dialog">
@@ -344,6 +358,7 @@
             </form>
         </div>
     </div>
+    @endif
 
 @push('scripts')
 <script>

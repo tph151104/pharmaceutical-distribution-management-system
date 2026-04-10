@@ -261,12 +261,12 @@
         </li>
         @endif
 
-        {{-- ═══ TRẢ HÀNG: Tất cả roles ═══ --}}
+        {{-- ═══ TRẢ HÀNG: Tất cả roles nhưng NV Kho(2) + Kế toán(4) chỉ xem ═══ --}}
         <li>
             <a href="{{ route('admin.returns.index') }}" class="sidebar-link {{ request()->routeIs('admin.returns.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-arrow-return-left"></i></span>
                 <span>Yêu cầu Khách Trả Hàng</span>
-                @if($user->hasRole(4))
+                @if($user->hasRole(2, 4))
                 <span class="sidebar-badge badge bg-light text-muted">Xem</span>
                 @endif
             </a>
@@ -327,12 +327,12 @@
         @endif
 
         {{-- ═══════════ BÁO CÁO ═══════════ --}}
-        @if($user->hasRole(1, 2, 3, 4, 5))
+        @if($user->hasRole(1, 3, 4, 5))
         <li class="sidebar-section-title">Báo cáo & Công nợ</li>
         @endif
 
-        {{-- BC Tồn kho: Admin(1), Trưởng kho(5), NV Kho(2), Kế toán(4) --}}
-        @if($user->hasRole(1, 2, 4, 5))
+        {{-- BC Tồn kho: Admin(1), Trưởng kho(5), Kế toán(4) --}}
+        @if($user->hasRole(1, 4, 5))
         <li>
             <a href="{{ route('reports.stock') }}" class="sidebar-link {{ request()->routeIs('reports.stock*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-clipboard-data"></i></span>
@@ -341,8 +341,8 @@
         </li>
         @endif
 
-        {{-- Lịch sử XNK: Admin(1), Trưởng kho(5), NV Kho(2) --}}
-        @if($user->hasRole(1, 2, 5))
+        {{-- Lịch sử XNK: Admin(1), Trưởng kho(5) ONLY --}}
+        @if($user->hasRole(1, 5))
         <li>
             <a href="{{ route('reports.movements') }}" class="sidebar-link {{ request()->routeIs('reports.movements*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-clock-history"></i></span>

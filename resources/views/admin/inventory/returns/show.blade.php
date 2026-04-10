@@ -104,6 +104,7 @@
             <div class="card border-0 shadow-sm border-top border-warning border-3">
                 <div class="card-header bg-white"><h6 class="mb-0 fw-bold"><i class="bi bi-list-check me-2"></i>Thao tác Duyệt</h6></div>
                 <div class="card-body">
+                    @if(Auth::guard('admin')->user()->hasRole(1, 3, 5))
                     <div class="alert alert-warning small mb-3">
                         Duyệt thành công lệnh này, hệ thống sẽ:
                         <ul class="mb-0 ps-3 mt-1">
@@ -127,6 +128,11 @@
                             <i class="bi bi-x-circle me-1"></i> Từ chối
                         </button>
                     </form>
+                    @else
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle me-1"></i> Đơn này đang chờ duyệt. Bạn chỉ có quyền xem, không có quyền duyệt hoặc từ chối.
+                    </div>
+                    @endif
                 </div>
             </div>
             @else

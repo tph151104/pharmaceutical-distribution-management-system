@@ -58,7 +58,10 @@ Route::middleware('auth:admin')->group(function () {
         })->name('password');
     });
 
+    // ═══════════════════════════════════════════════════════════
     //  KHO HÀNG — Admin(1), NV Kho(2), Trưởng kho(5)
+    // ═══════════════════════════════════════════════════════════
+
     Route::middleware('role:1,2,5')->group(function () {
 
         // Phiếu nhập kho
@@ -99,9 +102,13 @@ Route::middleware('auth:admin')->group(function () {
             Route::get('/history', [InventoryTransferController::class, 'history'])->name('history');
             Route::get('/export', [InventoryTransferController::class, 'exportHistory'])->name('export');
         });
-    }); 
+    });
 
-    //  TỒN KHO — XEM: tất cả roles; SỬA: chỉ Admin(1), NV Kho(2), Trưởng kho(5)
+    // ═══════════════════════════════════════════════════════════
+    //  TỒN KHO — XEM: Admin(1), NV Kho(2), NV BH(3), KT(4), Trưởng kho(5)
+    //             SỬA: chỉ Admin(1), NV Kho(2), Trưởng kho(5)
+    // ═══════════════════════════════════════════════════════════
+
     Route::prefix('batches')->name('batches.')->group(function () {
         Route::get('/', [InventoryController::class, 'index'])->name('index');
     });
@@ -114,25 +121,43 @@ Route::middleware('auth:admin')->group(function () {
         });
     });
 
-    //  ĐƠN HÀNG — Admin(1), NV Kho(2), NV Bán hàng(3), Trưởng kho(5)
+    // ═══════════════════════════════════════════════════════════
+    //  ĐƠN HÀNG — XEM: Admin(1), NV Kho(2), NV BH(3), Trưởng kho(5)
+    //              THAO TÁC (duyệt/hủy/tạo PX): Admin(1), NV BH(3), Trưởng kho(5)
+    //              NV Kho(2) chỉ XEM
+    // ═══════════════════════════════════════════════════════════
+
     Route::middleware('role:1,2,3,5')->group(function () {
         Route::prefix('admin/orders')->name('admin.orders.')->group(function () {
             Route::get('/', [OrderController::class, 'index'])->name('index');
             Route::get('/export', [OrderController::class, 'export'])->name('export');
             Route::get('/{id}', [OrderController::class, 'show'])->name('show');
+        });
+    });
+
+    Route::middleware('role:1,3,5')->group(function () {
+        Route::prefix('admin/orders')->name('admin.orders.')->group(function () {
             Route::post('/{id}/approve', [OrderController::class, 'approve'])->name('approve');
             Route::post('/{id}/cancel', [OrderController::class, 'cancel'])->name('cancel');
             Route::post('/{id}/export-note', [OrderController::class, 'createExportNote'])->name('exportNote');
         });
     });
 
-    //  TRẢ HÀNG — Admin(1), Trưởng kho(5), NV BH(3) full;
-    //             NV Kho(2), Kế toán(4) xem
+    // ═══════════════════════════════════════════════════════════
+    //  TRẢ HÀNG — XEM: tất cả roles
+    //              DUYỆT/TỪ CHỐI/HOÀN TÁC: Admin(1), NV BH(3), Trưởng kho(5)
+    //              NV Kho(2) + Kế toán(4) chỉ XEM
+    // ═══════════════════════════════════════════════════════════
 
     Route::middleware('role:1,2,3,4,5')->group(function () {
         Route::prefix('admin/returns')->name('admin.returns.')->group(function () {
             Route::get('/', [CustomerReturnsController::class, 'index'])->name('index');
             Route::get('/{id}', [CustomerReturnsController::class, 'show'])->name('show');
+        });
+    });
+
+    Route::middleware('role:1,3,5')->group(function () {
+        Route::prefix('admin/returns')->name('admin.returns.')->group(function () {
             Route::post('/{id}/approve', [CustomerReturnsController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [CustomerReturnsController::class, 'reject'])->name('reject');
             Route::post('/{id}/undo-approve', [CustomerReturnsController::class, 'undoApprove'])->name('undoApprove');
@@ -140,10 +165,17 @@ Route::middleware('auth:admin')->group(function () {
         });
     });
 
-    //  DANH MỤC THUỐC — Admin(1), Trưởng kho(5) CRUD; NV Kho(2) xem
+    // ═══════════════════════════════════════════════════════════
+    //  DANH MỤC THUỐC — XEM: Admin(1), NV Kho(2), Trưởng kho(5)
+    //                    CRUD: Admin(1), Trưởng kho(5) ONLY
+    // ═══════════════════════════════════════════════════════════
+
     Route::middleware('role:1,2,5')->group(function () {
+        Route::get('/products', [MedicineController::class, 'index'])->name('products.index');
+    });
+
+    Route::middleware('role:1,5')->group(function () {
         Route::prefix('products')->name('products.')->group(function () {
-            Route::get('/', [MedicineController::class, 'index'])->name('index');
             Route::post('/', [MedicineController::class, 'store'])->name('store');
             Route::put('/{id}', [MedicineController::class, 'update'])->name('update');
             Route::delete('/{id}', [MedicineController::class, 'destroy'])->name('destroy');
@@ -161,21 +193,34 @@ Route::middleware('auth:admin')->group(function () {
         });
     });
 
-    //  NHÀ CUNG CẤP — Admin(1), Trưởng kho(5) CRUD; Kế toán(4) xem
+    // ═══════════════════════════════════════════════════════════
+    //  NHÀ CUNG CẤP — XEM: Admin(1), Kế toán(4), Trưởng kho(5)
+    //                  CRUD: Admin(1), Trưởng kho(5) ONLY
+    // ═══════════════════════════════════════════════════════════
+
     Route::middleware('role:1,4,5')->group(function () {
+        Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
+    });
+
+    Route::middleware('role:1,5')->group(function () {
         Route::prefix('suppliers')->name('suppliers.')->group(function () {
-            Route::get('/', [SupplierController::class, 'index'])->name('index');
             Route::post('/', [SupplierController::class, 'store'])->name('store');
             Route::put('/{id}', [SupplierController::class, 'update'])->name('update');
             Route::delete('/{id}', [SupplierController::class, 'destroy'])->name('destroy');
         });
     });
 
-    //  KHÁCH HÀNG — Admin(1), NV BH(3) full; Trưởng kho(5), Kế toán(4) xem
+    // ═══════════════════════════════════════════════════════════
+    //  KHÁCH HÀNG — XEM: Admin(1), NV BH(3), Trưởng kho(5), Kế toán(4)
+    //               SỬA/XÓA/VÔ HIỆU: Admin(1), NV BH(3) ONLY
+    // ═══════════════════════════════════════════════════════════
 
     Route::middleware('role:1,3,4,5')->group(function () {
+        Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    });
+
+    Route::middleware('role:1,3')->group(function () {
         Route::prefix('customers')->name('customers.')->group(function () {
-            Route::get('/', [CustomerController::class, 'index'])->name('index');
             Route::put('/{id}', [CustomerController::class, 'update'])->name('update');
             Route::put('/{id}/status', [CustomerController::class, 'updateStatus'])->name('updateStatus');
             Route::delete('/{id}', [CustomerController::class, 'destroy'])->name('destroy');
@@ -200,20 +245,18 @@ Route::middleware('auth:admin')->group(function () {
     });
 
     // ═══════════════════════════════════════════════════════════
-    //  BÁO CÁO — Khác nhau theo loại
-    //  BC Tồn kho + Biến động: Admin(1), Trưởng kho(5), NV Kho(2), Kế toán(4) xem
-    //  BC Công nợ: Admin(1), NV BH(3), Kế toán(4)
+    //  BÁO CÁO
     // ═══════════════════════════════════════════════════════════
 
     Route::prefix('admin/reports')->name('reports.')->group(function () {
-        // BC Tồn kho — Admin(1), Trưởng kho(5), NV Kho(2), Kế toán(4)
-        Route::middleware('role:1,2,4,5')->group(function () {
+        // BC Tồn kho — Admin(1), Trưởng kho(5), Kế toán(4)
+        Route::middleware('role:1,4,5')->group(function () {
             Route::get('/stock', [ReportController::class, 'stock'])->name('stock');
             Route::get('/stock/export', [ReportController::class, 'exportStock'])->name('stock.export');
         });
 
-        // BC Biến động / Lịch sử XNK — Admin(1), Trưởng kho(5), NV Kho(2)
-        Route::middleware('role:1,2,5')->group(function () {
+        // BC Biến động / Lịch sử XNK — Admin(1), Trưởng kho(5) ONLY
+        Route::middleware('role:1,5')->group(function () {
             Route::get('/movements', [ReportController::class, 'movements'])->name('movements');
             Route::get('/movements/export', [ReportController::class, 'exportMovements'])->name('movements.export');
         });
