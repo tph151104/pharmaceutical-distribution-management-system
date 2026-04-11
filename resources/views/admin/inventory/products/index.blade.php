@@ -92,12 +92,15 @@
                             @endif
                         </div>
                         <div class="col-12 col-md-3 d-grid">
+                            @if(Auth::guard('admin')->user()->hasRole(1, 5))
                             <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#productModal">
                                 <i class="bi bi-plus-circle me-1"></i> Thêm sản phẩm
                             </button>
+                            @endif
                         </div> 
                                          
                     </form>
+                    @if(Auth::guard('admin')->user()->hasRole(1, 5))
                     <div class="col-12 col-md-4 d-grid">
                             <form action="{{ route('products.import') }}" method="POST" enctype="multipart/form-data">
                                 @csrf
@@ -110,6 +113,7 @@
                                 </div>
                             </form>
                         </div>
+                    @endif
                 </div>
             </div>
 
@@ -130,7 +134,9 @@
                                 <th class="text-nowrap">Đơn vị</th>
                                 <th class="text-nowrap">Nhóm</th>
                                 <th class="text-nowrap text-end">Giá bán tham khảo</th>
+                                @if(Auth::guard('admin')->user()->hasRole(1, 5))
                                 <th class="text-nowrap text-center">Thao tác</th>
+                                @endif
                             </tr>
                             </thead>
                             <tbody>
@@ -149,6 +155,7 @@
                                     <td>{{ $thuoc->donViTinh->ten_dvt ?? $thuoc->ma_dvt }}</td>
                                     <td>{{ $thuoc->nhomThuoc->ten_nhom ?? $thuoc->ma_nhom }}</td>
                                     <td class="text-end fw-semibold text-primary">{{ number_format($thuoc->gia_ban_de_xuat, 0, ',', '.') }}đ</td>
+                                    @if(Auth::guard('admin')->user()->hasRole(1, 5))
                                     <td class="text-center">
                                         <button type="button" class="btn btn-sm btn-light" 
                                             data-bs-toggle="modal" 
@@ -163,8 +170,10 @@
                                             </button>
                                         </form>
                                     </td>
+                                    @endif
                                 </tr>
 
+                                @if(Auth::guard('admin')->user()->hasRole(1, 5))
                                 <!-- Modal sửa sản phẩm -->
                                 <div class="modal fade text-start" id="editModal{{ $thuoc->ma_thuoc }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -269,6 +278,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                @endif
                             @empty
                                 <tr>
                                     <td colspan="8" class="text-center text-muted small py-4">
@@ -293,9 +303,11 @@
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
                     <div class="fw-semibold small text-uppercase text-muted">Danh sách nhóm sản phẩm</div>
+                    @if(Auth::guard('admin')->user()->hasRole(1, 5))
                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAddCategory">
                         <i class="bi bi-plus-lg me-1"></i> Thêm Nhóm
                     </button>
+                    @endif
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -306,7 +318,9 @@
                                     <th>Tên Nhóm</th>
                                     <th>Ghi chú</th>
                                     <th class="text-center">Số Sản Phẩm</th>
+                                    @if(Auth::guard('admin')->user()->hasRole(1, 5))
                                     <th class="text-end pe-4">Thao Tác</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
@@ -318,6 +332,7 @@
                                     <td class="text-center">
                                         <span class="badge bg-info text-white">{{ $category->cac_thuoc_count }}</span>
                                     </td>
+                                    @if(Auth::guard('admin')->user()->hasRole(1, 5))
                                     <td class="text-end pe-4">
                                         <button class="btn btn-sm btn-outline-primary me-1" 
                                                 onclick="editCategory('{{ $category->ma_nhom }}', '{{ addslashes($category->ten_nhom) }}', '{{ addslashes($category->ghi_chu) }}')">
@@ -331,6 +346,7 @@
                                             </button>
                                         </form>
                                     </td>
+                                    @endif
                                 </tr>
                                 @empty
                                 <tr>
@@ -349,9 +365,11 @@
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
                     <div class="fw-semibold small text-uppercase text-muted">Danh sách đơn vị tính</div>
+                    @if(Auth::guard('admin')->user()->hasRole(1, 5))
                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAddUnit">
                         <i class="bi bi-plus-lg me-1"></i> Thêm Đơn Vị
                     </button>
+                    @endif
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -362,7 +380,9 @@
                                     <th>Tên Đơn Vị</th>
                                     <th>Ghi chú</th>
                                     <th class="text-center">Số Sản Phẩm</th>
+                                    @if(Auth::guard('admin')->user()->hasRole(1, 5))
                                     <th class="text-end pe-4">Thao Tác</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
@@ -374,6 +394,7 @@
                                     <td class="text-center">
                                         <span class="badge bg-secondary text-white">{{ $unit->cac_thuoc_count }}</span>
                                     </td>
+                                    @if(Auth::guard('admin')->user()->hasRole(1, 5))
                                     <td class="text-end pe-4">
                                         <button class="btn btn-sm btn-outline-primary me-1" 
                                                 onclick="editUnit('{{ $unit->ma_dvt }}', '{{ addslashes($unit->ten_dvt) }}', '{{ addslashes($unit->ghi_chu) }}')">
@@ -387,6 +408,7 @@
                                             </button>
                                         </form>
                                     </td>
+                                    @endif
                                 </tr>
                                 @empty
                                 <tr>
@@ -402,6 +424,7 @@
 
     </div><!-- end tab-content -->
 
+    @if(Auth::guard('admin')->user()->hasRole(1, 5))
     <!-- ==================== MODALS ==================== -->
 
     <!-- Modal thêm sản phẩm -->
@@ -637,6 +660,7 @@
             </form>
         </div>
     </div>
+    @endif
 
 @push('scripts')
 <script>

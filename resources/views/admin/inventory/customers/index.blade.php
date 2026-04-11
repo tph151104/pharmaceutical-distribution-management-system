@@ -77,7 +77,9 @@
                             <th>Liên hệ & MST</th>
                             <th>Tài khoản</th>
                             <th>Hồ sơ / Giấy phép</th>
+                            @if(Auth::guard('admin')->user()->hasRole(1, 3))
                             <th class="text-end pe-4">Thao tác</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -132,6 +134,7 @@
                                         <span class="text-muted small">Chưa cung cấp</span>
                                     @endif
                                 </td>
+                                @if(Auth::guard('admin')->user()->hasRole(1, 3))
                                 <td class="text-end pe-4">
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -174,8 +177,10 @@
                                         </ul>
                                     </div>
                                 </td>
+                                @endif
                             </tr>
 
+                            @if(Auth::guard('admin')->user()->hasRole(1, 3))
                             <!-- Edit Offcanvas for this loop -->
                             <div class="offcanvas offcanvas-end" tabindex="-1" id="editCustomerCanvas{{ $kh->ma_kh }}" style="width: 500px;">
                                 <div class="offcanvas-header border-bottom">
@@ -251,6 +256,7 @@
                                     </form>
                                 </div>
                             </div>
+                            @endif
                         @empty
                             <tr>
                                 <td colspan="6" class="text-center py-5 text-muted">

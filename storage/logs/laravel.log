@@ -20966,3 +20966,19 @@ Did you mean one of these?
 #63 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\resources\\server.php(16): require_once('E:\\\\wamp\\\\www\\\\TTC...')
 #64 {main}
 "} 
+[2026-04-10 16:53:20] local.ERROR: The "--compact" option does not exist. {"exception":"[object] (Symfony\\Component\\Console\\Exception\\RuntimeException(code: 0): The \"--compact\" option does not exist. at E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\symfony\\console\\Input\\ArgvInput.php:220)
+[stacktrace]
+#0 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\symfony\\console\\Input\\ArgvInput.php(149): Symfony\\Component\\Console\\Input\\ArgvInput->addLongOption('compact', NULL)
+#1 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\symfony\\console\\Input\\ArgvInput.php(82): Symfony\\Component\\Console\\Input\\ArgvInput->parseLongOption('--compact')
+#2 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\symfony\\console\\Input\\ArgvInput.php(71): Symfony\\Component\\Console\\Input\\ArgvInput->parseToken('--compact', true)
+#3 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\symfony\\console\\Input\\Input.php(55): Symfony\\Component\\Console\\Input\\ArgvInput->parse()
+#4 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\symfony\\console\\Command\\Command.php(250): Symfony\\Component\\Console\\Input\\Input->bind(Object(Symfony\\Component\\Console\\Input\\InputDefinition))
+#5 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(153): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#6 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\symfony\\console\\Application.php(1014): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#7 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\symfony\\console\\Application.php(301): Symfony\\Component\\Console\\Application->doRunCommand(Object(Illuminate\\Foundation\\Console\\RouteListCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#8 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\symfony\\console\\Application.php(171): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#9 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Application.php(102): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#10 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(155): Illuminate\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#11 E:\\wamp\\www\\TTCK-WebKhoThuocTay\\Kho-Thuoc-Tay\\artisan(37): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#12 {main}
+"} 

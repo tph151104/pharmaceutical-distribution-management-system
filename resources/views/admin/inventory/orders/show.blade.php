@@ -86,6 +86,7 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white"><h6 class="mb-0 fw-bold">Thao tác</h6></div>
                 <div class="card-body d-grid gap-2">
+                    @if(Auth::guard('admin')->user()->hasRole(1, 3, 5))
                     @if($donHang->trang_thai_dh == 'cho_xu_ly')
                         <form method="POST" action="{{ route('admin.orders.approve', $donHang->ma_don_hang) }}">
                             @csrf
@@ -105,6 +106,11 @@
                                 <i class="bi bi-x-circle me-1"></i>Hủy đơn hàng
                             </button>
                         </form>
+                    @endif
+                    @else
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle me-1"></i> Bạn chỉ có quyền xem đơn hàng, không có quyền duyệt hoặc hủy.
+                    </div>
                     @endif
                 </div>
             </div>

@@ -74,6 +74,7 @@
                                         <a href="{{ route('admin.orders.show', $dh->ma_don_hang) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-eye"></i>
                                         </a>
+                                        @if(Auth::guard('admin')->user()->hasRole(1, 3, 5))
                                         @if($dh->trang_thai_dh == 'cho_xu_ly')
                                             <form method="POST" action="{{ route('admin.orders.approve', $dh->ma_don_hang) }}" class="d-inline">
                                                 @csrf
@@ -89,6 +90,7 @@
                                                     <i class="bi bi-x-lg"></i>
                                                 </button>
                                             </form>
+                                        @endif
                                         @endif
                                     </div>
                                 </td>

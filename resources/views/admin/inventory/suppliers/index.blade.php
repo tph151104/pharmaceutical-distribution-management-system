@@ -8,9 +8,11 @@
             <h1 class="content-header-title mb-0"><i class="bi bi-truck text-primary me-2"></i>Nhà cung cấp</h1>
             <p class="text-muted small mb-0 mt-1">Quản lý đối tác cung cấp dược phẩm và vật tư y tế</p>
         </div>
+        @if(Auth::guard('admin')->user()->hasRole(1, 5))
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createSupplierModal">
             <i class="bi bi-plus-circle me-2"></i>Thêm nhà cung cấp
         </button>
+        @endif
     </div>
 @endsection
 
@@ -62,7 +64,9 @@
                             <th>Liên hệ</th>
                             <th>Mã số thuế</th>
                             <th>Địa chỉ</th>
+                            @if(Auth::guard('admin')->user()->hasRole(1, 5))
                             <th class="text-end pe-4">Thao tác</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -78,6 +82,7 @@
                                 </td>
                                 <td>{{ $ncc->ma_so_thue ?? '--' }}</td>
                                 <td><div class="text-truncate" style="max-width: 200px;" title="{{ $ncc->dia_chi }}">{{ $ncc->dia_chi ?? '--' }}</div></td>
+                                @if(Auth::guard('admin')->user()->hasRole(1, 5))
                                 <td class="text-end pe-4">
                                     <!-- Nút sửa mở modal truyền data -->
                                     <button class="btn btn-sm btn-outline-primary" title="Sửa" 
@@ -95,59 +100,59 @@
                                         </button>
                                     </form>
                                 </td>
-                            </tr>
 
-                            <!-- Edit Modal for this loop -->
-                            <div class="modal fade" id="editSupplierModal{{ $ncc->ma_ncc }}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered">
-                                    <div class="modal-content border-0 shadow">
-                                        <div class="modal-header border-bottom-0">
-                                            <h5 class="modal-title fw-bold text-primary">Cập nhật Nhà cung cấp</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <!-- Edit Modal for this loop -->
+                                <div class="modal fade" id="editSupplierModal{{ $ncc->ma_ncc }}" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow">
+                                            <div class="modal-header border-bottom-0">
+                                                <h5 class="modal-title fw-bold text-primary">Cập nhật Nhà cung cấp</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form action="{{ route('suppliers.update', $ncc->ma_ncc) }}" method="POST">
+                                                @csrf
+                                                @method('PUT')
+                                                <div class="modal-body pb-0 text-start">
+                                                    <div class="mb-3">
+                                                        <label class="form-label small fw-semibold">Mã Nhà cung cấp</label>
+                                                        <input type="text" class="form-control" value="{{ $ncc->ma_ncc }}" disabled>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold">Tên Nhà cung cấp <span class="text-danger">*</span></label>
+                                                        <input type="text" name="ten_ncc" class="form-control" value="{{ $ncc->ten_ncc }}" required>
+                                                    </div>
+                                                    <div class="row g-2 mb-3">
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-semibold">Điện thoại</label>
+                                                            <input type="text" name="dien_thoai" class="form-control" value="{{ $ncc->dien_thoai }}">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-semibold">Mã số thuế</label>
+                                                            <input type="text" name="ma_so_thue" class="form-control" value="{{ $ncc->ma_so_thue }}">
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold">Email</label>
+                                                        <input type="email" name="email" class="form-control" value="{{ $ncc->email }}">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold">Địa chỉ</label>
+                                                        <textarea name="dia_chi" class="form-control" rows="2">{{ $ncc->dia_chi }}</textarea>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold">Ghi chú</label>
+                                                        <textarea name="ghi_chu" class="form-control" rows="2">{{ $ncc->ghi_chu }}</textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer border-top-0 pt-0">
+                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                                                    <button type="submit" class="btn btn-primary px-4">Lưu cập nhật</button>
+                                                </div>
+                                            </form>
                                         </div>
-                                        <form action="{{ route('suppliers.update', $ncc->ma_ncc) }}" method="POST">
-                                            @csrf
-                                            @method('PUT')
-                                            <div class="modal-body pb-0 text-start">
-                                                <div class="mb-3">
-                                                    <label class="form-label small fw-semibold">Mã Nhà cung cấp</label>
-                                                    <input type="text" class="form-control" value="{{ $ncc->ma_ncc }}" disabled>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Tên Nhà cung cấp <span class="text-danger">*</span></label>
-                                                    <input type="text" name="ten_ncc" class="form-control" value="{{ $ncc->ten_ncc }}" required>
-                                                </div>
-                                                <div class="row g-2 mb-3">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label fw-semibold">Điện thoại</label>
-                                                        <input type="text" name="dien_thoai" class="form-control" value="{{ $ncc->dien_thoai }}">
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label fw-semibold">Mã số thuế</label>
-                                                        <input type="text" name="ma_so_thue" class="form-control" value="{{ $ncc->ma_so_thue }}">
-                                                    </div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Email</label>
-                                                    <input type="email" name="email" class="form-control" value="{{ $ncc->email }}">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Địa chỉ</label>
-                                                    <textarea name="dia_chi" class="form-control" rows="2">{{ $ncc->dia_chi }}</textarea>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Ghi chú</label>
-                                                    <textarea name="ghi_chu" class="form-control" rows="2">{{ $ncc->ghi_chu }}</textarea>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer border-top-0 pt-0">
-                                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
-                                                <button type="submit" class="btn btn-primary px-4">Lưu cập nhật</button>
-                                            </div>
-                                        </form>
                                     </div>
                                 </div>
-                            </div>
+                                @endif
                         @empty
                             <tr>
                                 <td colspan="5" class="text-center py-5 text-muted">
@@ -167,6 +172,7 @@
         @endif
     </div>
 
+    @if(Auth::guard('admin')->user()->hasRole(1, 5))
     <!-- Create Modal -->
     <div class="modal fade" id="createSupplierModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -213,4 +219,5 @@
             </div>
         </div>
     </div>
+    @endif
 @endsection
