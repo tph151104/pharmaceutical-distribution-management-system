@@ -26,12 +26,39 @@
 @endsection
 
 @section('content')
-    <div class="mb-3 d-flex gap-2 flex-wrap">
-        <a href="{{ route('sales.index') }}" class="btn btn-sm {{ !request('status') ? 'btn-primary' : 'btn-outline-secondary' }}">Tất cả</a>
-        <a href="{{ route('sales.index', ['status' => 'dang_chuan_bi']) }}" class="btn btn-sm {{ request('status') == 'dang_chuan_bi' ? 'btn-warning' : 'btn-outline-warning' }}">Đang chuẩn bị</a>
-        <a href="{{ route('sales.index', ['status' => 'da_xuat_kho']) }}" class="btn btn-sm {{ request('status') == 'da_xuat_kho' ? 'btn-primary' : 'btn-outline-primary' }}">Đã xuất kho</a>
-        <a href="{{ route('sales.index', ['status' => 'da_van_chuyen']) }}" class="btn btn-sm {{ request('status') == 'da_van_chuyen' ? 'btn-success' : 'btn-outline-success' }}">Đã vận chuyển</a>
-        <a href="{{ route('sales.index', ['status' => 'da_huy']) }}" class="btn btn-sm {{ request('status') == 'da_huy' ? 'btn-danger' : 'btn-outline-danger' }}">Đã hủy</a>
+    <div class="card mb-3 border-0 shadow-sm">
+        <div class="card-body py-3">
+            <form action="{{ route('sales.index') }}" method="GET" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-semibold mb-1">Mã phiếu / Khách hàng</label>
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Nhập từ khóa..." value="{{ request('search') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-semibold mb-1">Từ ngày</label>
+                    <input type="date" name="from_date" class="form-control form-control-sm" value="{{ request('from_date') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-semibold mb-1">Đến ngày</label>
+                    <input type="date" name="to_date" class="form-control form-control-sm" value="{{ request('to_date') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-semibold mb-1">Trạng thái phiếu</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="dang_chuan_bi" {{ request('status') == 'dang_chuan_bi' ? 'selected' : '' }}>Đang chuẩn bị</option>
+                        <option value="da_xuat_kho" {{ request('status') == 'da_xuat_kho' ? 'selected' : '' }}>Đã xuất kho</option>
+                        <option value="da_van_chuyen" {{ request('status') == 'da_van_chuyen' ? 'selected' : '' }}>Đã vận chuyển</option>
+                        <option value="da_huy" {{ request('status') == 'da_huy' ? 'selected' : '' }}>Đã hủy</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary flex-grow-1"><i class="bi bi-funnel me-1"></i> Lọc</button>
+                    @if(request()->hasAny(['search', 'from_date', 'to_date', 'status']))
+                        <a href="{{ route('sales.index') }}" class="btn btn-sm btn-light border"><i class="bi bi-arrow-counterclockwise"></i></a>
+                    @endif
+                </div>
+            </form>
+        </div>
     </div>
 
     <div class="card border-0 shadow-sm">

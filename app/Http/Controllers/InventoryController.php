@@ -39,6 +39,9 @@ class InventoryController extends Controller
         // 2. Query danh sách
         $query = TonKho::with(['thuoc', 'phieuNhap.nhaCungCap', 'chiTietPhieuNhap']);
 
+        // Không show các lô hàng nếu 100% tồn kho nằm ở kho loại bỏ KV05
+        $query->whereRaw("so_luong_ton > COALESCE((SELECT SUM(so_luong) FROM ton_kho_khu_vuc WHERE ton_kho_khu_vuc.ma_thuoc = ton_kho.ma_thuoc AND ton_kho_khu_vuc.ma_phieu_nhap = ton_kho.ma_phieu_nhap AND ton_kho_khu_vuc.so_lo = ton_kho.so_lo AND ma_khu_vuc = 'KV05_LOAI_BO'), 0)");
+
         // Xử lý tìm kiếm 
         if ($request->has('search') && $request->search != '') {
             $searchTerm = $request->search;
@@ -86,110 +89,15 @@ class InventoryController extends Controller
     }
 
     /**
-     * Cập nhật trạng thái lô hàng
+     * Chuyển trạng thái sang Ngưng bán và chuyển kho sang KV04
      */
-    public function updateStatus(Request $request)
+    public function stopSelling(Request $request)
     {
         $request->validate([
             'ma_thuoc' => 'required',
             'ma_phieu_nhap' => 'required',
             'so_lo' => 'required',
-            'trang_thai_lo' => 'required|in:cho_duyet,dang_ban,het_han,ngung_ban'
-        ]);
-
-        $tonKho = TonKho::where('ma_thuoc', $request->ma_thuoc)
-                        ->where('ma_phieu_nhap', $request->ma_phieu_nhap)
-                        ->where('so_lo', $request->so_lo)
-                        ->firstOrFail();
-                        
-        $oldStatus = $tonKho->trang_thai_lo;
-        $tonKho->trang_thai_lo = $request->trang_thai_lo;
-        $tonKho->save();
-
-        if ($oldStatus != $tonKho->trang_thai_lo) {
-            InventoryLogService::logMovement(
-                $tonKho->ma_thuoc,
-                $tonKho->so_lo,
-                'NV001', // Tạm fix
-                $tonKho->ma_phieu_nhap,
-                'dieu_chinh',
-                'kiem_kho',
-                0,
-                $tonKho->so_luong_ton,
-                $tonKho->so_luong_ton,
-                0,
-                "Trạng thái lô thay đổi từ {$oldStatus} sang {$tonKho->trang_thai_lo}"
-            );
-        }
-
-        return back()->with('success', 'Kho cập nhật trạng thái lô thành công.');
-    }
-
-    /**
-     * Điều chỉnh tồn kho (kiểm kê / thất thoát / sai lệch)
-     */
-    public function adjustStock(Request $request)
-    {
-        $request->validate([
-            'ma_thuoc' => 'required',
-            'ma_phieu_nhap' => 'required',
-            'so_lo' => 'required',
-            'so_luong_moi' => 'required|integer|min:0',
-            'ly_do' => 'required|string|max:500',
-        ], [
-            'so_luong_moi.required' => 'Vui lòng nhập số lượng tồn thực tế.',
-            'so_luong_moi.min' => 'Số lượng tồn thực tế không thể âm.',
-            'ly_do.required' => 'Vui lòng nhập lý do điều chỉnh.',
-        ]);
-
-        $tonKho = TonKho::where('ma_thuoc', $request->ma_thuoc)
-                        ->where('ma_phieu_nhap', $request->ma_phieu_nhap)
-                        ->where('so_lo', $request->so_lo)
-                        ->firstOrFail();
-
-        $tonTruoc = $tonKho->so_luong_ton;
-        $tonSau = (int) $request->so_luong_moi;
-        $chenhLech = $tonSau - $tonTruoc;
-
-        // Không làm gì nếu số lượng không đổi
-        if ($chenhLech === 0) {
-            return back()->with('info', 'Số lượng tồn kho không thay đổi, không cần điều chỉnh.');
-        }
-
-        $tonKho->so_luong_ton = $tonSau;
-        $tonKho->save();
-
-        // Ghi log điều chỉnh
-        InventoryLogService::logMovement(
-            $tonKho->ma_thuoc,
-            $tonKho->so_lo,
-            auth()->id() ?? 'NV001',
-            $tonKho->ma_phieu_nhap,
-            'dieu_chinh',
-            'kiem_kho',
-            abs($chenhLech),
-            $tonTruoc,
-            $tonSau,
-            0,
-            '[Điều chỉnh tồn kho] ' . $request->ly_do
-                . ' | Chênh lệch: ' . ($chenhLech > 0 ? '+' : '') . $chenhLech
-        );
-
-        $loaiDieuChinh = $chenhLech > 0 ? 'tăng' : 'giảm';
-        return back()->with('success', "Đã điều chỉnh tồn kho lô {$tonKho->so_lo}: {$loaiDieuChinh} " . abs($chenhLech) . " (Từ {$tonTruoc} → {$tonSau}).");
-    }
-
-    /**
-     * Cách ly GSP (Tách một số hàng bị lỗi/thu hồi sang KV04 hoăc KV05)
-     */
-    public function isolate(Request $request)
-    {
-        $request->validate([
-            'ma_thuoc' => 'required',
-            'ma_phieu_nhap' => 'required',
-            'so_lo' => 'required',
-            'so_luong_cach_ly' => 'required|integer|min:1',
-            'ma_khu_vuc_den' => 'required|in:KV04_CHO_XU_LY,KV05_LOAI_BO',
+            'so_luong_chuyen' => 'required|integer|min:0',
             'ly_do' => 'required|string|max:500'
         ]);
 
@@ -198,72 +106,85 @@ class InventoryController extends Controller
                         ->where('so_lo', $request->so_lo)
                         ->firstOrFail();
 
-        $soLuongIsolate = (int)$request->so_luong_cach_ly;
-
-        if ($tonKho->so_luong_ton < $soLuongIsolate) {
-            return back()->withErrors(['error' => 'Số lượng cách ly vượt quá tổng tồn của lô này.']);
+        if ($tonKho->trang_thai_lo !== 'dang_ban') {
+            return back()->withErrors(['error' => 'Chỉ có thể ngưng bán lô đang ở trạng thái Đang bán.']);
         }
 
-        // Ưu tiên trừ từ KV03, nếu không đủ thì trừ từ các khu vực khác
-        $tonKhuVucs = TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
-            ->where('ma_phieu_nhap', $tonKho->ma_phieu_nhap)
-            ->where('so_lo', $tonKho->so_lo)
-            ->where('so_luong', '>', 0)
-            ->orderByRaw("CASE WHEN ma_khu_vuc = 'KV03_THANH_PHAM' THEN 1 ELSE 2 END")
-            ->get();
+        $soLuongChuyen = (int)$request->so_luong_chuyen;
+        $maxChuyen = $tonKho->sl_co_the_ban;
 
-        $remainingToIsolate = $soLuongIsolate;
-
-        // Trừ dần ở các khu vực đang có
-        foreach ($tonKhuVucs as $tkv) {
-            if ($remainingToIsolate <= 0) break;
-            
-            $tru = min($remainingToIsolate, $tkv->so_luong);
-            $tkv->so_luong -= $tru;
-            $tkv->save();
-            
-            $remainingToIsolate -= $tru;
+        if ($maxChuyen < $soLuongChuyen) {
+            return back()->withErrors(['error' => "Số lượng chuyển ($soLuongChuyen) vượt quá số lượng có thể bán ($maxChuyen) đang nằm ở kho thành phẩm."]);
         }
 
-        if ($remainingToIsolate > 0) {
-            return back()->withErrors(['error' => 'Không đủ số lượng trong kho vật lý để cách ly.']);
+        DB::beginTransaction();
+        try {
+            // Thay đổi trạng thái lô sang Ngưng bán nếu chuyển hết hoặc chọn 0 (chỉ đổi trạng thái)
+            if ($soLuongChuyen === 0 || $soLuongChuyen >= $maxChuyen) {
+                $tonKho->trang_thai_lo = 'ngung_ban';
+                $tonKho->save();
+            }
+
+            // Chuyển kho nếu có số lượng > 0
+            if ($soLuongChuyen > 0) {
+                // Trừ từ KV03_THANH_PHAM
+                $tkvNguon = TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
+                    ->where('ma_phieu_nhap', $tonKho->ma_phieu_nhap)
+                    ->where('so_lo', $tonKho->so_lo)
+                    ->where('ma_khu_vuc', 'KV03_THANH_PHAM')
+                    ->first();
+
+                if (!$tkvNguon || $tkvNguon->so_luong < $soLuongChuyen) {
+                     DB::rollBack();
+                     return back()->withErrors(['error' => 'Không đủ số lượng trong KV03_THANH_PHAM để chuyển.']);
+                }
+
+                $tkvNguon->so_luong -= $soLuongChuyen;
+                $tkvNguon->save();
+
+                // Tăng vào KV04
+                $tkvDich = TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
+                    ->where('ma_phieu_nhap', $tonKho->ma_phieu_nhap)
+                    ->where('so_lo', $tonKho->so_lo)
+                    ->where('ma_khu_vuc', 'KV04_CHO_XU_LY')
+                    ->first();
+
+                if ($tkvDich) {
+                    $tkvDich->so_luong += $soLuongChuyen;
+                    $tkvDich->save();
+                } else {
+                    TonKhoKhuVuc::create([
+                        'ma_thuoc' => $tonKho->ma_thuoc,
+                        'ma_phieu_nhap' => $tonKho->ma_phieu_nhap,
+                        'so_lo' => $tonKho->so_lo,
+                        'ma_khu_vuc' => 'KV04_CHO_XU_LY',
+                        'so_luong' => $soLuongChuyen
+                    ]);
+                }
+            }
+
+            // Ghi log
+            InventoryLogService::logMovement(
+                $tonKho->ma_thuoc,
+                $tonKho->so_lo,
+                auth()->id() ?? 'NV001',
+                $tonKho->ma_phieu_nhap,
+                'dieu_chinh',
+                'kiem_kho',
+                $soLuongChuyen,
+                $tonKho->so_luong_ton,
+                $tonKho->so_luong_ton,
+                0,
+                '[Ngưng bán] ' . $request->ly_do . ($soLuongChuyen > 0 ? " | Đã chuyển $soLuongChuyen vào KV04" : '')
+            );
+
+            DB::commit();
+            return back()->with('success', 'Lô đã được chuyển sang trạng thái Ngưng bán và đưa vào chờ xử lý.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Lỗi xử lý: ' . $e->getMessage()]);
         }
-
-        // Tăng vào khu vực mới (KV04/KV05)
-        $tkvDich = TonKhoKhuVuc::where('ma_thuoc', $tonKho->ma_thuoc)
-            ->where('ma_phieu_nhap', $tonKho->ma_phieu_nhap)
-            ->where('so_lo', $tonKho->so_lo)
-            ->where('ma_khu_vuc', $request->ma_khu_vuc_den)
-            ->first();
-
-        if ($tkvDich) {
-            $tkvDich->so_luong += $soLuongIsolate;
-            $tkvDich->save();
-        } else {
-            TonKhoKhuVuc::create([
-                'ma_thuoc' => $tonKho->ma_thuoc,
-                'ma_phieu_nhap' => $tonKho->ma_phieu_nhap,
-                'so_lo' => $tonKho->so_lo,
-                'ma_khu_vuc' => $request->ma_khu_vuc_den,
-                'so_luong' => $soLuongIsolate
-            ]);
-        }
-
-        // Ghi log
-        InventoryLogService::logMovement(
-            $tonKho->ma_thuoc,
-            $tonKho->so_lo,
-            auth()->id() ?? 'NV001',
-            $tonKho->ma_phieu_nhap,
-            'dieu_chinh',
-            'kiem_kho',
-            $soLuongIsolate,
-            $tonKho->so_luong_ton,
-            $tonKho->so_luong_ton,
-            0,
-            '[Cách ly GSP] ' . $request->ly_do . ' | Chuyển đến ' . $request->ma_khu_vuc_den
-        );
-
-        return back()->with('success', 'Kho đã được cách ly thành công.');
     }
+
 }
+

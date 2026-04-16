@@ -25,7 +25,23 @@ class WarehouseReleaseController extends Controller
         if ($status = $request->get('status')) {
             $query->where('trang_thai_phieu_xuat', $status);
         }
-        
+
+        if ($fromDate = $request->get('from_date')) {
+            $query->whereDate('ngay_xuat', '>=', $fromDate);
+        }
+
+        if ($toDate = $request->get('to_date')) {
+            $query->whereDate('ngay_xuat', '<=', $toDate);
+        }
+
+        if ($search = $request->get('search')) {
+            $query->where(function($q) use ($search) {
+                $q->where('ma_phieu_xuat', 'like', "%{$search}%")
+                  ->orWhereHas('khachHang', function($kh) use ($search) {
+                      $kh->where('ten_kh', 'like', "%{$search}%");
+                  });
+            });
+        }
 
         $phieuXuats = $query->orderBy('created_at', 'desc')->paginate(15);
 
@@ -41,6 +57,23 @@ class WarehouseReleaseController extends Controller
 
         if ($status = $request->get('status')) {
             $query->where('trang_thai_phieu_xuat', $status);
+        }
+
+        if ($fromDate = $request->get('from_date')) {
+            $query->whereDate('ngay_xuat', '>=', $fromDate);
+        }
+
+        if ($toDate = $request->get('to_date')) {
+            $query->whereDate('ngay_xuat', '<=', $toDate);
+        }
+
+        if ($search = $request->get('search')) {
+            $query->where(function($q) use ($search) {
+                $q->where('ma_phieu_xuat', 'like', "%{$search}%")
+                  ->orWhereHas('khachHang', function($kh) use ($search) {
+                      $kh->where('ten_kh', 'like', "%{$search}%");
+                  });
+            });
         }
 
         $phieuXuats = $query->orderBy('created_at', 'desc')->get();

@@ -139,7 +139,7 @@
             <div class="card border-0 shadow-sm border-top border-secondary border-3 mb-3">
                 <div class="card-body">
                     <h6 class="fw-bold"><i class="bi bi-clock-history me-2"></i>Lịch sử Duyệt</h6>
-                    <p class="mb-1 small">Người xử lý: <strong>{{ $traHang->nguoi_duyet }}</strong></p>
+                    <p class="mb-1 small">Người xử lý: <strong>{{ $traHang->nguoiDung->ho_ten_nd ?? $traHang->nguoi_duyet }}</strong></p>
                     <p class="mb-2 small">Ghi chú: <em>{{ $traHang->ghi_chu_admin ?? 'Không có' }}</em></p>
                     
                     <hr class="my-3">

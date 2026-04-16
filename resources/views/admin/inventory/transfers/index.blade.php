@@ -3,12 +3,12 @@
 @section('title', 'Quản lý Luân chuyển Kho')
 
 @section('content')
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 mb-0 text-gray-800 d-flex align-items-center">
-            <i class="bi bi-arrow-left-right text-primary me-2"></i>
-            Quản lý Luân chuyển Giữa Các Kho
-        </h1>
+<div class="container-fluid content-padding">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="mb-1 fw-bold"><i class="bi bi-arrow-left-right me-2"></i>Quản lý luân chuyển giữa các kho</h5>
+            <p class="text-muted mb-0">Quản lý việc vận chuyển lô hàng vào các vị trí kho</p>
+        </div>
         <a href="{{ route('transfers.history') }}" class="btn btn-outline-primary d-inline-flex align-items-center">
             <i class="bi bi-clock-history me-1"></i> Xem lịch sử luân chuyển
         </a>

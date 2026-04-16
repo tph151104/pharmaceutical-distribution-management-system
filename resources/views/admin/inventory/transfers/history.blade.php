@@ -66,7 +66,7 @@
                             <td class="text-nowrap">
                                 <div class="fw-bold text-dark">Lô: {{ $log->so_lo }}</div>
                                 <div class="small text-muted">PN: {{ $log->ma_phieu_nhap }}</div>
-                                <div class="small text-muted mt-1"><i class="bi bi-person me-1"></i>{{ $log->nguoiThucHien->ho_ten ?? $log->nguoi_thuc_hien }}</div>
+                                <div class="small text-muted mt-1"><i class="bi bi-person me-1"></i>{{ $log->nguoiThucHien->ho_ten_nd ?? $log->nguoi_thuc_hien }}</div>
                             </td>
                             <td>
                                 <div class="fw-semibold text-primary mb-1">

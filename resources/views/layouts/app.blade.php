@@ -29,6 +29,26 @@
             padding: 1.25rem 1rem;
             box-shadow: 2px 0 15px rgba(15, 23, 42, 0.25);
             z-index: 1030;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .sidebar .brand {
@@ -245,7 +265,7 @@
         <li>
             <a href="{{ route('batches.index') }}" class="sidebar-link {{ request()->routeIs('batches.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-layers"></i></span>
-                <span>Tồn kho (xem)</span>
+                <span>Tồn kho theo lô</span>
                 <span class="sidebar-badge badge bg-light text-muted">Xem</span>
             </a>
         </li>
@@ -283,9 +303,9 @@
             <a href="{{ route('products.index') }}" class="sidebar-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-capsule"></i></span>
                 <span>Danh mục thuốc / sản phẩm</span>
-                <!-- @if($user->hasRole(2))
+                @if($user->hasRole(2))
                 <span class="sidebar-badge badge bg-light text-muted">Xem</span>
-                @endif -->
+                @endif
             </a>
         </li>
         @endif
@@ -373,7 +393,17 @@
             </a>
         </li>
         @endif
+        {{-- Quản lý người dùng: Chỉ Admin(1) --}}
+        @if($user->hasRole(1))
+        <li>
+            <a href="{{ route('admin.features.index') }}" class="sidebar-link {{ request()->routeIs('admin.features.*') ? 'active' : '' }}">
+                <span class="sidebar-link-icon"><i class="bi bi-sliders"></i></span>
+                <span>Quản lý bảo trì chức năng</span>
+            </a>
+        </li>
+        @endif
     </ul>
+    <div style="height: 50px;"></div>
 </div>
 
 <div class="main-wrapper">
@@ -384,21 +414,27 @@
                     <button class="btn btn-light d-lg-none" type="button" id="sidebarToggle">
                         <i class="bi bi-list"></i>
                     </button>
-                    <div class="position-relative d-none d-md-block">
-                        <span class="search-icon">
-                            <i class="bi bi-search"></i>
-                        </span>
-                        <input type="search" class="form-control search-input"
-                               placeholder="Tìm nhanh phiếu, sản phẩm, khách hàng...">
-                    </div>
+                    <!-- Global search removed to keep layout clean -->
                 </div>
                 <div class="d-flex align-items-center gap-3">
-                    <button class="btn btn-outline-secondary btn-sm rounded-circle position-relative">
+                    @php
+                        // Lấy thông báo thực tế (chỉ tính đơn hàng và trả hàng đang chờ duyệt cho các role có quyền)
+                        $tongThongBao = 0;
+                        if ($user->hasRole(1, 3, 5)) {
+                            $tongThongBao += \App\Models\DonHang::where('trang_thai_dh', 'cho_xu_ly')->count();
+                            $tongThongBao += \App\Models\KhachTraHang::where('trang_thai', 'cho_duyet')->count();
+                        }
+                    @endphp
+                    
+                    <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-circle position-relative" title="Xem công việc chờ xử lý">
                         <i class="bi bi-bell"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            3
-                        </span>
-                    </button>
+                        @if($tongThongBao > 0)
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ $tongThongBao > 99 ? '99+' : $tongThongBao }}
+                            </span>
+                        @endif
+                    </a>
+                    
                     <div class="dropdown">
                         <button class="btn btn-light border-0 d-flex align-items-center gap-2" data-bs-toggle="dropdown">
                             @php
@@ -409,28 +445,30 @@
                                     4 => 'bg-info-subtle text-info',
                                     5 => 'bg-primary-subtle text-primary',
                                 ];
-                                $initials = mb_strtoupper(mb_substr($user->ho_ten_nd, 0, 2));
+                                $hoTenParts = explode(' ', trim($user->ho_ten_nd));
+                                $ten = end($hoTenParts);
+                                $initials = mb_strtoupper(mb_substr($ten, 0, 1));
                                 $avatarClass = $roleBgColors[$user->role] ?? 'bg-secondary-subtle text-secondary';
                             @endphp
                             <div class="rounded-circle {{ $avatarClass }} d-flex align-items-center justify-content-center"
                                  style="width:32px;height:32px;">
-                                <span class="fw-semibold" style="font-size: 0.75rem;">{{ $initials }}</span>
+                                <span class="fw-bold" style="font-size: 0.85rem;">{{ $initials }}</span>
                             </div>
                             <div class="text-start d-none d-sm-block">
                                 <div class="small fw-semibold">{{ $user->ho_ten_nd }}</div>
-                                <div class="small text-muted">{{ $user->role_name }}</div>
+                                <div class="small text-muted" style="font-size: 0.75rem;">{{ $user->role_name }}</div>
                             </div>
-                            <i class="bi bi-chevron-down small ms-1"></i>
+                            <i class="bi bi-chevron-down small ms-1 text-muted"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
                             <li><h6 class="dropdown-header">Tài khoản</h6></li>
-                            <li><a class="dropdown-item" href="{{ route('account.profile') }}"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a></li>
-                            <li><a class="dropdown-item" href="{{ route('account.password') }}"><i class="bi bi-shield-lock me-2"></i>Đổi mật khẩu</a></li>
+                            <li><a class="dropdown-item py-2" href="{{ route('account.profile') }}"><i class="bi bi-person me-2 text-muted"></i>Thông tin cá nhân</a></li>
+                            <li><a class="dropdown-item py-2" href="{{ route('account.password') }}"><i class="bi bi-shield-lock me-2 text-muted"></i>Đổi mật khẩu</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form method="POST" action="{{ route('admin.auth.logout') }}">
                                     @csrf
-                                    <button type="submit" class="dropdown-item text-danger">
+                                    <button type="submit" class="dropdown-item py-2 text-danger fw-medium">
                                         <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
                                     </button>
                                 </form>
@@ -463,6 +501,28 @@
             sidebar.classList.toggle('show');
         });
     })();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    @if(session('error'))
+        Swal.fire({
+            icon: 'error',
+            title: 'Hệ thống',
+            text: '{{ session('error') }}',
+            confirmButtonColor: '#3085d6'
+        });
+    @endif
+
+    @if(session('success'))
+        Swal.fire({
+            icon: 'success',
+            title: 'Thành công',
+            text: '{{ session('success') }}',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    @endif
 </script>
 
 @stack('scripts')

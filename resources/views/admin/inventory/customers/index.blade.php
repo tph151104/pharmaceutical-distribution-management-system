@@ -163,7 +163,7 @@
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
                                                 <button type="button" class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#editCustomerCanvas{{ $kh->ma_kh }}">
-                                                    <i class="bi bi-pencil me-2 text-primary"></i>Sửa thông tin
+                                                    <i class="bi bi-eye me-2 text-primary"></i>Xem chi tiết
                                                 </button>
                                             </li>
                                             <li>
@@ -184,76 +184,81 @@
                             <!-- Edit Offcanvas for this loop -->
                             <div class="offcanvas offcanvas-end" tabindex="-1" id="editCustomerCanvas{{ $kh->ma_kh }}" style="width: 500px;">
                                 <div class="offcanvas-header border-bottom">
-                                    <h5 class="offcanvas-title fw-bold text-primary">Cập nhật hồ sơ Khách hàng</h5>
+                                    <h5 class="offcanvas-title fw-bold text-primary">Chi tiết hồ sơ Khách hàng</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                                 </div>
                                 <div class="offcanvas-body">
-                                    <form action="{{ route('customers.update', $kh->ma_kh) }}" method="POST" enctype="multipart/form-data">
-                                        @csrf
-                                        @method('PUT')
-                                        
+                                    <div class="customer-details">
                                         <h6 class="text-uppercase text-muted fw-bold small mb-3">Thông tin tài khoản</h6>
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">Tên đăng nhập (Username)</label>
-                                            <input type="text" class="form-control bg-light" value="{{ $kh->ten_dang_nhap }}" disabled>
-                                        </div>
-                                        <div class="mb-4">
-                                            <label class="form-label fw-semibold">Đổi mật khẩu mới (Nếu cần)</label>
-                                            <input type="password" name="mat_khau" class="form-control" placeholder="Để trống nếu không muốn đổi">
+                                            <label class="form-label fw-semibold text-muted">Tên đăng nhập (Username)</label>
+                                            <div class="form-control-plaintext border-bottom pb-2">{{ $kh->ten_dang_nhap }}</div>
                                         </div>
 
-                                        <h6 class="text-uppercase text-muted fw-bold small mb-3">Hồ sơ đối tác</h6>
+                                        <h6 class="text-uppercase text-muted fw-bold small mb-3 mt-4">Hồ sơ đối tác</h6>
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">Tên khách hàng/Tổ chức <span class="text-danger">*</span></label>
-                                            <input type="text" name="ten_kh" class="form-control" value="{{ $kh->ten_kh }}" required>
+                                            <label class="form-label fw-semibold text-muted">Tên khách hàng/Tổ chức</label>
+                                            <div class="form-control-plaintext border-bottom pb-2 fw-semibold">{{ $kh->ten_kh }}</div>
                                         </div>
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">Phân loại <span class="text-danger">*</span></label>
-                                            <select name="loai_kh" class="form-select" required>
-                                                <option value="nha_thuoc" {{ $kh->loai_kh == 'nha_thuoc' ? 'selected' : '' }}>Nhà Thuốc</option>
-                                                <option value="dai_ly" {{ $kh->loai_kh == 'dai_ly' ? 'selected' : '' }}>Đại Lý Phân Phối</option>
-                                                <option value="phong_kham" {{ $kh->loai_kh == 'phong_kham' ? 'selected' : '' }}>Phòng Khám</option>
-                                                <option value="benh_vien" {{ $kh->loai_kh == 'benh_vien' ? 'selected' : '' }}>Bệnh Viện</option>
-                                            </select>
+                                            <label class="form-label fw-semibold text-muted">Phân loại</label>
+                                            <div class="form-control-plaintext border-bottom pb-2">
+                                                @if($kh->loai_kh == 'nha_thuoc') Nhà Thuốc
+                                                @elseif($kh->loai_kh == 'dai_ly') Đại Lý Phân Phối
+                                                @elseif($kh->loai_kh == 'phong_kham') Phòng Khám
+                                                @else Bệnh Viện @endif
+                                            </div>
                                         </div>
 
                                         <div class="row g-2 mb-3">
                                             <div class="col-6">
-                                                <label class="form-label fw-semibold">Điện thoại</label>
-                                                <input type="text" name="dien_thoai" class="form-control" value="{{ $kh->dien_thoai }}">
+                                                <label class="form-label fw-semibold text-muted">Điện thoại</label>
+                                                <div class="form-control-plaintext border-bottom pb-2">{{ $kh->dien_thoai ?? '--' }}</div>
                                             </div>
                                             <div class="col-6">
-                                                <label class="form-label fw-semibold">Mã số thuế</label>
-                                                <input type="text" name="ma_so_thue" class="form-control" value="{{ $kh->ma_so_thue }}">
+                                                <label class="form-label fw-semibold text-muted">Mã số thuế</label>
+                                                <div class="form-control-plaintext border-bottom pb-2">{{ $kh->ma_so_thue ?? '--' }}</div>
                                             </div>
                                         </div>
 
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">Email</label>
-                                            <input type="email" name="email" class="form-control" value="{{ $kh->email }}">
+                                            <label class="form-label fw-semibold text-muted">Email</label>
+                                            <div class="form-control-plaintext border-bottom pb-2">{{ $kh->email ?? '--' }}</div>
                                         </div>
 
                                         <div class="mb-4">
-                                            <label class="form-label fw-semibold">Địa chỉ kinh doanh <span class="text-danger">*</span></label>
-                                            <textarea name="dia_chi" class="form-control" rows="2" required>{{ $kh->dia_chi }}</textarea>
+                                            <label class="form-label fw-semibold text-muted">Địa chỉ kinh doanh</label>
+                                            <div class="form-control-plaintext border-bottom pb-2">{{ $kh->dia_chi }}</div>
                                         </div>
 
-                                        <h6 class="text-uppercase text-muted fw-bold small mb-3">Upload tài liệu</h6>
+                                        <h6 class="text-uppercase text-muted fw-bold small mb-3 mt-4">Tài liệu đính kèm</h6>
                                         <div class="mb-3">
-                                            <label class="form-label fw-semibold">Ảnh đại diện/Logo</label>
-                                            <input type="file" name="hinh_dai_dien" class="form-control" accept="image/*">
-                                            @if($kh->hinh_dai_dien) <div class="form-text text-success"><i class="bi bi-check-circle me-1"></i>Đã có file tải lên</div> @endif
+                                            <label class="form-label fw-semibold text-muted">Ảnh đại diện/Logo</label>
+                                            <div class="mt-2">
+                                                @if($kh->hinh_dai_dien)
+                                                    <img src="{{ asset($kh->hinh_dai_dien) }}" class="rounded shadow-sm border" width="100">
+                                                @else
+                                                    <span class="text-muted small">Chưa cung cấp</span>
+                                                @endif
+                                            </div>
                                         </div>
                                         <div class="mb-4">
-                                            <label class="form-label fw-semibold">Giấy phép hoạt động/GPKD</label>
-                                            <input type="file" name="giay_phep_hd_image" class="form-control" accept="image/*,.pdf">
-                                            @if($kh->giay_phep_hd_image) <div class="form-text text-success"><i class="bi bi-check-circle me-1"></i>Đã có giấy phép</div> @endif
+                                            <label class="form-label fw-semibold text-muted">Giấy phép hoạt động/GPKD</label>
+                                            <div class="mt-2">
+                                                @if($kh->giay_phep_hd_image)
+                                                    <a href="{{ asset($kh->giay_phep_hd_image) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-file-earmark-image me-1"></i> Xem trực tiếp
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted small">Chưa cung cấp</span>
+                                                @endif
+                                            </div>
                                         </div>
 
                                         <div class="d-grid mt-4">
-                                            <button type="submit" class="btn btn-primary py-2 fw-bold">Lưu cập nhật hồ sơ</button>
+                                            <button type="button" class="btn btn-secondary py-2 fw-bold" data-bs-dismiss="offcanvas">Đóng</button>
                                         </div>
-                                    </form>
+                                    </div>
                                 </div>
                             </div>
                             @endif

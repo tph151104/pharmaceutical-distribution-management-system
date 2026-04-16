@@ -37,6 +37,14 @@ class WarehouseReceiptController extends Controller
                 $q->where('ten_ncc', 'like', '%' . $request->search_ncc . '%');
             });
         }
+        
+        if ($request->has('from_date') && $request->from_date != '') {
+            $query->whereDate('ngay_nhap', '>=', $request->from_date);
+        }
+
+        if ($request->has('to_date') && $request->to_date != '') {
+            $query->whereDate('ngay_nhap', '<=', $request->to_date);
+        }
 
         $phieuNhaps = $query->paginate(15);
         return view('admin.inventory.imports.index', compact('phieuNhaps'));
@@ -60,6 +68,14 @@ class WarehouseReceiptController extends Controller
             $query->whereHas('nhaCungCap', function($q) use ($request) {
                 $q->where('ten_ncc', 'like', '%' . $request->search_ncc . '%');
             });
+        }
+        
+        if ($request->has('from_date') && $request->from_date != '') {
+            $query->whereDate('ngay_nhap', '>=', $request->from_date);
+        }
+
+        if ($request->has('to_date') && $request->to_date != '') {
+            $query->whereDate('ngay_nhap', '<=', $request->to_date);
         }
 
         $phieuNhaps = $query->get();
@@ -204,7 +220,7 @@ class WarehouseReceiptController extends Controller
                     'ma_phieu_nhap' => $phieuNhap->ma_phieu_nhap,
                     'so_lo' => $so_lo,
                     'ngay_san_xuat' => $item['ngay_san_xuat'],
-                    'ngay_nhap_lo' => null, // Sẽ update khi hàng về thực tế
+                    'ngay_nhap_lo' => $request->ngay_nhap, // Ngày nhập trên phiếu
                     'han_su_dung' => $item['han_su_dung'],
                     'so_luong_ton' => 0, // Hiện tại chưa có hàng vật lý
                     'so_luong_da_xuat' => 0,
@@ -357,7 +373,7 @@ class WarehouseReceiptController extends Controller
                     'ma_phieu_nhap' => $phieuNhap->ma_phieu_nhap,
                     'so_lo' => $so_lo,
                     'ngay_san_xuat' => $item['ngay_san_xuat'],
-                    'ngay_nhap_lo' => null,
+                    'ngay_nhap_lo' => $request->ngay_nhap,
                     'han_su_dung' => $item['han_su_dung'],
                     'so_luong_ton' => 0,
                     'so_luong_da_xuat' => 0,

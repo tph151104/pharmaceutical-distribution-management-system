@@ -85,7 +85,7 @@
                                         <small class="text-muted">{{ $log->thoi_gian->format('H:i:s') }}</small>
                                     </td>
                                     <td><small class="text-muted">{{ $log->ma_log }}</small></td>
-                                    <td><strong>{{ $log->nguoiDung->ho_ten ?? $log->nguoi_thuc_hien }}</strong></td>
+                                    <td><strong>{{ $log->nguoiDung->ho_ten_nd ?? $log->nguoi_thuc_hien }}</strong></td>
                                     <td>
                                         <span class="badge bg-light text-dark border">{{ $log->ma_chung_tu }}</span><br>
                                         <small class="text-secondary">{{ $log->nguon_giao_dich }}</small>

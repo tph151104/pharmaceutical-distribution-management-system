@@ -4,6 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\DonHang;
+use App\Models\ChiTietDonHang;
+use App\Models\KhachHang;
+use App\Models\Thuoc;
+use App\Models\NhomThuoc;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
@@ -22,6 +27,146 @@ class OrderController extends Controller
         $donHangs = $query->orderBy('created_at', 'desc')->paginate(15);
 
         return view('admin.inventory.orders.index', compact('donHangs'));
+    }
+
+    /**
+     * Giao diện tạo đơn hàng (Sales Staff / Admin)
+     */
+    public function create()
+    {
+        $khachHangs = KhachHang::where('trang_thai_tk', 'hoat_dong')->get();
+        // Lấy danh sách thuốc có thể bán
+        $thuocs = Thuoc::with(['donViTinh'])
+            ->whereHas('tonKho', function ($q) {
+                $q->where('trang_thai_lo', 'dang_ban')
+                  ->where('han_su_dung', '>=', now()->toDateString())
+                  ->whereExists(function ($sub) {
+                      $sub->select(DB::raw(1))
+                          ->from('ton_kho_khu_vuc')
+                          ->whereColumn('ton_kho_khu_vuc.ma_thuoc', 'ton_kho.ma_thuoc')
+                          ->whereColumn('ton_kho_khu_vuc.ma_phieu_nhap', 'ton_kho.ma_phieu_nhap')
+                          ->whereColumn('ton_kho_khu_vuc.so_lo', 'ton_kho.so_lo')
+                          ->where('ton_kho_khu_vuc.ma_khu_vuc', 'KV03_THANH_PHAM')
+                          ->where('ton_kho_khu_vuc.so_luong', '>', 0);
+                  });
+            })
+            ->get();
+            
+        // Gắn số lượng có thể bán vào mỗi thuốc (chỉ để dự phòng nếu vẫn dùng code cũ)
+        foreach ($thuocs as $thuoc) {
+            $thuoc->ton_kho_hien_tai = $thuoc->tong_ton_kho;
+        }
+
+        $nhom_thuocs = NhomThuoc::all();
+
+        return view('admin.inventory.orders.create', compact('khachHangs', 'thuocs', 'nhom_thuocs'));
+    }
+
+    /**
+     * AJAX: Xử lý tìm kiếm thuốc nâng cao (cho form tạo đơn hàng)
+     */
+    public function advancedSearch(Request $request)
+    {
+        $query = Thuoc::with(['nhomThuoc', 'donViTinh'])
+            ->whereHas('tonKho', function ($q) {
+                $q->where('trang_thai_lo', 'dang_ban')
+                  ->where('han_su_dung', '>=', now()->toDateString())
+                  ->whereExists(function ($sub) {
+                      $sub->select(DB::raw(1))
+                          ->from('ton_kho_khu_vuc')
+                          ->whereColumn('ton_kho_khu_vuc.ma_thuoc', 'ton_kho.ma_thuoc')
+                          ->whereColumn('ton_kho_khu_vuc.ma_phieu_nhap', 'ton_kho.ma_phieu_nhap')
+                          ->whereColumn('ton_kho_khu_vuc.so_lo', 'ton_kho.so_lo')
+                          ->where('ton_kho_khu_vuc.ma_khu_vuc', 'KV03_THANH_PHAM')
+                          ->where('ton_kho_khu_vuc.so_luong', '>', 0);
+                  });
+            });
+
+        if ($request->has('keyword') && $request->keyword != '') {
+            $keyword = $request->keyword;
+            $query->where(function($q) use ($keyword) {
+                $q->where('ten_thuoc', 'like', "%{$keyword}%")
+                  ->orWhere('ma_thuoc', 'like', "%{$keyword}%");
+            });
+        }
+
+        if ($request->has('nhom_thuoc') && $request->nhom_thuoc != '') {
+            $query->where('ma_nhom', $request->nhom_thuoc);
+        }
+
+        $thuocs = $query->limit(50)->get();
+
+        foreach ($thuocs as $thuoc) {
+            $thuoc->ton_kho_hien_tai = $thuoc->tong_ton_kho;
+        }
+
+        return response()->json($thuocs);
+    }
+
+    /**
+     * Lưu đơn hàng (Sales Staff / Admin)
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'ma_kh' => 'required|exists:khach_hang,ma_kh',
+            'items' => 'required|array|min:1',
+            'items.*.ma_thuoc' => 'required|exists:thuoc,ma_thuoc',
+            'items.*.so_luong' => 'required|integer|min:1',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $tongTien = 0;
+            $chiTietData = [];
+
+            foreach ($request->items as $item) {
+                $thuoc = Thuoc::find($item['ma_thuoc']);
+                if (!$thuoc || $item['so_luong'] > $thuoc->tong_ton_kho) {
+                    return back()->withErrors(['error' => 'Sản phẩm "' . ($thuoc->ten_thuoc ?? $item['ma_thuoc']) . '" hiện không đủ hàng trong kho (Thành phẩm).']);
+                }
+                
+                $donGia = $thuoc->gia_ban_de_xuat ?? 0;
+                $tongTien += $donGia * $item['so_luong'];
+
+                $chiTietData[] = [
+                    'ma_thuoc' => $item['ma_thuoc'],
+                    'so_luong' => $item['so_luong'],
+                    'don_gia' => $donGia,
+                ];
+            }
+
+            // Sinh mã đơn hàng: DH_YYYYMMDD_XX
+            $today = Carbon::now()->format('Ymd');
+            $lastDH = DonHang::where('ma_don_hang', 'like', "DH_{$today}_%")
+                ->orderBy('ma_don_hang', 'desc')->first();
+            $nextNum = 1;
+            if ($lastDH && preg_match('/DH_' . $today . '_(\d+)/', $lastDH->ma_don_hang, $m)) {
+                $nextNum = intval($m[1]) + 1;
+            }
+            $maDH = "DH_{$today}_" . str_pad($nextNum, 2, '0', STR_PAD_LEFT);
+
+            $donHang = DonHang::create([
+                'ma_don_hang' => $maDH,
+                'ma_kh' => $request->ma_kh,
+                'ngay_dat' => Carbon::now(),
+                'trang_thai_dh' => 'cho_xu_ly',
+                'tong_tien' => $tongTien,
+                'image1' => '',
+                'image2' => '',
+                'image3' => '',
+            ]);
+
+            foreach ($chiTietData as $ct) {
+                ChiTietDonHang::create(array_merge($ct, ['ma_don_hang' => $maDH]));
+            }
+
+            DB::commit();
+            return redirect()->route('admin.orders.index')->with('success', 'Đã tạo đơn hàng thành công! Mã đơn: ' . $maDH);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->withErrors(['error' => 'Lỗi khi tạo đơn hàng: ' . $e->getMessage()]);
+        }
     }
 
     /**

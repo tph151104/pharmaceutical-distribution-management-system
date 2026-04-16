@@ -26,7 +26,7 @@
         <tr>
             <td style="text-align: center;">{{ $log->thoi_gian->format('d/m/Y H:i:s') }}</td>
             <td style="text-align: center;">{{ $log->ma_log }}</td>
-            <td>{{ $log->nguoiDung->ho_ten ?? $log->nguoi_thuc_hien }}</td>
+            <td>{{ $log->nguoiDung->ho_ten_nd ?? $log->nguoi_thuc_hien }}</td>
             <td style="text-align: center;">{{ $log->ma_chung_tu }}</td>
             <td style="text-align: center;">{{ $log->nguon_giao_dich }}</td>
             <td style="text-align: center;">{{ $log->ma_thuoc }}</td>

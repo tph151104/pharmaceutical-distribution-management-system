@@ -34,7 +34,7 @@
         width: 100%;
         height: 100%;
         object-fit: contain;
-        padding: 10px;
+        padding: 4px;
     }
     .main-image-placeholder i {
         position: absolute;
@@ -232,11 +232,11 @@
                 @endif
                 <div class="main-image-placeholder" id="mainImageContainer">
                     @if($thuoc->image1)
-                        <img src="{{ asset('storage/' . $thuoc->image1) }}" alt="{{ $thuoc->ten_thuoc }}" id="mainImage">
+                        <img src="{{ asset($thuoc->image1) }}" alt="{{ $thuoc->ten_thuoc }}" id="mainImage">
                     @elseif($thuoc->image2)
-                        <img src="{{ asset('storage/' . $thuoc->image2) }}" alt="{{ $thuoc->ten_thuoc }}" id="mainImage">
+                        <img src="{{ asset($thuoc->image2) }}" alt="{{ $thuoc->ten_thuoc }}" id="mainImage">
                     @elseif($thuoc->image3)
-                        <img src="{{ asset('storage/' . $thuoc->image3) }}" alt="{{ $thuoc->ten_thuoc }}" id="mainImage">
+                        <img src="{{ asset($thuoc->image3) }}" alt="{{ $thuoc->ten_thuoc }}" id="mainImage">
                     @else
                         <i class="bi bi-capsule"></i>
                     @endif
@@ -245,18 +245,18 @@
             
             <div class="thumbnail-gallery">
                 @if($thuoc->image1)
-                <div class="thumbnail-item active" onclick="changeImage('{{ asset('storage/' . $thuoc->image1) }}', this)">
-                    <img src="{{ asset('storage/' . $thuoc->image1) }}" alt="Thumnail">
+                <div class="thumbnail-item active" onclick="changeImage('{{ asset($thuoc->image1) }}', this)">
+                    <img src="{{ asset($thuoc->image1) }}" alt="Thumnail">
                 </div>
                 @endif
                 @if($thuoc->image2)
-                <div class="thumbnail-item" onclick="changeImage('{{ asset('storage/' . $thuoc->image2) }}', this)">
-                    <img src="{{ asset('storage/' . $thuoc->image2) }}" alt="Thumnail">
+                <div class="thumbnail-item" onclick="changeImage('{{ asset($thuoc->image2) }}', this)">
+                    <img src="{{ asset($thuoc->image2) }}" alt="Thumnail">
                 </div>
                 @endif
                 @if($thuoc->image3)
-                <div class="thumbnail-item" onclick="changeImage('{{ asset('storage/' . $thuoc->image3) }}', this)">
-                    <img src="{{ asset('storage/' . $thuoc->image3) }}" alt="Thumnail">
+                <div class="thumbnail-item" onclick="changeImage('{{ asset($thuoc->image3) }}', this)">
+                    <img src="{{ asset($thuoc->image3) }}" alt="Thumnail">
                 </div>
                 @endif
             </div>
@@ -441,7 +441,7 @@
                     @endif
                     <div class="placeholder-icon">
                         @if($sp->image1)
-                            <img src="{{ asset('storage/' . $sp->image1) }}" alt="{{ $sp->ten_thuoc }}" class="img-fluid" style="max-height:120px; object-fit:contain;">
+                            <img src="{{ asset($sp->image1) }}" alt="{{ $sp->ten_thuoc }}" class="img-fluid" style="object-fit:contain;">
                         @else
                             <i class="bi bi-capsule"></i>
                         @endif

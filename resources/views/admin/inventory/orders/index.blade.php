@@ -8,7 +8,12 @@
             <h1 class="content-header-title mb-0"><i class="bi bi-box-seam text-primary me-2"></i>Quản lý Đơn hàng</h1>
             <p class="text-muted small mb-0 mt-1">Danh sách đơn đặt hàng từ khách hàng sỉ</p>
         </div>
-        <div>
+        <div class="d-flex gap-2">
+            @if(Auth::guard('admin')->user()->hasRole(1, 3, 5))
+            <a href="{{ route('admin.orders.create') }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>Tạo Đơn Hàng Mới
+            </a>
+            @endif
             <a href="{{ route('admin.orders.export', request()->query()) }}" class="btn btn-success btn-sm">
                 <i class="bi bi-file-earmark-excel me-1"></i>Xuất Excel
             </a>

@@ -18,6 +18,7 @@ use App\Http\Controllers\CustomerReturnsController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\DashboardController;
 
 /*
 | Web Routes
@@ -43,9 +44,13 @@ Route::prefix('admin')->name('admin.auth.')->group(function () {
 Route::middleware('auth:admin')->group(function () {
 
     // ── Dashboard (Tất cả roles) ──────────────────────────────
-    Route::get('/', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Quản lý Bảo trì tính năng (Chỉ Admin)
+    Route::middleware('role:1')->prefix('admin/features')->name('admin.features.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\FeatureToggleController::class, 'index'])->name('index');
+        Route::patch('/{id}', [\App\Http\Controllers\FeatureToggleController::class, 'update'])->name('update');
+    });
 
     // ── Tài khoản cá nhân (Tất cả roles) ─────────────────────
     Route::prefix('account')->name('account.')->group(function () {
@@ -65,7 +70,7 @@ Route::middleware('auth:admin')->group(function () {
     Route::middleware('role:1,2,5')->group(function () {
 
         // Phiếu nhập kho
-        Route::prefix('imports')->name('imports.')->group(function () {
+        Route::prefix('imports')->name('imports.')->middleware('feature:imports')->group(function () {
             Route::get('/', [WarehouseReceiptController::class, 'index'])->name('index');
             Route::get('/export', [WarehouseReceiptController::class, 'export'])->name('export');
             Route::get('/create', [WarehouseReceiptController::class, 'create'])->name('create');
@@ -80,7 +85,7 @@ Route::middleware('auth:admin')->group(function () {
         });
 
         // Phiếu xuất kho
-        Route::prefix('sales')->name('sales.')->group(function () {
+        Route::prefix('sales')->name('sales.')->middleware('feature:sales')->group(function () {
             Route::get('/', [WarehouseReleaseController::class, 'index'])->name('index');
             Route::get('/export', [WarehouseReleaseController::class, 'export'])->name('export');
             Route::get('/create', [WarehouseReleaseController::class, 'create'])->name('create');
@@ -96,7 +101,7 @@ Route::middleware('auth:admin')->group(function () {
         });
 
         // Điều chuyển kho
-        Route::prefix('transfers')->name('transfers.')->group(function () {
+        Route::prefix('transfers')->name('transfers.')->middleware('feature:transfers')->group(function () {
             Route::get('/', [InventoryTransferController::class, 'index'])->name('index');
             Route::post('/', [InventoryTransferController::class, 'transfer'])->name('store');
             Route::get('/history', [InventoryTransferController::class, 'history'])->name('history');
@@ -109,15 +114,14 @@ Route::middleware('auth:admin')->group(function () {
     //             SỬA: chỉ Admin(1), NV Kho(2), Trưởng kho(5)
     // ═══════════════════════════════════════════════════════════
 
-    Route::prefix('batches')->name('batches.')->group(function () {
+    Route::prefix('batches')->name('batches.')->middleware('feature:batches')->group(function () {
         Route::get('/', [InventoryController::class, 'index'])->name('index');
     });
 
     Route::middleware('role:1,2,5')->group(function () {
-        Route::prefix('batches')->name('batches.')->group(function () {
-            Route::put('/update-status', [InventoryController::class, 'updateStatus'])->name('updateStatus');
+        Route::prefix('batches')->name('batches.')->middleware('feature:batches')->group(function () {
+            Route::post('/stop-selling', [InventoryController::class, 'stopSelling'])->name('stopSelling');
             Route::post('/adjust', [InventoryController::class, 'adjustStock'])->name('adjust');
-            Route::post('/isolate', [InventoryController::class, 'isolate'])->name('isolate');
         });
     });
 
@@ -127,19 +131,22 @@ Route::middleware('auth:admin')->group(function () {
     //              NV Kho(2) chỉ XEM
     // ═══════════════════════════════════════════════════════════
 
-    Route::middleware('role:1,2,3,5')->group(function () {
-        Route::prefix('admin/orders')->name('admin.orders.')->group(function () {
-            Route::get('/', [OrderController::class, 'index'])->name('index');
-            Route::get('/export', [OrderController::class, 'export'])->name('export');
-            Route::get('/{id}', [OrderController::class, 'show'])->name('show');
-        });
-    });
-
     Route::middleware('role:1,3,5')->group(function () {
-        Route::prefix('admin/orders')->name('admin.orders.')->group(function () {
+        Route::prefix('admin/orders')->name('admin.orders.')->middleware('feature:orders')->group(function () {
+            Route::get('/create', [OrderController::class, 'create'])->name('create');
+            Route::get('/advanced-search', [OrderController::class, 'advancedSearch'])->name('advancedSearch');
+            Route::post('/', [OrderController::class, 'store'])->name('store');
             Route::post('/{id}/approve', [OrderController::class, 'approve'])->name('approve');
             Route::post('/{id}/cancel', [OrderController::class, 'cancel'])->name('cancel');
             Route::post('/{id}/export-note', [OrderController::class, 'createExportNote'])->name('exportNote');
+        });
+    });
+
+    Route::middleware('role:1,2,3,5')->group(function () {
+        Route::prefix('admin/orders')->name('admin.orders.')->middleware('feature:orders')->group(function () {
+            Route::get('/', [OrderController::class, 'index'])->name('index');
+            Route::get('/export', [OrderController::class, 'export'])->name('export');
+            Route::get('/{id}', [OrderController::class, 'show'])->name('show');
         });
     });
 
@@ -150,14 +157,14 @@ Route::middleware('auth:admin')->group(function () {
     // ═══════════════════════════════════════════════════════════
 
     Route::middleware('role:1,2,3,4,5')->group(function () {
-        Route::prefix('admin/returns')->name('admin.returns.')->group(function () {
+        Route::prefix('admin/returns')->name('admin.returns.')->middleware('feature:returns')->group(function () {
             Route::get('/', [CustomerReturnsController::class, 'index'])->name('index');
             Route::get('/{id}', [CustomerReturnsController::class, 'show'])->name('show');
         });
     });
 
     Route::middleware('role:1,3,5')->group(function () {
-        Route::prefix('admin/returns')->name('admin.returns.')->group(function () {
+        Route::prefix('admin/returns')->name('admin.returns.')->middleware('feature:returns')->group(function () {
             Route::post('/{id}/approve', [CustomerReturnsController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [CustomerReturnsController::class, 'reject'])->name('reject');
             Route::post('/{id}/undo-approve', [CustomerReturnsController::class, 'undoApprove'])->name('undoApprove');
@@ -171,11 +178,11 @@ Route::middleware('auth:admin')->group(function () {
     // ═══════════════════════════════════════════════════════════
 
     Route::middleware('role:1,2,5')->group(function () {
-        Route::get('/products', [MedicineController::class, 'index'])->name('products.index');
+        Route::get('/products', [MedicineController::class, 'index'])->name('products.index')->middleware('feature:products');
     });
 
     Route::middleware('role:1,5')->group(function () {
-        Route::prefix('products')->name('products.')->group(function () {
+        Route::prefix('products')->name('products.')->middleware('feature:products')->group(function () {
             Route::post('/', [MedicineController::class, 'store'])->name('store');
             Route::put('/{id}', [MedicineController::class, 'update'])->name('update');
             Route::delete('/{id}', [MedicineController::class, 'destroy'])->name('destroy');
@@ -199,11 +206,11 @@ Route::middleware('auth:admin')->group(function () {
     // ═══════════════════════════════════════════════════════════
 
     Route::middleware('role:1,4,5')->group(function () {
-        Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
+        Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index')->middleware('feature:suppliers');
     });
 
     Route::middleware('role:1,5')->group(function () {
-        Route::prefix('suppliers')->name('suppliers.')->group(function () {
+        Route::prefix('suppliers')->name('suppliers.')->middleware('feature:suppliers')->group(function () {
             Route::post('/', [SupplierController::class, 'store'])->name('store');
             Route::put('/{id}', [SupplierController::class, 'update'])->name('update');
             Route::delete('/{id}', [SupplierController::class, 'destroy'])->name('destroy');
@@ -216,11 +223,11 @@ Route::middleware('auth:admin')->group(function () {
     // ═══════════════════════════════════════════════════════════
 
     Route::middleware('role:1,3,4,5')->group(function () {
-        Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+        Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index')->middleware('feature:customers');
     });
 
     Route::middleware('role:1,3')->group(function () {
-        Route::prefix('customers')->name('customers.')->group(function () {
+        Route::prefix('customers')->name('customers.')->middleware('feature:customers')->group(function () {
             Route::put('/{id}', [CustomerController::class, 'update'])->name('update');
             Route::put('/{id}/status', [CustomerController::class, 'updateStatus'])->name('updateStatus');
             Route::delete('/{id}', [CustomerController::class, 'destroy'])->name('destroy');
@@ -232,7 +239,7 @@ Route::middleware('auth:admin')->group(function () {
     // ═══════════════════════════════════════════════════════════
 
     Route::middleware('role:1,4')->group(function () {
-        Route::prefix('payments')->name('payments.')->group(function () {
+        Route::prefix('payments')->name('payments.')->middleware('feature:payments')->group(function () {
             Route::get('/', [PaymentsController::class, 'index'])->name('index');
             Route::post('/', [PaymentsController::class, 'store'])->name('store');
             Route::get('/history', [PaymentsController::class, 'history'])->name('history');
@@ -248,7 +255,7 @@ Route::middleware('auth:admin')->group(function () {
     //  BÁO CÁO
     // ═══════════════════════════════════════════════════════════
 
-    Route::prefix('admin/reports')->name('reports.')->group(function () {
+    Route::prefix('admin/reports')->name('reports.')->middleware('feature:reports')->group(function () {
         // BC Tồn kho — Admin(1), Trưởng kho(5), Kế toán(4)
         Route::middleware('role:1,4,5')->group(function () {
             Route::get('/stock', [ReportController::class, 'stock'])->name('stock');

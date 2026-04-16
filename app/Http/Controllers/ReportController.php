@@ -19,7 +19,8 @@ class ReportController extends Controller
      */
     private function buildStockQuery(Request $request)
     {
-        $query = TonKho::with(['thuoc', 'chiTietKhuVuc.khuVuc'])
+        // $query = TonKho::with(['thuoc', 'chiTietKhuVuc.khuVuc'])
+        $query = TonKho::with(['thuoc'])
             ->where('so_luong_ton', '>', 0);
         
         // Lọc theo tên thuốc hoặc số lô

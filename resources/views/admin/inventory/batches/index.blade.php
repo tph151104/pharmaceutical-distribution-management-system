@@ -3,9 +3,10 @@
 @section('title', 'Tồn kho chi tiết theo lô hàng')
 
 @section('content-header')
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-layers-fill "></i>
                 <h1 class="content-header-title mb-0">Tồn kho theo lô hàng</h1>
             </div>
             <div class="text-muted small">
@@ -117,9 +118,10 @@
                         <th class="text-nowrap">Ảnh lô</th>
                         <th class="text-nowrap">Sản phẩm</th>
                         <th class="text-nowrap">Số lô</th>
-                        <th class="text-nowrap text-center">Hạn dùng (Còn lại)</th>
+                        <th class="text-nowrap text-center">Hạn dùng</th>
                         <th class="text-nowrap">Ngày nhập lô</th>
                         <th class="text-nowrap text-end">Tồn lô</th>
+                        <th class="text-nowrap text-end">SL có thể bán</th>
                         <th class="text-nowrap text-end">SL đã xuất</th>
                         <th class="text-nowrap">Trạng thái lô</th>
                         <th class="text-nowrap">Nhà cung cấp</th>
@@ -135,6 +137,18 @@
                             $now = \Carbon\Carbon::now();
                             $hanDung = $ton->han_su_dung;
                             $daysLeft = $now->diffInDays($hanDung, false);
+                            
+                            $locationsData = \App\Models\TonKhoKhuVuc::with('khuVuc')
+                                ->where('ma_thuoc', $ton->ma_thuoc)
+                                ->where('ma_phieu_nhap', $ton->ma_phieu_nhap)
+                                ->where('so_lo', $ton->so_lo)
+                                ->get()
+                                ->map(function($kv) {
+                                    return [
+                                        'khu_vuc' => $kv->khuVuc->ten_khu_vuc ?? $kv->ma_khu_vuc,
+                                        'so_luong' => $kv->so_luong
+                                    ];
+                                })->values()->toArray();
                         @endphp
                         <tr>
                             <td>
@@ -163,28 +177,14 @@
                             </td>
                             <td>{{ $ton->ngay_nhap_lo ? $ton->ngay_nhap_lo->format('d/m/Y') : 'N/A' }}</td>
                             <td class="text-end fw-semibold">{{ number_format($ton->so_luong_ton) }}</td>
-                            <td class="text-end">{{ number_format($ton->so_luong_da_xuat) }}</td>
+                            <td class="text-end fw-semibold text-success text-center">{{ number_format($ton->sl_co_the_ban) }}</td>
+                            <td class="text-end text-center">{{ number_format($ton->so_luong_da_xuat) }}</td>
                             <td>
-                                @if(Auth::guard('admin')->user()->hasRole(1, 2, 5))
-                                <form action="{{ route('batches.updateStatus') }}" method="POST" class="m-0">
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="ma_thuoc" value="{{ $ton->ma_thuoc }}">
-                                    <input type="hidden" name="ma_phieu_nhap" value="{{ $ton->ma_phieu_nhap }}">
-                                    <input type="hidden" name="so_lo" value="{{ $ton->so_lo }}">
-                                    <select name="trang_thai_lo" class="form-select form-select-sm" style="min-width: 110px;" onchange="this.form.submit()">
-                                        <option value="cho_duyet" {{ $ton->trang_thai_lo == 'cho_duyet' ? 'selected' : '' }}>Chờ duyệt</option>
-                                        <option value="dang_ban" {{ $ton->trang_thai_lo == 'dang_ban' ? 'selected' : '' }}>Đang bán</option>
-                                        <option value="ngung_ban" {{ $ton->trang_thai_lo == 'ngung_ban' ? 'selected' : '' }}>Ngưng bán</option>
-                                    </select>
-                                </form>
-                                @else
-                                    @if($ton->trang_thai_lo == 'cho_duyet') <span class="badge bg-secondary">Chờ duyệt</span>
-                                    @elseif($ton->trang_thai_lo == 'dang_ban') <span class="badge bg-success">Đang bán</span>
-                                    @elseif($ton->trang_thai_lo == 'ngung_ban') <span class="badge bg-warning">Ngưng bán</span>
-                                    @elseif($ton->trang_thai_lo == 'het_han') <span class="badge bg-danger">Hết hạn</span>
-                                    @else <span class="badge bg-light text-dark">{{ $ton->trang_thai_lo }}</span>
-                                    @endif
+                                @if($ton->trang_thai_lo == 'cho_duyet') <span class="badge bg-secondary">Chờ duyệt</span>
+                                @elseif($ton->trang_thai_lo == 'dang_ban') <span class="badge bg-success">Đang bán</span>
+                                @elseif($ton->trang_thai_lo == 'ngung_ban') <span class="badge bg-warning">Ngưng bán</span>
+                                @elseif($ton->trang_thai_lo == 'het_han') <span class="badge bg-danger">Hết hạn</span>
+                                @else <span class="badge bg-light text-dark">{{ $ton->trang_thai_lo }}</span>
                                 @endif
                             </td>
                             <td>
@@ -199,24 +199,23 @@
                                     <span class="badge bg-warning">Sắp hết hạn</span>
                                 @else
                                     <span class="badge bg-success">An toàn</span>
-                                @endif
-                                
-                                <div class="mt-1 d-flex justify-content-center gap-1">
-                                    @if($ton->image1)<i class="bi bi-card-image text-primary" title="Có ảnh lưu kho 1"></i>@endif
-                                    @if($ton->image2)<i class="bi bi-card-image text-primary" title="Có ảnh lưu kho 2"></i>@endif
-                                    @if($ton->image3)<i class="bi bi-card-image text-primary" title="Có ảnh lưu kho 3"></i>@endif
-                                </div>
+                                @endif                               
                             </td>
                             @if(Auth::guard('admin')->user()->hasRole(1, 2, 5))
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-warning" title="Điều chỉnh tồn kho"
-                                    onclick="openAdjustModal('{{ $ton->ma_thuoc }}', '{{ $ton->ma_phieu_nhap }}', '{{ $ton->so_lo }}', '{{ addslashes($ton->thuoc->ten_thuoc ?? 'N/A') }}', {{ $ton->so_luong_ton }})">
-                                    <i class="bi bi-pencil-square"></i>
+                                <button type="button" class="btn btn-sm btn-outline-info" title="Xem vị trí phân bổ"
+                                    data-thuoc="{{ $ton->thuoc->ten_thuoc ?? $ton->ma_thuoc }}"
+                                    data-lo="{{ $ton->so_lo }}"
+                                    data-locations="{{ htmlspecialchars(json_encode($locationsData)) }}"
+                                    onclick="openLocationsModal(this)">
+                                    <i class="bi bi-geo-alt"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger ms-1" title="Cách ly GSP (Lỗi/Thu hồi)"
-                                    onclick="openIsolateModal('{{ $ton->ma_thuoc }}', '{{ $ton->ma_phieu_nhap }}', '{{ $ton->so_lo }}', '{{ addslashes($ton->thuoc->ten_thuoc ?? 'N/A') }}', {{ $ton->so_luong_ton }})">
-                                    <i class="bi bi-shield-x"></i>
+                                @if($ton->trang_thai_lo == 'dang_ban')
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-1" title="Ngưng bán / Cách ly"
+                                    onclick="openStopSellingModal('{{ $ton->ma_thuoc }}', '{{ $ton->ma_phieu_nhap }}', '{{ $ton->so_lo }}', '{{ addslashes($ton->thuoc->ten_thuoc ?? 'N/A') }}', {{ $ton->sl_co_the_ban }})">
+                                    <i class="bi bi-pause-circle"></i>
                                 </button>
+                                @endif
                             </td>
                             @endif
                         </tr>
@@ -240,118 +239,78 @@
     </div>
 
     @if(Auth::guard('admin')->user()->hasRole(1, 2, 5))
-    <!-- Modal Điều chỉnh Tồn kho -->
-    <div class="modal fade" id="modalAdjustStock" tabindex="-1">
+    <!-- Modal Xem Vị Trí Phân Bổ -->
+    <div class="modal fade" id="modalLocations" tabindex="-1">
         <div class="modal-dialog">
-            <form action="{{ route('batches.adjust') }}" method="POST" onsubmit="return confirmAdjust()">
-                @csrf
-                <input type="hidden" name="ma_thuoc" id="adjust_ma_thuoc">
-                <input type="hidden" name="ma_phieu_nhap" id="adjust_ma_phieu_nhap">
-                <input type="hidden" name="so_lo" id="adjust_so_lo">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning bg-opacity-25">
-                        <h5 class="modal-title"><i class="bi bi-pencil-square me-1"></i> Điều chỉnh Tồn kho</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-warning small mb-3">
-                            <i class="bi bi-exclamation-triangle me-1"></i>
-                            Chức năng này dùng để điều chỉnh khi có sai lệch giữa tồn kho thực tế và hệ thống (kiểm kê định kỳ, thất thoát...). Mọi thay đổi sẽ được ghi vào lịch sử kho.
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Sản phẩm</label>
-                            <input type="text" id="adjust_ten_thuoc" class="form-control bg-light" readonly disabled>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Số lô</label>
-                            <input type="text" id="adjust_so_lo_display" class="form-control bg-light" readonly disabled>
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-6">
-                                <label class="form-label fw-bold">Tồn hiện tại (Hệ thống)</label>
-                                <input type="number" id="adjust_ton_hien_tai" class="form-control bg-light" readonly disabled>
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label fw-bold">Tồn thực tế (Mới) <span class="text-danger">*</span></label>
-                                <input type="number" name="so_luong_moi" id="adjust_so_luong_moi" class="form-control" min="0" required oninput="calcDiff()">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <div id="adjust_diff_info" class="small fw-semibold" style="display:none;"></div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Lý do điều chỉnh <span class="text-danger">*</span></label>
-                            <select id="adjust_ly_do_select" class="form-select mb-2" onchange="setLyDo()">
-                                <option value="">-- Chọn lý do --</option>
-                                <option value="Kiểm kê định kỳ">Kiểm kê định kỳ</option>
-                                <option value="Phát hiện thất thoát">Phát hiện thất thoát</option>
-                                <option value="Hàng hư hỏng / vỡ / không đạt chất lượng">Hàng hư hỏng / vỡ / không đạt chất lượng</option>
-                                <option value="Sai lệch do nhập liệu">Sai lệch do nhập liệu</option>
-                                <option value="Trả hàng nhà cung cấp">Trả hàng nhà cung cấp</option>
-                                <option value="custom">Lý do khác...</option>
-                            </select>
-                            <textarea name="ly_do" id="adjust_ly_do" class="form-control" rows="2" required placeholder="Mô tả chi tiết lý do điều chỉnh..."></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-warning">
-                            <i class="bi bi-check-lg me-1"></i> Xác nhận Điều chỉnh
-                        </button>
-                    </div>
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="bi bi-geo-alt me-1"></i> Chi tiết vị trí lưu trữ lô hàng</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-            </form>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <span class="fw-bold">Thuốc:</span> <span id="loc_thuoc_name" class="text-primary fw-semibold"></span><br>
+                        <span class="fw-bold">Số lô:</span> <span id="loc_so_lo" class="text-secondary fw-semibold"></span>
+                    </div>
+                    <table class="table table-bordered table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Khu vực lưu trữ</th>
+                                <th class="text-end" style="width: 120px;">Số lượng</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loc_table_body">
+                            <!-- JS will populate here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer p-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
         </div>
     </div>
-
-    <!-- Modal Cách ly GSP (Lỗi/Thu hồi) -->
-    <div class="modal fade" id="modalIsolateStock" tabindex="-1">
+    <div class="modal fade" id="modalStopSelling" tabindex="-1">
         <div class="modal-dialog">
-            <form action="{{ route('batches.isolate') }}" method="POST">
+            <form action="{{ route('batches.stopSelling') }}" method="POST">
                 @csrf
-                <input type="hidden" name="ma_thuoc" id="isolate_ma_thuoc">
-                <input type="hidden" name="ma_phieu_nhap" id="isolate_ma_phieu_nhap">
-                <input type="hidden" name="so_lo" id="isolate_so_lo">
+                <input type="hidden" name="ma_thuoc" id="stop_ma_thuoc">
+                <input type="hidden" name="ma_phieu_nhap" id="stop_ma_phieu_nhap">
+                <input type="hidden" name="so_lo" id="stop_so_lo">
                 <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title"><i class="bi bi-shield-x me-1"></i> Cách ly Sản phẩm (GSP)</h5>
+                    <div class="modal-header bg-secondary text-white">
+                        <h5 class="modal-title"><i class="bi bi-pause-circle me-1"></i> Ngưng bán / Chuyển xử lý (Cách ly)</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="alert alert-danger small mb-3">
+                        <div class="alert alert-secondary small mb-3">
                             <i class="bi bi-info-circle me-1"></i>
-                            Tách những sản phẩm bị lỗi/hỏng khỏi lô "Đang bán" để đưa vào khu cách ly chuyên dụng, đảm bảo không bị xuất nhầm ra thị trường.
+                            Thao tác này sẽ chuyển trạng thái của lô thành "Ngưng bán" và yêu cầu bạn chuyển một số lượng tồn kho (hiện đang ở Kho Thành phẩm) vào Kho 04 (Chờ xử lý). 
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Sản phẩm</label>
-                            <input type="text" id="isolate_ten_thuoc" class="form-control bg-light" readonly disabled>
+                            <input type="text" id="stop_ten_thuoc" class="form-control bg-light" readonly disabled>
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-6">
-                                <label class="form-label fw-bold">Tổng Tồn (Cả lô)</label>
-                                <input type="number" id="isolate_ton_hien_tai" class="form-control bg-light" readonly disabled>
+                                <label class="form-label fw-bold">SL có thể bán (KV03)</label>
+                                <input type="number" id="stop_ton_hien_tai" class="form-control bg-light" readonly disabled>
                             </div>
                             <div class="col-6">
-                                <label class="form-label text-danger fw-bold">Số lượng cách ly <span class="text-danger">*</span></label>
-                                <input type="number" name="so_luong_cach_ly" id="isolate_so_luong_cach_ly" class="form-control border-danger fw-bold text-danger" min="1" required>
+                                <label class="form-label fw-bold text-danger">SL chuyển đi cách ly <span class="text-danger">*</span></label>
+                                <input type="number" name="so_luong_chuyen" id="stop_so_luong_chuyen" class="form-control border-danger fw-bold text-danger" min="0" required>
+                                <div class="form-text">Nhập 0 nếu bạn chỉ muốn đổi trạng thái.</div>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Khu vực chuyển đến <span class="text-danger">*</span></label>
-                            <select name="ma_khu_vuc_den" class="form-select border-danger" required>
-                                <option value="KV04_CHO_XU_LY">KV04 - Chờ xử lý (Lỗi, Thu hồi)</option>
-                                <option value="KV05_LOAI_BO">KV05 - Loại bỏ (Hỏng nặng, Tiêu hủy)</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Lý do cách ly <span class="text-danger">*</span></label>
-                            <textarea name="ly_do" class="form-control" rows="2" required placeholder="Ghi rõ tình trạng sản phẩm (móp méo, vỡ chai, nấm mốc...)"></textarea>
+                            <label class="form-label fw-bold">Lý do ngưng bán <span class="text-danger">*</span></label>
+                            <textarea name="ly_do" class="form-control" rows="2" required placeholder="Ghi rõ lý do ngưng bán..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('Bạn có chắc muốn đưa số lượng này vào khu cách ly? (Không thể hoàn tác tại đây)')">
-                            <i class="bi bi-box-arrow-right me-1"></i> Đưa vào cách ly
+                        <button type="submit" class="btn btn-secondary" onclick="return confirm('Xác nhận ngưng bán lô này và chuyển số lượng tương ứng vào kho KV04?')">
+                            <i class="bi bi-check-lg me-1"></i> Xác nhận
                         </button>
                     </div>
                 </div>
@@ -362,84 +321,47 @@
 
 @push('scripts')
 <script>
-    function openAdjustModal(maThuoc, maPhieuNhap, soLo, tenThuoc, tonHienTai) {
-        document.getElementById('adjust_ma_thuoc').value = maThuoc;
-        document.getElementById('adjust_ma_phieu_nhap').value = maPhieuNhap;
-        document.getElementById('adjust_so_lo').value = soLo;
-        document.getElementById('adjust_ten_thuoc').value = tenThuoc + ' (' + maThuoc + ')';
-        document.getElementById('adjust_so_lo_display').value = soLo;
-        document.getElementById('adjust_ton_hien_tai').value = tonHienTai;
-        document.getElementById('adjust_so_luong_moi').value = tonHienTai;
-        document.getElementById('adjust_ly_do').value = '';
-        document.getElementById('adjust_ly_do_select').value = '';
-        document.getElementById('adjust_diff_info').style.display = 'none';
-        new bootstrap.Modal(document.getElementById('modalAdjustStock')).show();
+    function openLocationsModal(btn) {
+        document.getElementById('loc_thuoc_name').textContent = btn.getAttribute('data-thuoc');
+        document.getElementById('loc_so_lo').textContent = btn.getAttribute('data-lo');
+        
+        let locations = [];
+        try {
+            locations = JSON.parse(btn.getAttribute('data-locations') || '[]');
+        } catch(e) {}
+
+        const tbody = document.getElementById('loc_table_body');
+        tbody.innerHTML = '';
+        
+        let hasValidLocation = false;
+        if (locations.length > 0) {
+            locations.forEach(loc => {
+                if (loc.so_luong > 0) {
+                    hasValidLocation = true;
+                    tbody.innerHTML += `<tr>
+                        <td><span class="badge bg-light text-dark border border-secondary"><i class="bi bi-box me-1"></i> ${loc.khu_vuc}</span></td>
+                        <td class="text-end fw-bold text-primary px-3">${loc.so_luong}</td>
+                    </tr>`;
+                }
+            });
+        }
+        
+        if (!hasValidLocation) {
+            tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted small py-4 fst-italic">Lô hàng này hiện không có tồn trong các khu vực lưu trữ (hoặc số lượng bằng 0).</td></tr>';
+        }
+        
+        new bootstrap.Modal(document.getElementById('modalLocations')).show();
     }
 
-    function calcDiff() {
-        const current = parseInt(document.getElementById('adjust_ton_hien_tai').value) || 0;
-        const newVal = parseInt(document.getElementById('adjust_so_luong_moi').value) || 0;
-        const diff = newVal - current;
-        const el = document.getElementById('adjust_diff_info');
-
-        if (diff === 0) {
-            el.style.display = 'none';
-        } else {
-            el.style.display = 'block';
-            if (diff > 0) {
-                el.className = 'small fw-semibold text-success';
-                el.innerHTML = '<i class="bi bi-arrow-up-circle me-1"></i> Tăng ' + diff + ' đơn vị so với hệ thống';
-            } else {
-                el.className = 'small fw-semibold text-danger';
-                el.innerHTML = '<i class="bi bi-arrow-down-circle me-1"></i> Giảm ' + Math.abs(diff) + ' đơn vị so với hệ thống';
-            }
-        }
-    }
-
-    function setLyDo() {
-        const sel = document.getElementById('adjust_ly_do_select');
-        const textarea = document.getElementById('adjust_ly_do');
-        if (sel.value && sel.value !== 'custom') {
-            textarea.value = sel.value;
-        } else if (sel.value === 'custom') {
-            textarea.value = '';
-            textarea.focus();
-        }
-    }
-
-    function confirmAdjust() {
-        const current = parseInt(document.getElementById('adjust_ton_hien_tai').value) || 0;
-        const newVal = parseInt(document.getElementById('adjust_so_luong_moi').value) || 0;
-        const diff = newVal - current;
-        const lyDo = document.getElementById('adjust_ly_do').value.trim();
-
-        if (!lyDo) {
-            alert('Vui lòng nhập lý do điều chỉnh!');
-            return false;
-        }
-
-        if (diff === 0) {
-            alert('Số lượng tồn kho không thay đổi, không cần điều chỉnh.');
-            return false;
-        }
-
-        const loai = diff > 0 ? 'TĂNG ' + diff : 'GIẢM ' + Math.abs(diff);
-        return confirm('Xác nhận điều chỉnh tồn kho?\n\n' +
-            '• Tồn hiện tại: ' + current + '\n' +
-            '• Tồn mới: ' + newVal + '\n' +
-            '• Thay đổi: ' + loai + '\n' +
-            '• Lý do: ' + lyDo + '\n\n' +
-            'Hành động này sẽ được ghi vào lịch sử kho.');
-    }
-    function openIsolateModal(maThuoc, maPhieuNhap, soLo, tenThuoc, tonHienTai) {
-        document.getElementById('isolate_ma_thuoc').value = maThuoc;
-        document.getElementById('isolate_ma_phieu_nhap').value = maPhieuNhap;
-        document.getElementById('isolate_so_lo').value = soLo;
-        document.getElementById('isolate_ten_thuoc').value = tenThuoc;
-        document.getElementById('isolate_ton_hien_tai').value = tonHienTai;
-        document.getElementById('isolate_so_luong_cach_ly').value = '';
-        document.getElementById('isolate_so_luong_cach_ly').max = tonHienTai;
-        new bootstrap.Modal(document.getElementById('modalIsolateStock')).show();
+    function openStopSellingModal(maThuoc, maPhieuNhap, soLo, tenThuoc, tonHienTai) {
+        document.getElementById('stop_ma_thuoc').value = maThuoc;
+        document.getElementById('stop_ma_phieu_nhap').value = maPhieuNhap;
+        document.getElementById('stop_so_lo').value = soLo;
+        document.getElementById('stop_ten_thuoc').value = tenThuoc;
+        document.getElementById('stop_ton_hien_tai').value = tonHienTai;
+        document.getElementById('stop_so_luong_chuyen').value = tonHienTai;
+        document.getElementById('stop_so_luong_chuyen').max = tonHienTai;
+        new bootstrap.Modal(document.getElementById('modalStopSelling')).show();
     }
 </script>
 @endpush

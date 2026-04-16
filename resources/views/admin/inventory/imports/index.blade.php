@@ -36,31 +36,39 @@
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body">
             <form action="{{ route('imports.index') }}" method="GET" class="row g-2 align-items-end">
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-2">
                     <label class="form-label small text-muted mb-1">Mã Phiếu</label>
                     <input type="text" name="search" class="form-control form-control-sm" placeholder="Mã phiếu..." value="{{ request('search') }}">
                 </div>
-                <div class="col-12 col-md-3">
-                    <label class="form-label small text-muted mb-1">Tên nhà cung cấp</label>
-                    <input type="text" name="search_ncc" class="form-control form-control-sm" placeholder="Tên nhà cung cấp..." value="{{ request('search_ncc') }}">
+                <div class="col-12 col-md-2">
+                    <label class="form-label small text-muted mb-1">Nhà cung cấp</label>
+                    <input type="text" name="search_ncc" class="form-control form-control-sm" placeholder="Tên NCC..." value="{{ request('search_ncc') }}">
                 </div>
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-2">
+                    <label class="form-label small text-muted mb-1">Từ ngày</label>
+                    <input type="date" name="from_date" class="form-control form-control-sm" value="{{ request('from_date') }}">
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label small text-muted mb-1">Đến ngày</label>
+                    <input type="date" name="to_date" class="form-control form-control-sm" value="{{ request('to_date') }}">
+                </div>
+                <div class="col-12 col-md-2">
                     <label class="form-label small text-muted mb-1">Trạng thái phiếu</label>
                     <select name="trang_thai" class="form-select form-select-sm">
-                        <option value="">Tất cả trạng thái</option>
+                        <option value="">Tất cả</option>
                         <option value="cho_nhap_kho" {{ request('trang_thai') == 'cho_nhap_kho' ? 'selected' : '' }}>Chờ nhập kho</option>
-                        <option value="da_nhap_kho" {{ request('trang_thai') == 'da_nhap_kho' ? 'selected' : '' }}>Đã nhập kho (Thành công)</option>
-                        <option value="doi_hang_ve" {{ request('trang_thai') == 'doi_hang_ve' ? 'selected' : '' }}>Đợi hàng về kho</option>
+                        <option value="da_nhap_kho" {{ request('trang_thai') == 'da_nhap_kho' ? 'selected' : '' }}>Thành công</option>
+                        <option value="doi_hang_ve" {{ request('trang_thai') == 'doi_hang_ve' ? 'selected' : '' }}>Đợi hàng về</option>
                         <option value="da_huy" {{ request('trang_thai') == 'da_huy' ? 'selected' : '' }}>Đã hủy</option>
                     </select>
                 </div>
-                <div class="col-12 col-md-3 d-flex gap-2">
+                <div class="col-12 col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
-                        <i class="bi bi-search me-1"></i> Tìm phiếu
+                        <i class="bi bi-funnel me-1"></i> Lọc
                     </button>
-                    @if(request()->anyFilled(['search', 'trang_thai', 'search_ncc']))
-                        <a href="{{ route('imports.index') }}" class="btn btn-light btn-sm border">
-                            <i class="bi bi-x-circle me-1"></i> Xóa lọc
+                    @if(request()->anyFilled(['search', 'trang_thai', 'search_ncc', 'from_date', 'to_date']))
+                        <a href="{{ route('imports.index') }}" class="btn btn-light btn-sm border" title="Xóa lọc">
+                            <i class="bi bi-arrow-counterclockwise"></i>
                         </a>
                     @endif
                 </div>

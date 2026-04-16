@@ -67,7 +67,7 @@
                     <span class="badge bg-primary rounded-pill">Tổng: {{ $tonKho->total() }}</span>
                 </div>
                 <div>
-                   <span class="badge bg-danger me-1">Đã hết hạn / &lt; 3 tháng</span>
+                   <span class="badge bg-danger me-1">Gần hết hạn / &lt; 3 tháng</span>
                    <span class="badge bg-warning text-dark me-1">Sắp hết hạn (&lt; 6 tháng)</span>
                    <span class="badge bg-success">An toàn</span>
                 </div>
@@ -83,7 +83,7 @@
                                 <th>Khu Vực</th>
                                 <th>Ngày Nhập</th>
                                 <th>Hạn Sử Dụng</th>
-                                <th>Số Lượng Tồn</th>
+                                <th>Tổng Số Lượng Tồn</th>
                                 <th>Trạng Thái Lô</th>
                             </tr>
                         </thead>
@@ -112,13 +112,16 @@
                                     <td><span class="badge bg-light text-dark border border-secondary font-monospace">{{ $ton->so_lo }}</span></td>
                                     <td>
                                         @php
-                                            $khuVucs = $ton->chiTietKhuVuc
+                                            $khuVucs = \App\Models\TonKhoKhuVuc::with('khuVuc')
+                                                ->where('ma_thuoc', $ton->ma_thuoc)
                                                 ->where('ma_phieu_nhap', $ton->ma_phieu_nhap)
-                                                ->where('so_lo', $ton->so_lo);
+                                                ->where('so_lo', $ton->so_lo)
+                                                ->get();
                                         @endphp
                                         @if($khuVucs->count() > 0)
                                             @foreach($khuVucs as $kv)
-                                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle mb-1"><i class="bi bi-geo-alt me-1"></i>{{ $kv->khuVuc->ten_khu_vuc ?? $kv->ma_khu_vuc }}</span><br>
+                                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle mb-1"><i class="bi bi-geo-alt me-1"></i>{{ $kv->khuVuc->ten_khu_vuc ?? $kv->ma_khu_vuc }}: {{ number_format($kv->so_luong) }}</span>
+                                                <br>
                                             @endforeach
                                         @else
                                             <span class="text-muted small fst-italic">Chưa phân khu</span>
@@ -131,7 +134,7 @@
                                             <br><small class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>(Đã quá hạn)</small>
                                         @endif
                                     </td>
-                                    <td class="fw-bold px-3">{{ number_format($ton->so_luong_ton) }}</td>
+                                    <td class="fw-bold px-3 text-center">{{ number_format($ton->so_luong_ton) }}</td>
                                     <td>
                                         @if($ton->trang_thai_lo === 'dang_ban')
                                             <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">Đang bán</span>

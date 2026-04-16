@@ -60,6 +60,15 @@ class TonKho extends Model
         return $this->hasMany(TonKhoKhuVuc::class, 'ma_thuoc', 'ma_thuoc');
     }
 
+    public function getSlCoTheBanAttribute()
+    {
+        return TonKhoKhuVuc::where('ma_thuoc', $this->ma_thuoc)
+            ->where('ma_phieu_nhap', $this->ma_phieu_nhap)
+            ->where('so_lo', $this->so_lo)
+            ->where('ma_khu_vuc', 'KV03_THANH_PHAM')
+            ->value('so_luong') ?? 0;
+    }
+
     /**
      * Chỉ lấy các lô đang được phép bán
      */

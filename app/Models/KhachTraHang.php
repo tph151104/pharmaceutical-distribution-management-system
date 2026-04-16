@@ -56,6 +56,6 @@ class KhachTraHang extends Model
 
     public function nguoiDung()
     {
-        return $this->belongsTo(NguoiDung::class, 'nguoi_duyet', 'ma_nd');
+        return $this->belongsTo(NguoiDung::class, 'nguoi_duyet', 'ma_nguoi_dung');
     }
 }

@@ -63,7 +63,7 @@
                             @endif
                             <div class="placeholder-icon">
                                 @if($thuoc->image1)
-                                    <img src="{{ asset('storage/' . $thuoc->image1) }}" alt="{{ $thuoc->ten_thuoc }}" class="img-fluid" style="max-height:120px; object-fit:contain;">
+                                    <img src="{{ asset($thuoc->image1) }}" alt="{{ $thuoc->ten_thuoc }}" class="img-fluid" style="object-fit:contain;">
                                 @else
                                     <i class="bi bi-capsule"></i>
                                 @endif

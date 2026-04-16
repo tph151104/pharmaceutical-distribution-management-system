@@ -25,7 +25,7 @@
         <tr>
             <td style="text-align: center;">{{ $log->ma_phieu_chuyen }}</td>
             <td style="text-align: center;">{{ $log->ngay_chuyen ? \Carbon\Carbon::parse($log->ngay_chuyen)->format('d/m/Y H:i:s') : 'N/A' }}</td>
-            <td>{{ $log->nguoiThucHien->ho_ten ?? $log->nguoi_thuc_hien }}</td>
+            <td>{{ $log->nguoiThucHien->ho_ten_nd ?? $log->nguoi_thuc_hien }}</td>
             <td style="text-align: center;">{{ $log->tuKhuVucKho->ten_khu_vuc ?? 'N/A' }}</td>
             <td style="text-align: center;">{{ $log->denKhuVucKho->ten_khu_vuc ?? 'N/A' }}</td>
             <td style="text-align: center;">{{ $log->ma_thuoc }}</td>
