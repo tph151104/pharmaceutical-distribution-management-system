@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('ma_phieu_xuat', 50)->nullable();
             $table->decimal('so_tien_tt', 15, 2);
             $table->date('ngay_thanh_toan');
-            $table->string('giay_phep_tt_image', 255)->nullable();
+            $table->string('minh_chung_tt_image', 255)->nullable();
             $table->text('ghi_chu')->nullable();
             $table->timestamps();
 

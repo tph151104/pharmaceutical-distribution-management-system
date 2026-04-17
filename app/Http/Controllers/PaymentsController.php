@@ -122,7 +122,7 @@ class PaymentsController extends Controller
                 'trang_thai_tt'    => $conNoMoi <= 0.01 ? 'da_du' : 'con_no',
                 'phuong_thuc_tt'   => $request->phuong_thuc_tt,
                 'ngay_thanh_toan'  => now(),
-                'giay_phep_tt_image' => $imagePath,
+                'minh_chung_tt_image' => $imagePath,
                 'ghi_chu'          => $request->ghi_chu,
             ]);
 

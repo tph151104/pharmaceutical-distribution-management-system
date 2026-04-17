@@ -22,18 +22,44 @@ class InventoryTransferController extends Controller
 
         $query = TonKhoKhuVuc::with(['thuoc', 'khuVuc', 'phieuNhap'])->where('so_luong', '>', 0);
 
-        if ($request->has('search') && $request->search != '') {
+        // 1. Tìm kiếm tổng quát (Tên thuốc / Số lô / Mã phiếu nhập)
+        if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('thuoc', function($q) use ($search) {
-                $q->where('ten_thuoc', 'like', '%' . $search . '%');
-            })->orWhere('so_lo', 'like', '%' . $search . '%');
+            $query->where(function($q) use ($search) {
+                $q->whereHas('thuoc', function($inner) use ($search) {
+                    $inner->where('ten_thuoc', 'like', '%' . $search . '%');
+                })
+                ->orWhere('so_lo', 'like', '%' . $search . '%')
+                ->orWhere('ma_phieu_nhap', 'like', '%' . $search . '%');
+            });
         }
 
-        if ($request->has('khu_vuc') && $request->khu_vuc != '') {
+        // 2. Lọc theo mã phiếu nhập riêng biệt
+        if ($request->filled('ma_phieu_nhap')) {
+            $query->where('ma_phieu_nhap', 'like', '%' . $request->ma_phieu_nhap . '%');
+        }
+
+        // 3. Lọc theo khu vực kho
+        if ($request->filled('khu_vuc')) {
             $query->where('ma_khu_vuc', $request->khu_vuc);
         }
 
-        $transfers = $query->paginate(20);
+        // 4. Lọc theo khoảng ngày nhập (Từ ngày - Đến ngày)
+        if ($request->filled('from_date')) {
+            $query->whereHas('phieuNhap', function($q) use ($request) {
+                $q->whereDate('ngay_nhap', '>=', $request->from_date);
+            });
+        }
+        if ($request->filled('to_date')) {
+            $query->whereHas('phieuNhap', function($q) use ($request) {
+                $q->whereDate('ngay_nhap', '<=', $request->to_date);
+            });
+        }
+
+        // 5. Sắp xếp: Ưu tiên theo khu vực KV01 -> KV05
+        $transfers = $query->orderBy('ma_khu_vuc', 'asc')
+                           ->orderBy('created_at', 'desc')
+                           ->paginate(20);
 
         return view('admin.inventory.transfers.index', compact('transfers', 'khuVucs'));
     }
@@ -89,7 +115,7 @@ class InventoryTransferController extends Controller
                 'tu_khu_vuc' => $sourceRecord->ma_khu_vuc,
                 'den_khu_vuc' => $request->den_khu_vuc,
                 'so_luong_chuyen' => $request->so_luong_chuyen,
-                'nguoi_thuc_hien' => 'USR001', // TODO: Lấy User hiện tại
+                'nguoi_thuc_hien' => auth()->id(),
                 'ngay_chuyen' => Carbon::now(),
                 'ly_do_chuyen' => $request->ly_do ?? 'Nhân viên thực hiện luân chuyển',
             ]);

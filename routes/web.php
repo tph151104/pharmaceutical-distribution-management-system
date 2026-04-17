@@ -78,7 +78,7 @@ Route::middleware('auth:admin')->group(function () {
             Route::get('/{id}/edit', [WarehouseReceiptController::class, 'edit'])->name('edit');
             Route::put('/{id}', [WarehouseReceiptController::class, 'update'])->name('update');
             Route::get('/{id}/inspect', [WarehouseReceiptController::class, 'show'])->name('inspect');
-            Route::post('/{id}/inspect', [WarehouseReceiptController::class, 'saveDraft'])->name('saveDraft');
+            Route::post('/{id}/inspect', [WarehouseReceiptController::class, 'confirm'])->name('confirm');
             Route::post('/{id}/arrived', [WarehouseReceiptController::class, 'markArrived'])->name('markArrived');
             Route::delete('/{id}', [WarehouseReceiptController::class, 'destroy'])->name('destroy');
             Route::get('/advanced-search', [WarehouseReceiptController::class, 'advancedSearch'])->name('advancedSearch');

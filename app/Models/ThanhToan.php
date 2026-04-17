@@ -23,7 +23,7 @@ class ThanhToan extends Model
         'trang_thai_tt',
         'phuong_thuc_tt',
         'ngay_thanh_toan',
-        'giay_phep_tt_image',
+        'minh_chung_tt_image',
         'ghi_chu',
     ];
 

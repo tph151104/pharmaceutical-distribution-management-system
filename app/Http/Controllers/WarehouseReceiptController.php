@@ -170,7 +170,7 @@ class WarehouseReceiptController extends Controller
             $phieuNhap = PhieuNhap::create([
                 'ma_phieu_nhap' => $maPN,
                 'ma_ncc' => $request->ma_ncc,
-                'nguoi_nhap' => 'USR001', // Tạm fix cứng vì chưa có module Auth
+                'nguoi_nhap' => auth()->id(), 
                 'ngay_nhap' => $request->ngay_nhap,
                 'tong_tien' => $tongTien,
                 'trang_thai_tt' => 'chua_tt',
@@ -332,6 +332,7 @@ class WarehouseReceiptController extends Controller
             ]);
 
             // Xóa các chi tiết cũ và tồn kho cũ
+            TonKhoKhuVuc::where('ma_phieu_nhap', $id)->delete();
             ChiTietPhieuNhap::where('ma_phieu_nhap', $id)->delete();
             TonKho::where('ma_phieu_nhap', $id)->delete();
 
@@ -398,7 +399,7 @@ class WarehouseReceiptController extends Controller
      */
     public function show($id)
     {
-        $phieuNhap = PhieuNhap::with(['nhaCungCap', 'chiTiet.thuoc'])->findOrFail($id);
+        $phieuNhap = PhieuNhap::with(['nhaCungCap', 'chiTiet.thuoc', 'nguoiLap'])->findOrFail($id);
         
         // Lấy danh sách tồn kho nháp liên quan để show ảnh (nếu có)
         $tonKhos = TonKho::where('ma_phieu_nhap', $id)->get()->keyBy(function($item) {
@@ -411,9 +412,12 @@ class WarehouseReceiptController extends Controller
     /**
      * Lưu tạm công tác kiểm hàng (Nhân viên kho nhập số thực tế và tải ảnh)
      */
-    public function saveDraft(Request $request, $id)
+    /**
+     * Xác nhận hoàn tất nhập kho
+     */
+    public function confirm(Request $request, $id)
     {
-        $phieuNhap = PhieuNhap::findOrFail($id);
+        $phieuNhap = PhieuNhap::with('chiTiet')->findOrFail($id);
         
         DB::beginTransaction();
         try {
@@ -428,7 +432,7 @@ class WarehouseReceiptController extends Controller
                     throw new \Exception("Số lượng nhập thực tế của lô {$item['original_so_lo']} ({$item['so_luong_thuc_te']}) không được vượt quá số lượng chứng từ ({$expectedQuantity}).");
                 }
 
-                // Dùng original_so_lo làm key để truy vấn vì có thể người dùng đã đổi so_lo mới
+                // Truy vấn bản ghi cũ
                 $chiTiet = ChiTietPhieuNhap::where('ma_phieu_nhap', $id)
                                            ->where('ma_thuoc', $item['ma_thuoc'])
                                            ->where('so_lo', $item['original_so_lo'])
@@ -438,67 +442,124 @@ class WarehouseReceiptController extends Controller
                                 ->where('so_lo', $item['original_so_lo'])
                                 ->first();
 
+                if (!$tonKho && $chiTiet) {
+                    $tonKho = TonKho::create([
+                        'ma_thuoc' => $chiTiet->ma_thuoc,
+                        'ma_phieu_nhap' => $chiTiet->ma_phieu_nhap,
+                        'so_lo' => $chiTiet->so_lo,
+                        'ngay_san_xuat' => $chiTiet->ngay_san_xuat,
+                        'ngay_nhap_lo' => Carbon::now(),
+                        'han_su_dung' => $chiTiet->han_su_dung,
+                        'so_luong_ton' => 0,
+                        'so_luong_da_xuat' => 0,
+                        'trang_thai_lo' => 'cho_duyet',
+                        'image1' => '', 'image2' => '', 'image3' => '',
+                    ]);
+                }
+
                 if ($chiTiet && $tonKho) {
                     $newSoLo = $item['so_lo'];
-                    if ($newSoLo != $item['original_so_lo']) {
+                    $oldSoLo = $item['original_so_lo'];
+                    
+                    // Nếu đổi số lô, phải dọn sạch dữ liệu cũ của lô cũ
+                    if ($newSoLo != $oldSoLo) {
                         $chiTietData = $chiTiet->toArray();
                         $tonKhoData = $tonKho->toArray();
                         
+                        TonKhoKhuVuc::where('ma_phieu_nhap', $id)
+                                    ->where('ma_thuoc', $item['ma_thuoc'])
+                                    ->where('so_lo', $oldSoLo)
+                                    ->delete();
                         $chiTiet->delete();
                         $tonKho->delete();
 
                         $chiTietData['so_lo'] = $newSoLo;
                         $chiTietData['so_luong_thuc_te'] = $item['so_luong_thuc_te'];
                         $chiTietData['han_su_dung'] = $item['han_su_dung'];
-                        ChiTietPhieuNhap::create($chiTietData);
+                        $chiTiet = ChiTietPhieuNhap::create($chiTietData);
 
                         $tonKhoData['so_lo'] = $newSoLo;
                         $tonKhoData['han_su_dung'] = $item['han_su_dung'];
-                        
-                        TonKho::create($tonKhoData);
-                        $tonKho = TonKho::where('ma_phieu_nhap', $id)
-                                        ->where('ma_thuoc', $item['ma_thuoc'])
-                                        ->where('so_lo', $newSoLo)->first();
+                        // Khi tạo mới do đổi lô, reset số lượng thực nhập về 0 để tính toán delta bên dưới
+                        $tonKhoData['so_luong_ton'] = 0;
+                        $tonKhoData['so_luong_da_xuat'] = 0;
+                        $tonKho = TonKho::create($tonKhoData);
                     } else {
-                        // Update thông thường
-                        ChiTietPhieuNhap::where('ma_phieu_nhap', $id)
-                                        ->where('ma_thuoc', $item['ma_thuoc'])
-                                        ->where('so_lo', $item['original_so_lo'])
-                                        ->update([
-                                            'so_luong_thuc_te' => $item['so_luong_thuc_te'],
-                                            'han_su_dung' => $item['han_su_dung']
-                                        ]);
-                                        
-                        $tonKho->update([
-                            'han_su_dung' => $item['han_su_dung']
-                        ]);
+                        // Cập nhật HSD
+                        $chiTiet->update(['han_su_dung' => $item['han_su_dung']]);
+                        $tonKho->update(['han_su_dung' => $item['han_su_dung']]);
                     }
 
-                    // Xử lý upload ảnh sự cố lưu vào tồn kho
-                    $thuocId = $item['ma_thuoc'];
-                    $originalSoLo = $item['original_so_lo'];
-                    for ($i = 1; $i <= 3; $i++) {
-                        $fileKey = 'image' . $i . '_' . $thuocId . '_' . $originalSoLo;
-                        if ($request->hasFile($fileKey)) {
-                            $image = $request->file($fileKey);
-                            $imageName = time() . '_' . $thuocId . '_' . $i . '.' . $image->extension();
-                            $image->move(public_path('uploads/batches'), $imageName);
-                            // Cập nhật lại vào TonKho (do mới tạo mới hoặc update tồn tại ở vòng if trên)
-                            $tonKho->{'image'.$i} = 'uploads/batches/' . $imageName;
+                    // --- LOGIC TÍNH TOÁN NHẬP KHO (Không dồn số lượng) ---
+                    // tongDaVaoKho: Số lượng thực tế đã ghi nhận vào TonKho trước đó
+                    $tongDaVaoKho = $tonKho->so_luong_ton + $tonKho->so_luong_da_xuat;
+                    $soLuongMoiKhaiBao = (int)$item['so_luong_thuc_te'];
+                    
+                    // hangMoiVe: Phần chênh lệch tăng thêm so với lần xác nhận trước
+                    $hangMoiVe = $soLuongMoiKhaiBao - $tongDaVaoKho;
+
+                    if ($hangMoiVe > 0) {
+                        $tonTruoc = $tonKho->so_luong_ton;
+                        $tonKho->so_luong_ton += $hangMoiVe;
+                        $tonKho->trang_thai_lo = 'cho_duyet';
+                        $tonKho->ngay_nhap_lo = Carbon::now();
+                        
+                        // Xử lý upload ảnh sự cố (nếu có)
+                        for ($i = 1; $i <= 3; $i++) {
+                            $fileKey = 'image' . $i . '_' . $item['ma_thuoc'] . '_' . $oldSoLo;
+                            if ($request->hasFile($fileKey)) {
+                                $image = $request->file($fileKey);
+                                $imageName = time() . '_' . $item['ma_thuoc'] . '_' . $i . '.' . $image->extension();
+                                $image->move(public_path('uploads/batches'), $imageName);
+                                $tonKho->{'image'.$i} = 'uploads/batches/' . $imageName;
+                            }
                         }
+                        $tonKho->save();
+
+                        // Cập nhật số lượng thực tế vào chi tiết phiếu
+                        $chiTiet->update(['so_luong_thuc_te' => $soLuongMoiKhaiBao]);
+
+                        // Cập nhật TonKhoKhuVuc
+                        $targetArea = str_starts_with($id, 'PN_TRA_') ? 'KV04_CHO_XU_LY' : 'KV01_TIEP_NHAN';
+                        $khuVuc = TonKhoKhuVuc::firstOrNew([
+                            'ma_thuoc' => $item['ma_thuoc'],
+                            'ma_phieu_nhap' => $id,
+                            'so_lo' => $newSoLo,
+                            'ma_khu_vuc' => $targetArea
+                        ]);
+                        $khuVuc->so_luong = ($khuVuc->so_luong ?? 0) + $hangMoiVe;
+                        $khuVuc->save();
+
+                        // Ghi log dịch chuyển
+                        LichSuDichChuyenKho::create([
+                            'ma_phieu_chuyen' => 'CHUP-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
+                            'ma_thuoc' => $item['ma_thuoc'],
+                            'ma_phieu_nhap' => $id,
+                            'so_lo' => $newSoLo,
+                            'tu_khu_vuc' => null,
+                            'den_khu_vuc' => $targetArea,
+                            'so_luong_chuyen' => $hangMoiVe,
+                            'nguoi_thuc_hien' => auth()->id() ?? 'USR001',
+                            'ngay_chuyen' => Carbon::now(),
+                            'ly_do_chuyen' => "Nhập kho tự động sau khi xác nhận kiểm đếm (Lượng tăng thêm: {$hangMoiVe})",
+                        ]);
+
+                        InventoryLogService::logMovement(
+                            $item['ma_thuoc'], $newSoLo, auth()->id() ?? 'USR001', $id,
+                            'nhap', 'phieu_nhap', $hangMoiVe, $tonTruoc, $tonKho->so_luong_ton,
+                            $chiTiet->don_gia_nhap, 'Xác nhận hàng về kho (tổng khai báo: ' . $soLuongMoiKhaiBao . ')'
+                        );
                     }
-                    $tonKho->save();
                 }
             }
 
-            // Xử lý upload tài liệu ở phiếu nhập chung
+            // Xử lý upload tài liệu phiếu nhập
             if ($request->hasFile('giay_to_lien_quan')) {
                 $file1 = $request->file('giay_to_lien_quan');
                 $name1 = time() . '_giayto.' . $file1->extension();
                 $file1->move(public_path('uploads/batches'), $name1);
                 $phieuNhap->giay_to_lien_quan = 'uploads/batches/' . $name1;
             }
-
             if ($request->hasFile('tieu_lieu_lien_quan')) {
                 $file2 = $request->file('tieu_lieu_lien_quan');
                 $name2 = time() . '_tieulieu.' . $file2->extension();
@@ -506,128 +567,26 @@ class WarehouseReceiptController extends Controller
                 $phieuNhap->tieu_lieu_lien_quan = 'uploads/batches/' . $name2;
             }
 
-            // Đổi trạng thái từ "Đợi hàng về" -> "Chờ nhập kho" (Đã nhận hàng, đang kiểm/đã lưu nháp kiểm)
-            if ($phieuNhap->trang_thai_phieu_nhap == 'doi_hang_ve') {
-                 $phieuNhap->trang_thai_phieu_nhap = 'cho_nhap_kho';
-            }
+            // Kiểm tra trạng thái cuối cùng của phiếu
+            $isMissing = ChiTietPhieuNhap::where('ma_phieu_nhap', $id)
+                                         ->whereRaw('so_luong_thuc_te < so_luong_nhap')
+                                         ->exists();
 
-            $phieuNhap->save();
-
-            DB::commit();
-            
-            if ($request->action == 'confirm') {
-                return $this->processConfirm($id);
-            }
-
-            return back()->with('success', 'Đã lưu tạm thông tin kiểm hàng.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withInput()->withErrors(['error' => 'Lỗi khi lưu: ' . $e->getMessage()]);
-        }
-    }
-
-    /**
-     * Xác nhận hoàn tất nhập kho
-     */
-    private function processConfirm($id)
-    {
-        $phieuNhap = PhieuNhap::with('chiTiet')->findOrFail($id);
-        
-        $isMissing = false;
-        
-        DB::beginTransaction();
-        try {
-            foreach ($phieuNhap->chiTiet as $chiTiet) {
-                // Kiểm tra xem tổng số lượng thực tế (tích luỹ) < chứng từ không
-                if ($chiTiet->so_luong_thuc_te < $chiTiet->so_luong_nhap) {
-                    $isMissing = true;
-                }
-
-                $tonKho = TonKho::where('ma_phieu_nhap', $id)
-                                ->where('ma_thuoc', $chiTiet->ma_thuoc)
-                                ->where('so_lo', $chiTiet->so_lo)
-                                ->first();
-
-                if ($tonKho) {
-                    // Tổng số lượng đã từng được cộng vào kho cho lô này (kể cả phần đã bán)
-                    $tongDaVaoKho = $tonKho->so_luong_ton + $tonKho->so_luong_da_xuat;
-                    
-                    // Lượng hàng mới về đợt này
-                    $hangMoiVe = $chiTiet->so_luong_thuc_te - $tongDaVaoKho;
-
-                    if ($hangMoiVe > 0) {
-                        $tonTruoc = $tonKho->so_luong_ton;
-                        $tonKho->so_luong_ton += $hangMoiVe;
-                        $tonKho->trang_thai_lo = 'cho_duyet'; // Đổi từ dang_ban thành cho_duyet vì phải qua Tiếp nhận -> Biệt trữ -> Thành phẩm
-                        $tonKho->ngay_nhap_lo = Carbon::now();
-                        $tonKho->save();
-
-                        $targetArea = str_starts_with($id, 'PN_TRA_') ? 'KV04_CHO_XU_LY' : 'KV01_TIEP_NHAN';
-                        
-                        // Thêm số lượng vào Khu vực tương ứng
-                        $khuVuc = TonKhoKhuVuc::firstOrNew([
-                            'ma_thuoc' => $chiTiet->ma_thuoc,
-                            'ma_phieu_nhap' => $id,
-                            'so_lo' => $chiTiet->so_lo,
-                            'ma_khu_vuc' => $targetArea
-                        ]);
-                        $khuVuc->so_luong += $hangMoiVe;
-                        $khuVuc->save();
-
-                        // Ghi log dịch chuyển kho (Nhập mới)
-                        $areaLabel = $targetArea === 'KV04_CHO_XU_LY' ? 'Chờ Xử Lý' : 'Tiếp Nhận';
-                        LichSuDichChuyenKho::create([
-                            'ma_phieu_chuyen' => 'CHUP-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
-                            'ma_thuoc' => $chiTiet->ma_thuoc,
-                            'ma_phieu_nhap' => $id,
-                            'so_lo' => $chiTiet->so_lo,
-                            'tu_khu_vuc' => null,
-                            'den_khu_vuc' => $targetArea,
-                            'so_luong_chuyen' => $hangMoiVe,
-                            'nguoi_thuc_hien' => 'USR001', // Tạm fix cứng
-                            'ngay_chuyen' => Carbon::now(),
-                            'ly_do_chuyen' => "Tự động nhập vào kho {$areaLabel} sau khi xác nhận kiểm đếm",
-                        ]);
-
-                        // Ghi log nhập kho tổng (cũ)
-                        InventoryLogService::logMovement(
-                            $chiTiet->ma_thuoc,
-                            $chiTiet->so_lo,
-                            'USR001', // Tạm fix cứng vì chưa có Auth admin form
-                            $id, // Mã phiếu nhập
-                            'nhap',
-                            'phieu_nhap',
-                            $hangMoiVe,
-                            $tonTruoc,
-                            $tonKho->so_luong_ton,
-                            $chiTiet->don_gia_nhap,
-                            'Xác nhận hàng về kho từ phiếu nhập'
-                        );
-                    }
-                }
-            }
-
-            // Chuyển trạng thái phiếu nhập
             if ($isMissing) {
-                // Lùi trạng thái về đợi hàng về để chờ đợt giao tiếp theo
                 $phieuNhap->trang_thai_phieu_nhap = 'doi_hang_ve';
+                $msg = 'Đã xác nhận lô hàng. Số lượng thực tế chưa đủ, phiếu được chuyển về "Đợi hàng về".';
             } else {
                 $phieuNhap->trang_thai_phieu_nhap = 'da_nhap_kho';
+                $msg = 'Đã hoàn tất quy trình nhập kho toàn bộ chứng từ!';
             }
             $phieuNhap->save();
 
             DB::commit();
-
-            $msg = $isMissing 
-                ? 'Đã xác nhận lô hàng. Tuy nhiên, số lượng thực tế không đủ so với chứng từ, phiếu nhập được chuyển về "Đợi hàng về" để chờ đợt giao tiếp theo.'
-                : 'Đã hoàn tất quy trình nhập kho toàn bộ chứng từ!';
-
             return redirect()->route('imports.index')->with('success', $msg);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => 'Lỗi khi xác nhận kho: ' . $e->getMessage()]);
+            return back()->withInput()->withErrors(['error' => 'Lỗi khi nhập kho: ' . $e->getMessage()]);
         }
     }
 
@@ -648,6 +607,8 @@ class WarehouseReceiptController extends Controller
 
         DB::beginTransaction();
         try {
+            // Xoá tồn kho khu vực nháp (do db ko cascade)
+            TonKhoKhuVuc::where('ma_phieu_nhap', $id)->delete();
             // Xoá tồn kho nháp
             TonKho::where('ma_phieu_nhap', $id)->delete();
             // Xoá chi tiết

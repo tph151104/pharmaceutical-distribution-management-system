@@ -34,14 +34,19 @@
 
     <div class="card shadow-sm border-0 mb-4">
         <!-- Filter Bar -->
-        <div class="card-header bg-light py-3">
-            <form action="{{ route('transfers.index') }}" method="GET" class="row g-3 align-items-end">
+        <div class="card-header bg-light py-3 border-bottom-0">
+            <form action="{{ route('transfers.index') }}" method="GET" class="row g-3">
+                <!-- Row 1: Search, PN, Area -->
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold text-secondary small mb-1">Tìm Số lô / Tên thuốc</label>
-                    <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Từ khoá...">
+                    <label class="form-label fw-semibold text-secondary small mb-1"><i class="bi bi-search me-1"></i>Tìm Số lô / Tên thuốc</label>
+                    <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Nhập từ khóa hoặc số lô...">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-semibold text-secondary small mb-1">Khu vực kho</label>
+                    <label class="form-label fw-semibold text-secondary small mb-1"><i class="bi bi-hash me-1"></i>Mã phiếu nhập</label>
+                    <input type="text" name="ma_phieu_nhap" value="{{ request('ma_phieu_nhap') }}" class="form-control" placeholder="Ví dụ: PN_2024...">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold text-secondary small mb-1"><i class="bi bi-geo-alt me-1"></i>Khu vực kho</label>
                     <select name="khu_vuc" class="form-select">
                         <option value="">-- Tất cả khu vực --</option>
                         @foreach($khuVucs as $kv)
@@ -49,13 +54,23 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4 d-flex align-items-center gap-2">
-                    <button type="submit" class="btn btn-primary d-flex align-items-center">
+
+                <!-- Row 2: Date Range and Buttons -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-secondary small mb-1">Từ ngày (Ngày nhập)</label>
+                    <input type="date" name="from_date" value="{{ request('from_date') }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-secondary small mb-1">Đến ngày</label>
+                    <input type="date" name="to_date" value="{{ request('to_date') }}" class="form-control">
+                </div>
+                <div class="col-md-6 d-flex align-items-end justify-content-end gap-2">
+                    <a href="{{ route('transfers.index') }}" class="btn btn-outline-secondary px-4">
+                        Xóa lọc
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4 d-flex align-items-center">
                         <i class="bi bi-funnel me-1"></i> Lọc kết quả
                     </button>
-                    @if(request()->has('search') || request()->has('khu_vuc'))
-                    <a href="{{ route('transfers.index') }}" class="btn btn-outline-secondary">Xóa lọc</a>
-                    @endif
                 </div>
             </form>
         </div>

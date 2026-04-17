@@ -46,4 +46,12 @@ class PhieuNhap extends Model
     {
         return $this->hasMany(ThanhToan::class, 'ma_phieu_nhap', 'ma_phieu_nhap');
     }
+
+    /**
+     * Người lập phiếu nhập
+     */
+    public function nguoiLap()
+    {
+        return $this->belongsTo(NguoiDung::class, 'nguoi_nhap', 'ma_nguoi_dung');
+    }
 }

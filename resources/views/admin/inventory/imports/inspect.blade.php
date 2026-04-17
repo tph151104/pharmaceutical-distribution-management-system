@@ -46,7 +46,7 @@
                         <div class="col-4 text-muted">Nhà cung cấp:</div>
                         <div class="col-8 fw-semibold">{{ $phieuNhap->nhaCungCap->ten_ncc ?? 'N/A' }}</div>
                         <div class="col-4 text-muted">Tên người lập phiếu nhập: </div>
-                        <div class="col-8 fw-semibold">{{ $phieuNhap->nguoiLap->ten_nguoi_dung ?? 'N/A' }}</div>
+                        <div class="col-8 fw-semibold">{{ $phieuNhap->nguoiLap->ho_ten_nd ?? 'N/A' }}</div>
                         <div class="col-4 text-muted">Ngày ghi trên vé:</div>
                         <div class="col-8">{{ $phieuNhap->ngay_nhap->format('d/m/Y') }}</div>
                         <div class="col-4 text-muted">Trạng thái:</div>
@@ -81,20 +81,16 @@
         </div>
     </div>
 
-    <!-- Cho phép thao tác lưu tạm hoặc confirm nếu chưa duyệt thành công -->
+    <!-- Cho phép thao tác confirm nếu chưa duyệt thành công -->
     @if(in_array($phieuNhap->trang_thai_phieu_nhap, ['cho_nhap_kho', 'doi_hang_ve']))
-        <form action="{{ route('imports.saveDraft', $phieuNhap->ma_phieu_nhap) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('imports.confirm', $phieuNhap->ma_phieu_nhap) }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-bottom-0 py-3 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 text-primary"><i class="bi bi-box-seam me-1"></i> Đối chiếu chi tiết</h6>
                     <div class="d-flex gap-2">
-                        <!-- Nút lưu nháp -->
-                        <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-pencil-square me-1"></i> Lưu vết kiểm hàng
-                        </button>
                         <!-- Nút xác nhận hoàn tất -->
-                        <button type="submit" name="action" value="confirm" class="btn btn-sm btn-success" onclick="return confirm('Bạn có chắc chắn muốn xác nhận nhập kho? Số lượng thực tế sẽ sinh ra lô mới trong Tồn Kho.');">
+                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Bạn có chắc chắn muốn xác nhận nhập kho? Số lượng thực tế sẽ ghi nhận vào Tồn Kho.');">
                             <i class="bi bi-check2-circle me-1"></i> Hoàn tất & Nhập kho
                         </button>
                     </div>
@@ -109,8 +105,8 @@
                                     <th>Số Lô (Nội bộ)</th>
                                     <th>SL Sản Xuất</th>
                                     <th>Ngày SX / SĐK</th>
-                                    <th>HSD (Thực tế)</th>
-                                    <th width="120">SL Thực tế</th>
+                                    <th>HSD</th>
+                                    <th width="120">SL đang có</th>
                                     <th width="250">Ghi nhận hình ảnh</th>
                                 </tr>
                             </thead>
