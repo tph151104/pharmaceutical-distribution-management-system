@@ -35,56 +35,78 @@
         </div>
     @endif
 
+    <!-- Cho phép thao tác confirm nếu chưa duyệt thành công -->
+    @if(in_array($phieuNhap->trang_thai_phieu_nhap, ['cho_nhap_kho', 'doi_hang_ve']))
+        <form action="{{ route('imports.confirm', $phieuNhap->ma_phieu_nhap) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+    @endif
+
     <div class="row g-3 mb-4">
-        <div class="col-12 col-md-8">
+        <div class="col-12 col-md-9">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <h6 class="text-primary mb-3"><i class="bi bi-file-earmark-text me-1"></i> Thông tin chứng từ</h6>
-                    <div class="row g-2 small">
-                        <div class="col-4 text-muted">Mã chứng từ:</div>
-                        <div class="col-8 fw-semibold">{{ $phieuNhap->ma_phieu_nhap }}</div>
-                        <div class="col-4 text-muted">Nhà cung cấp:</div>
-                        <div class="col-8 fw-semibold">{{ $phieuNhap->nhaCungCap->ten_ncc ?? 'N/A' }}</div>
-                        <div class="col-4 text-muted">Tên người lập phiếu nhập: </div>
-                        <div class="col-8 fw-semibold">{{ $phieuNhap->nguoiLap->ho_ten_nd ?? 'N/A' }}</div>
-                        <div class="col-4 text-muted">Ngày ghi trên vé:</div>
-                        <div class="col-8">{{ $phieuNhap->ngay_nhap->format('d/m/Y') }}</div>
-                        <div class="col-4 text-muted">Trạng thái:</div>
-                        <div class="col-8">
-                            @if($phieuNhap->trang_thai_phieu_nhap == 'cho_nhap_kho')
-                                <span class="badge bg-secondary">Chờ nhập kho</span>
-                            @elseif($phieuNhap->trang_thai_phieu_nhap == 'da_nhap_kho')
-                                <span class="badge bg-success">Thành công</span>
-                            @elseif($phieuNhap->trang_thai_phieu_nhap == 'doi_hang_ve')
-                                <span class="badge bg-warning">Đợi hàng về</span>
-                            @endif
+                    <div class="row">
+                        <div class="col-md-7 border-end">
+                            <h6 class="text-primary mb-3"><i class="bi bi-file-earmark-text me-1"></i> Thông tin chứng từ</h6>
+                            <div class="row g-2 small">
+                                <div class="col-5 text-muted">Mã chứng từ:</div>
+                                <div class="col-7 fw-semibold">{{ $phieuNhap->ma_phieu_nhap }}</div>
+                                <div class="col-5 text-muted">Nhà cung cấp:</div>
+                                <div class="col-7 fw-semibold">{{ $phieuNhap->nhaCungCap->ten_ncc ?? 'N/A' }}</div>
+                                <div class="col-5 text-muted">Người lập:</div>
+                                <div class="col-7 fw-semibold">{{ $phieuNhap->nguoiLap->ho_ten_nd ?? 'N/A' }}</div>
+                                <div class="col-5 text-muted">Ngày ghi trên vé:</div>
+                                <div class="col-7">{{ $phieuNhap->ngay_nhap->format('d/m/Y') }}</div>
+                                <div class="col-5 text-muted">Trạng thái:</div>
+                                <div class="col-7">
+                                    @if($phieuNhap->trang_thai_phieu_nhap == 'cho_nhap_kho')
+                                        <span class="badge bg-secondary">Chờ nhập kho</span>
+                                    @elseif($phieuNhap->trang_thai_phieu_nhap == 'da_nhap_kho')
+                                        <span class="badge bg-success">Thành công</span>
+                                    @elseif($phieuNhap->trang_thai_phieu_nhap == 'doi_hang_ve')
+                                        <span class="badge bg-warning">Đợi hàng về</span>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
-                        @if($phieuNhap->giay_to_lien_quan)
-                        <div class="col-4 text-muted mt-2">Giấy tờ LQ:</div>
-                        <div class="col-8 mt-2"><a href="{{ asset($phieuNhap->giay_to_lien_quan) }}" target="_blank" class="small"><i class="bi bi-file-earmark-pdf"></i> Xem tệp</a></div>
-                        @endif
-                        @if($phieuNhap->tieu_lieu_lien_quan)
-                        <div class="col-4 text-muted mt-2">Tài liệu LQ:</div>
-                        <div class="col-8 mt-2"><a href="{{ asset($phieuNhap->tieu_lieu_lien_quan) }}" target="_blank" class="small"><i class="bi bi-file-earmark-text"></i> Xem tệp</a></div>
-                        @endif
+                        <div class="col-md-5 ps-md-4">
+                            <h6 class="text-primary mb-3"><i class="bi bi-image me-1"></i> Hình ảnh tổng lô hàng</h6>
+                            <div class="text-center">
+                                @if($phieuNhap->image1)
+                                    <div class="mb-2">
+                                        <a href="{{ asset($phieuNhap->image1) }}" target="_blank">
+                                            <img src="{{ asset($phieuNhap->image1) }}" class="img-thumbnail" style="max-height: 120px; object-fit: contain;" alt="Ảnh tổng lô hàng">
+                                        </a>
+                                    </div>
+                                @endif
+                                @if(in_array($phieuNhap->trang_thai_phieu_nhap, ['cho_nhap_kho', 'doi_hang_ve']))
+                                    <div class="input-group input-group-sm">
+                                        <input type="file" name="phieu_nhap_image" class="form-control" accept="image/*">
+                                    </div>
+                                    <div class="small text-muted mt-1">Chụp ảnh toàn bộ lô hàng khi vừa nhập về</div>
+                                @elseif(!$phieuNhap->image1)
+                                    <div class="py-3 text-muted border rounded bg-light small">
+                                        <i class="bi bi-camera-off d-block fs-3 mb-1"></i>
+                                        Không có ảnh tổng lô
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-4">
-            <div class="card border-0 shadow-sm h-100 bg-light">
+        <div class="col-12 col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-primary bg-opacity-10">
                 <div class="card-body d-flex flex-column justify-content-center text-center">
-                    <div class="text-muted small text-uppercase mb-2">Tổng hàng trên giấy</div>
-                    <div class="h2 mb-0 text-primary">{{ number_format($phieuNhap->chiTiet->sum('so_luong_nhap')) }}</div>
+                    <div class="text-muted small text-uppercase mb-2 fw-bold">Tổng hàng trên giấy</div>
+                    <div class="h2 mb-0 text-primary fw-bold">{{ number_format($phieuNhap->chiTiet->sum('so_luong_nhap')) }}</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Cho phép thao tác confirm nếu chưa duyệt thành công -->
     @if(in_array($phieuNhap->trang_thai_phieu_nhap, ['cho_nhap_kho', 'doi_hang_ve']))
-        <form action="{{ route('imports.confirm', $phieuNhap->ma_phieu_nhap) }}" method="POST" enctype="multipart/form-data">
-            @csrf
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-bottom-0 py-3 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 text-primary"><i class="bi bi-box-seam me-1"></i> Đối chiếu chi tiết</h6>
@@ -104,16 +126,12 @@
                                     <th>Số lượng theo CT</th>
                                     <th>Số Lô (Nội bộ)</th>
                                     <th>SL Sản Xuất</th>
-                                    <th>Ngày SX / SĐK</th>
-                                    <th>HSD</th>
-                                    <th width="120">SL đang có</th>
-                                    <th width="250">Ghi nhận hình ảnh</th>
+                                    <th width="200">Ghi nhận hình ảnh</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($phieuNhap->chiTiet as $index => $item)
                                     @php
-                                        // Tìm dữ liệu tồn kho hiện tại để lấy ảnh
                                         $tonKey = $item->ma_thuoc . '_' . $item->so_lo;
                                         $tonModel = $tonKhos->get($tonKey);
                                     @endphp
@@ -151,14 +169,14 @@
                                                 value="{{ old('items.'.$index.'.so_luong_thuc_te', $item->so_luong_thuc_te ?? 0) }}" min="{{ $item->so_luong_thuc_te ?? 0 }}" max="{{ $item->so_luong_nhap }}" required>   
                                         </td>
                                         <td>
-                                            <!-- Chụp ảnh vấn đề phát sinh -->
-                                            <div class="d-flex gap-1 mb-1">
-                                                @if($tonModel && $tonModel->image1) <img src="{{ asset($tonModel->image1) }}" width="30" height="30" class="rounded object-fit-cover shadow-sm"> @endif
-                                                <input type="file" name="image1_{{ $item->ma_thuoc }}_{{ $item->so_lo }}" class="form-control form-control-sm" style="font-size: 10px;" accept="image/*">
-                                            </div>
-                                            <div class="d-flex gap-1 mb-1">
-                                                @if($tonModel && $tonModel->image2) <img src="{{ asset($tonModel->image2) }}" width="30" height="30" class="rounded object-fit-cover shadow-sm"> @endif
-                                                <input type="file" name="image2_{{ $item->ma_thuoc }}_{{ $item->so_lo }}" class="form-control form-control-sm" style="font-size: 10px;" accept="image/*">
+                                            <!-- Ảnh chi tiết lô hàng (lưu vào TonKho.image1) -->
+                                            <div>
+                                                <label class="form-label small text-muted mb-0"><i class="bi bi-camera me-1"></i>Ảnh chi tiết lô</label>
+                                                <div class="d-flex gap-1 align-items-center">
+                                                    @if($tonModel && $tonModel->image1) <img src="{{ asset($tonModel->image1) }}" width="44" height="44" class="rounded object-fit-cover shadow-sm border"> @endif
+                                                    <input type="file" name="image_lot_{{ $item->ma_thuoc }}_{{ $item->so_lo }}" class="form-control form-control-sm" style="font-size: 10px;" accept="image/*">
+                                                </div>
+                                                <div class="small text-muted" style="font-size: 9px;">Ảnh sản phẩm thực tế trong lô</div>
                                             </div>
                                         </td>
                                     </tr>
@@ -252,11 +270,13 @@
                                     </td>
                                     <td>
                                         <div class="d-flex gap-1 justify-content-center">
-                                            @if($tonModel && $tonModel->image1) <img src="{{ asset($tonModel->image1) }}" width="40" height="40" class="rounded object-fit-cover shadow-sm"> @endif
-                                            @if($tonModel && $tonModel->image2) <img src="{{ asset($tonModel->image2) }}" width="40" height="40" class="rounded object-fit-cover shadow-sm"> @endif
-                                            @if($tonModel && $tonModel->image3) <img src="{{ asset($tonModel->image3) }}" width="40" height="40" class="rounded object-fit-cover shadow-sm"> @endif
-                                            @if(!$tonModel || (!$tonModel->image1 && !$tonModel->image2 && !$tonModel->image3))
-                                                <span class="text-muted small">Không có</span>
+                                            @if($tonModel && $tonModel->image1)
+                                                <div class="text-center">
+                                                    <img src="{{ asset($tonModel->image1) }}" width="60" height="60" class="rounded object-fit-cover shadow-sm border">
+                                                    <div class="small text-muted" style="font-size: 9px;">Ảnh chi tiết</div>
+                                                </div>
+                                            @else
+                                                <span class="text-muted small">Không có ảnh chi tiết</span>
                                             @endif
                                         </div>
                                     </td>

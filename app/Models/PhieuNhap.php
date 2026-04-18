@@ -20,7 +20,6 @@ class PhieuNhap extends Model
         'trang_thai_tt',
         'trang_thai_phieu_nhap',
         'image1',
-        'image2',
         'giay_to_lien_quan',
         'tieu_lieu_lien_quan',
     ];

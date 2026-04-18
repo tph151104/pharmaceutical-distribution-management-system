@@ -118,8 +118,7 @@ class CustomerReturnsController extends Controller
                 'tong_tien' => $traHang->tong_tien_hoan_tra,
                 'trang_thai_tt' => 'chua_tt', 
                 'trang_thai_phieu_nhap' => 'doi_hang_ve', // Đợi hàng về, y như phiếu nhập thường
-                'image1' => '', 
-                'image2' => '',
+                'image1' => '',
                 'giay_to_lien_quan' => '',
                 'tieu_lieu_lien_quan' => "[MA_TRA:{$traHang->ma_tra_hang}] Khách hàng trả hàng đơn " . $traHang->ma_don_hang
             ]);
@@ -173,8 +172,6 @@ class CustomerReturnsController extends Controller
                         'so_luong_da_xuat' => 0,
                         'trang_thai_lo' => 'cho_duyet', // Đợi thẩm định vào kho
                         'image1' => '',
-                        'image2' => '',
-                        'image3' => '',
                     ]);
                 }
             }

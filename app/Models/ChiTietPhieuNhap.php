@@ -23,6 +23,7 @@ class ChiTietPhieuNhap extends Model
         'so_luong_thuc_te',
         'don_gia_nhap',
         'thanh_tien',
+        'image',
     ];
 
     protected $casts = [

@@ -22,8 +22,6 @@ class TonKho extends Model
         'so_luong_da_xuat',
         'trang_thai_lo',
         'image1',
-        'image2',
-        'image3',
     ];
 
     protected $casts = [

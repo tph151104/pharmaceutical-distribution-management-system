@@ -176,7 +176,6 @@ class WarehouseReceiptController extends Controller
                 'trang_thai_tt' => 'chua_tt',
                 'trang_thai_phieu_nhap' => 'doi_hang_ve', 
                 'image1' => '',
-                'image2' => '',
                 'giay_to_lien_quan' => '',
                 'tieu_lieu_lien_quan' => '',
             ]);
@@ -226,8 +225,6 @@ class WarehouseReceiptController extends Controller
                     'so_luong_da_xuat' => 0,
                     'trang_thai_lo' => 'cho_duyet', 
                     'image1' => '',
-                    'image2' => '',
-                    'image3' => '',
                 ]);
             }
 
@@ -380,8 +377,6 @@ class WarehouseReceiptController extends Controller
                     'so_luong_da_xuat' => 0,
                     'trang_thai_lo' => 'cho_duyet', 
                     'image1' => '',
-                    'image2' => '',
-                    'image3' => '',
                 ]);
             }
 
@@ -453,7 +448,7 @@ class WarehouseReceiptController extends Controller
                         'so_luong_ton' => 0,
                         'so_luong_da_xuat' => 0,
                         'trang_thai_lo' => 'cho_duyet',
-                        'image1' => '', 'image2' => '', 'image3' => '',
+                        'image1' => '',
                     ]);
                 }
 
@@ -504,20 +499,22 @@ class WarehouseReceiptController extends Controller
                         $tonKho->trang_thai_lo = 'cho_duyet';
                         $tonKho->ngay_nhap_lo = Carbon::now();
                         
-                        // Xử lý upload ảnh sự cố (nếu có)
-                        for ($i = 1; $i <= 3; $i++) {
-                            $fileKey = 'image' . $i . '_' . $item['ma_thuoc'] . '_' . $oldSoLo;
-                            if ($request->hasFile($fileKey)) {
-                                $image = $request->file($fileKey);
-                                $imageName = time() . '_' . $item['ma_thuoc'] . '_' . $i . '.' . $image->extension();
-                                $image->move(public_path('uploads/batches'), $imageName);
-                                $tonKho->{'image'.$i} = 'uploads/batches/' . $imageName;
-                            }
+                        // Upload ảnh chi tiết lô hàng
+                        $lotImageKey = 'image_lot_' . $item['ma_thuoc'] . '_' . $oldSoLo;
+                        if ($request->hasFile($lotImageKey)) {
+                            $lotImage = $request->file($lotImageKey);
+                            $lotImageName = time() . '_lot_' . $item['ma_thuoc'] . '_' . $newSoLo . '.' . $lotImage->extension();
+                            $lotImage->move(public_path('uploads/batches'), $lotImageName);
+                            
+                            $imagePath = 'uploads/batches/' . $lotImageName;
+                            $tonKho->image1 = $imagePath;
+                            $chiTiet->image = $imagePath;
                         }
                         $tonKho->save();
 
-                        // Cập nhật số lượng thực tế vào chi tiết phiếu
-                        $chiTiet->update(['so_luong_thuc_te' => $soLuongMoiKhaiBao]);
+                        // Cập nhật số lượng thực tế
+                        $chiTiet->so_luong_thuc_te = $soLuongMoiKhaiBao;
+                        $chiTiet->save();
 
                         // Cập nhật TonKhoKhuVuc
                         $targetArea = str_starts_with($id, 'PN_TRA_') ? 'KV04_CHO_XU_LY' : 'KV01_TIEP_NHAN';
@@ -553,7 +550,16 @@ class WarehouseReceiptController extends Controller
                 }
             }
 
-            // Xử lý upload tài liệu phiếu nhập
+            // Xử lý upload ảnh tổng lô hàng cho Phiếu nhập
+            if ($request->hasFile('phieu_nhap_image')) {
+                $pimage = $request->file('phieu_nhap_image');
+                $pimageName = time() . '_phieunhap.' . $pimage->extension();
+                $pimage->move(public_path('uploads/batches'), $pimageName);
+                $phieuNhap->image1 = 'uploads/batches/' . $pimageName;
+                $phieuNhap->save();
+            }
+
+            // Xử lý upload tài liệu phiếu nhập (giữ nguyên logic gốc)
             if ($request->hasFile('giay_to_lien_quan')) {
                 $file1 = $request->file('giay_to_lien_quan');
                 $name1 = time() . '_giayto.' . $file1->extension();

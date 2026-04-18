@@ -79,6 +79,7 @@
                     <div class="mb-2"><strong>Điện thoại:</strong> {{ $donHang->khachHang->dien_thoai ?? '' }}</div>
                     <div class="mb-2"><strong>Địa chỉ:</strong> {{ $donHang->khachHang->dia_chi ?? '' }}</div>
                     <div><strong>Ngày đặt:</strong> {{ $donHang->ngay_dat ? $donHang->ngay_dat->format('d/m/Y H:i') : '' }}</div>
+                    
                 </div>
             </div>
 

@@ -285,7 +285,7 @@
         <li>
             <a href="{{ route('admin.returns.index') }}" class="sidebar-link {{ request()->routeIs('admin.returns.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-arrow-return-left"></i></span>
-                <span>Yêu cầu Khách Trả Hàng</span>
+                <span>Khách Trả Hàng</span>
                 @if($user->hasRole(2, 4))
                 <span class="sidebar-badge badge bg-light text-muted">Xem</span>
                 @endif

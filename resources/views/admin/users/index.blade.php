@@ -119,6 +119,7 @@
                         </td>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm">
+                                
                                 <button class="btn btn-outline-primary" title="Sửa"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editUserModal"
@@ -137,6 +138,7 @@
                                         <i class="bi bi-{{ $user->trang_thai === 'cho_phep_hd' ? 'lock' : 'unlock' }}"></i>
                                     </button>
                                 </form>
+
                                 <form method="POST" action="{{ route('admin.users.destroy', $user->ma_nguoi_dung) }}"
                                       class="d-inline" onsubmit="return confirm('Xác nhận xóa người dùng này?')">
                                     @csrf @method('DELETE')

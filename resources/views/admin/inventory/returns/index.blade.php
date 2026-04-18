@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h5 class="mb-1 fw-bold"><i class="bi bi-arrow-return-left me-2"></i>Yêu cầu Trả hàng</h5>
-            <p class="text-muted mb-0">Quản lý và duyệt các yêu cầu trả hàng từ đại lý/khách sỉ</p>
+            <p class="text-muted mb-0">Quản lý và duyệt các yêu cầu trả hàng từ khách hàng</p>
         </div>
     </div>
 
