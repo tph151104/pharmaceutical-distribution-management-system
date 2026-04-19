@@ -195,7 +195,6 @@ class ReportController extends Controller
                   });
             });
         }
-
         $all = collect();
         if (!$loai || $loai == 'nhap') {
             $all = $all->merge($pnQuery->get()->map(function($item) {
@@ -217,6 +216,37 @@ class ReportController extends Controller
                 $item->sdt = $item->khachHang->so_dien_thoai ?? '';
                 $item->ma_chung_tu = $item->ma_phieu_xuat;
                 $item->ngay_gd = $item->ngay_xuat;
+                return $item;
+            }));
+        }
+
+        if (!$loai || $loai == 'hoan_tra') {
+            $ktQuery = \App\Models\KhachTraHang::with('khachHang')
+                ->withSum('thanhToans as so_tien_da_hoan', 'so_tien_tt')
+                ->whereIn('trang_thai_hoan_tien', ['chua_hoan', 'mot_phan']);
+
+            if ($fromDate) {
+                $ktQuery->whereDate('ngay_yeu_cau', '>=', $fromDate);
+            }
+            if ($toDate) {
+                $ktQuery->whereDate('ngay_yeu_cau', '<=', $toDate);
+            }
+            if ($search) {
+                $ktQuery->where(function($q) use ($search) {
+                    $q->where('ma_tra_hang', 'like', "%{$search}%")
+                      ->orWhereHas('khachHang', function($kh) use ($search) {
+                          $kh->where('ten_kh', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            $all = $all->merge($ktQuery->get()->map(function($item) {
+                $item->loai_thanh_toan = 'hoan_tra';
+                $item->so_tien_con_no = $item->tong_tien_hoan_tra - ($item->so_tien_da_hoan ?? 0);
+                $item->doi_tuong = $item->khachHang->ten_kh ?? 'N/A';
+                $item->sdt = $item->khachHang->so_dien_thoai ?? '';
+                $item->ma_chung_tu = $item->ma_tra_hang;
+                $item->ngay_gd = $item->ngay_yeu_cau;
                 return $item;
             }));
         }
@@ -244,10 +274,58 @@ class ReportController extends Controller
         $debts->appends($request->all());
 
         // --- Data cho Biểu đồ Công nợ (Tròn) ---
-        // Nếu muốn chart tổng thật sự (không phụ thuộc filter) thì query raw,
-        // Nhưng thường họ muốn chart ăn theo filter.
         $tongPhaiThu = $allDebts->where('loai_thanh_toan', 'xuat')->sum('so_tien_con_no');
-        $tongPhaiTra = $allDebts->where('loai_thanh_toan', 'nhap')->sum('so_tien_con_no');
+        $tongPhaiTra = $allDebts->whereIn('loai_thanh_toan', ['nhap', 'hoan_tra'])->sum('so_tien_con_no');
+
+        // --- Tổng công nợ (không phụ thuộc filter) ---
+        $tongCongNoKH = PhieuXuat::withSum('cacThanhToan as so_tien_da_tra', 'so_tien_tt')
+            ->whereIn('trang_thai_tt', ['chua_tt', 'mot_phan'])
+            ->get()
+            ->sum(function($px) {
+                return $px->tong_tien - ($px->so_tien_da_tra ?? 0);
+            });
+        $tongCongNoNCC = PhieuNhap::withSum('cacThanhToan as so_tien_da_tra', 'so_tien_tt')
+            ->whereIn('trang_thai_tt', ['chua_tt', 'mot_phan'])
+            ->get()
+            ->sum(function($pn) {
+                return $pn->tong_tien - ($pn->so_tien_da_tra ?? 0);
+            });
+
+        // Thêm nợ hoàn trả khách hàng vào tổng nợ phải trả
+        $tongCongNoNCC += \App\Models\KhachTraHang::withSum('thanhToans as so_tien_da_hoan', 'so_tien_tt')
+            ->whereIn('trang_thai_hoan_tien', ['chua_hoan', 'mot_phan'])
+            ->get()
+            ->sum(function($kt) {
+                return $kt->tong_tien_hoan_tra - ($kt->so_tien_da_hoan ?? 0);
+            });
+
+        // --- Tổng doanh thu hệ thống ---
+        $tongDoanhThu = \App\Models\DonHang::where('trang_thai_dh', 'da_hoan_thanh')->sum('tong_tien');
+
+        // --- Doanh thu theo nhân viên duyệt ---
+        $staffRevenue = \App\Models\DonHang::select('nguoi_duyet')
+            ->selectRaw('COUNT(*) as so_don')
+            ->selectRaw('SUM(tong_tien) as tong_doanh_thu')
+            ->where('trang_thai_dh', 'da_hoan_thanh')
+            ->whereNotNull('nguoi_duyet')
+            ->groupBy('nguoi_duyet')
+            ->get()
+            ->map(function ($item) {
+                $user = \App\Models\NguoiDung::find($item->nguoi_duyet);
+                $item->ho_ten = $user->ho_ten_nd ?? $item->nguoi_duyet;
+                $item->role_name = $user->role_name ?? 'N/A';
+                return $item;
+            })
+            ->sortByDesc('tong_doanh_thu');
+
+        // Filter theo nhân viên duyệt
+        $nhanViens = \App\Models\NguoiDung::whereIn('role', [1, 3, 5])->get();
+        $selectedNV = $request->nguoi_duyet;
+
+        // Nếu có filter theo NV duyệt, lọc dữ liệu staffRevenue
+        if ($selectedNV) {
+            $staffRevenue = $staffRevenue->where('nguoi_duyet', $selectedNV);
+        }
 
         // --- Data cho Biểu đồ Doanh Thu (Cột - 6 tháng gần nhất) ---
         $revenueData = [];
@@ -256,7 +334,6 @@ class ReportController extends Controller
             $month = now()->subMonths($i);
             $revenueLabels[] = $month->format('m/Y');
             
-            // Tính tổng tiền các phiếu xuất trong tháng
             $sum = PhieuXuat::whereYear('ngay_xuat', $month->year)
                 ->whereMonth('ngay_xuat', $month->month)
                 ->where('trang_thai_phieu_xuat', '!=', 'dang_chuan_bi')
@@ -269,8 +346,15 @@ class ReportController extends Controller
             'debts' => $debts, 
             'tongPhaiThu' => $tongPhaiThu, 
             'tongPhaiTra' => $tongPhaiTra, 
+            'tongCongNoKH' => $tongCongNoKH,
+            'tongCongNoNCC' => $tongCongNoNCC,
+            'tongDoanhThu' => $tongDoanhThu,
+            'staffRevenue' => $staffRevenue,
+            'nhanViens' => $nhanViens,
+            'selectedNV' => $selectedNV,
             'revenueLabels' => $revenueLabels, 
-            'revenueData' => $revenueData
+            'revenueData' => $revenueData,
+            'filteredTotalDebt' => $allDebts->sum('so_tien_con_no')
         ]);
     }
 

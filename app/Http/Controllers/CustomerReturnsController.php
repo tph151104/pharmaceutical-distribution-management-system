@@ -12,7 +12,10 @@ use App\Models\PhieuXuat;
 use App\Models\PhieuNhap;
 use App\Models\ChiTietPhieuNhap;
 use App\Models\ChiTietPhieuXuat;
+use App\Models\ChiTietDonHang;
 use App\Models\NhaCungCap;
+use App\Models\DonHang;
+use App\Models\KhachHang;
 use Illuminate\Support\Facades\DB;
 use App\Services\InventoryLogService;
 
@@ -335,5 +338,150 @@ class CustomerReturnsController extends Controller
         }
 
         return back()->withErrors(['error' => 'Không tìm thấy phiếu nhập liên quan để hoàn tác.']);
+    }
+
+    /**
+     * Form tạo đơn trả hàng (NV bán hàng tạo thay khách hàng)
+     */
+    public function create()
+    {
+        // Lấy đơn hàng đã hoàn thành và chưa có yêu cầu trả hàng
+        $donHangs = DonHang::with('khachHang')
+            ->where('trang_thai_dh', 'da_hoan_thanh')
+            ->whereDoesntHave('khachTraHang')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $khachHangs = KhachHang::where('trang_thai_tk', 'hoat_dong')->get();
+
+        return view('admin.inventory.returns.create', compact('donHangs', 'khachHangs'));
+    }
+
+    /**
+     * AJAX: Lấy chi tiết sản phẩm của đơn hàng (để NV xem trước khi tạo đơn trả)
+     */
+    public function getOrderItems($id)
+    {
+        $donHang = DonHang::with(['chiTiet.thuoc.donViTinh', 'khachHang'])->findOrFail($id);
+        
+        $items = $donHang->chiTiet->map(function ($ct) {
+            return [
+                'ma_thuoc' => $ct->ma_thuoc,
+                'ten_thuoc' => $ct->thuoc->ten_thuoc ?? $ct->ma_thuoc,
+                'don_vi_tinh' => $ct->thuoc->donViTinh->ten_dvt ?? 'Đơn vị',
+                'so_luong_mua' => $ct->so_luong,
+                'don_gia' => $ct->don_gia,
+                'thanh_tien' => $ct->so_luong * $ct->don_gia,
+            ];
+        });
+
+        return response()->json([
+            'ma_don_hang' => $donHang->ma_don_hang,
+            'ma_kh' => $donHang->ma_kh,
+            'ten_kh' => $donHang->khachHang->ten_kh ?? 'N/A',
+            'tong_tien' => $donHang->tong_tien,
+            'items' => $items,
+        ]);
+    }
+
+    /**
+     * Lưu đơn trả hàng do NV bán hàng tạo thay khách hàng
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'ma_don_hang' => 'required|exists:don_hang,ma_don_hang',
+            'ly_do_chung' => 'required|string|max:500',
+            'minh_chung_image' => 'nullable|image|max:5120',
+            'items' => 'required|array|min:1',
+            'items.*.ma_thuoc' => 'required|exists:thuoc,ma_thuoc',
+            'items.*.so_luong_tra' => 'required|integer|min:0',
+        ], [
+            'ly_do_chung.required' => 'Vui lòng nhập lý do trả hàng.',
+            'items.required' => 'Vui lòng chọn sản phẩm cần trả.',
+        ]);
+
+        $donHang = DonHang::with('chiTiet')->findOrFail($request->ma_don_hang);
+
+        if ($donHang->trang_thai_dh !== 'da_hoan_thanh') {
+            return back()->withInput()->withErrors(['error' => 'Chỉ có thể tạo đơn trả cho đơn hàng đã hoàn thành.']);
+        }
+
+        // Kiểm tra đã có yêu cầu trả hàng chưa
+        if (KhachTraHang::where('ma_don_hang', $donHang->ma_don_hang)->exists()) {
+            return back()->withInput()->withErrors(['error' => 'Đơn hàng này đã có yêu cầu trả hàng.']);
+        }
+
+        $processedItems = [];
+        $totalRefund = 0;
+
+        foreach ($request->items as $item) {
+            $slTra = intval($item['so_luong_tra']);
+            if ($slTra <= 0) continue;
+
+            // Kiểm tra số lượng tối đa
+            $chiTietMua = $donHang->chiTiet->where('ma_thuoc', $item['ma_thuoc'])->first();
+            if (!$chiTietMua) continue;
+
+            if ($slTra > $chiTietMua->so_luong) {
+                return back()->withInput()->withErrors([
+                    'error' => 'Số lượng trả của "' . ($chiTietMua->thuoc->ten_thuoc ?? $item['ma_thuoc']) 
+                        . '" không được vượt quá số lượng đã mua (' . $chiTietMua->so_luong . ').'
+                ]);
+            }
+
+            $donGia = $chiTietMua->don_gia;
+            $thanhTien = $slTra * $donGia;
+            $totalRefund += $thanhTien;
+
+            $processedItems[] = [
+                'ma_thuoc' => $item['ma_thuoc'],
+                'so_luong_tra' => $slTra,
+                'don_gia_tra' => $donGia,
+                'thanh_tien' => $thanhTien,
+                'ly_do_chi_tiet' => $item['ly_do'] ?? '',
+            ];
+        }
+
+        if (empty($processedItems)) {
+            return back()->withInput()->withErrors(['error' => 'Vui lòng nhập số lượng trả lớn hơn 0 cho ít nhất 1 sản phẩm.']);
+        }
+
+        DB::beginTransaction();
+        try {
+            $maTraHang = 'TH_' . date('Ymd_His');
+
+            // Xử lý ảnh minh chứng
+            $imagePath = null;
+            if ($request->hasFile('minh_chung_image')) {
+                $file = $request->file('minh_chung_image');
+                $name = time() . '_minhchung.' . $file->extension();
+                $file->move(public_path('uploads/returns'), $name);
+                $imagePath = 'uploads/returns/' . $name;
+            }
+
+            $khachTra = KhachTraHang::create([
+                'ma_tra_hang' => $maTraHang,
+                'ma_don_hang' => $donHang->ma_don_hang,
+                'ma_kh' => $donHang->ma_kh,
+                'ngay_yeu_cau' => now()->toDateString(),
+                'ly_do_chung' => $request->ly_do_chung,
+                'tong_tien_hoan_tra' => $totalRefund,
+                'trang_thai' => 'cho_duyet',
+                'nguoi_tao' => auth()->id(),
+                'minh_chung_image' => $imagePath,
+            ]);
+
+            foreach ($processedItems as $item) {
+                ChiTietTraHang::create(array_merge($item, ['ma_tra_hang' => $maTraHang]));
+            }
+
+            DB::commit();
+            return redirect()->route('admin.returns.index')
+                ->with('success', 'Đã tạo yêu cầu trả hàng thành công! Mã: ' . $maTraHang);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->withErrors(['error' => 'Lỗi khi tạo đơn trả hàng: ' . $e->getMessage()]);
+        }
     }
 }

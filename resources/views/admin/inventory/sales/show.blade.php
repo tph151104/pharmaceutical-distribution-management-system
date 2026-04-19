@@ -88,6 +88,12 @@
                             <td class="text-muted w-25">Người tạo:</td>
                             <td class="fw-medium">{{ $phieuXuat->nguoiDung->ho_ten_nd ?? $phieuXuat->nguoi_tao_phieu }}</td>
                         </tr>
+                        @if($phieuXuat->donHang && $phieuXuat->donHang->nguoi_duyet)
+                        <tr>
+                            <td class="text-muted w-25">Người duyệt đơn:</td>
+                            <td class="fw-medium text-success">{{ $phieuXuat->donHang->nguoiDuyet->ho_ten_nd ?? $phieuXuat->donHang->nguoi_duyet }}</td>
+                        </tr>
+                        @endif
                         <tr>
                             <td class="text-muted">Ngày xuất:</td>
                             <td class="fw-medium">{{ \Carbon\Carbon::parse($phieuXuat->ngay_xuat)->format('d/m/Y') }}</td>

@@ -78,8 +78,13 @@
                     <div class="mb-2"><strong>Loại:</strong> {{ $donHang->khachHang->loai_kh ?? '' }}</div>
                     <div class="mb-2"><strong>Điện thoại:</strong> {{ $donHang->khachHang->dien_thoai ?? '' }}</div>
                     <div class="mb-2"><strong>Địa chỉ:</strong> {{ $donHang->khachHang->dia_chi ?? '' }}</div>
-                    <div><strong>Ngày đặt:</strong> {{ $donHang->ngay_dat ? $donHang->ngay_dat->format('d/m/Y H:i') : '' }}</div>
-                    
+                    <div class="mb-2"><strong>Ngày đặt:</strong> {{ $donHang->ngay_dat ? $donHang->ngay_dat->format('d/m/Y H:i') : '' }}</div>
+                    @if($donHang->nguoi_duyet)
+                    <div class="mb-0">
+                        <strong>Người duyệt:</strong> 
+                        <span class="badge bg-success">{{ $donHang->nguoiDuyet->ho_ten_nd ?? $donHang->nguoi_duyet }}</span>
+                    </div>
+                    @endif
                 </div>
             </div>
 

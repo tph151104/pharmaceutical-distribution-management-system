@@ -16,6 +16,7 @@ class DonHang extends Model
         'ma_kh',
         'ngay_dat',
         'trang_thai_dh',
+        'nguoi_duyet',
         'tong_tien',
         'dia_chi_giao',
         'ghi_chu',
@@ -42,6 +43,22 @@ class DonHang extends Model
     public function phieuXuat()
     {
         return $this->hasOne(PhieuXuat::class, 'ma_don_hang', 'ma_don_hang');
+    }
+
+    /**
+     * Người duyệt đơn hàng (NV bán hàng / Admin)
+     */
+    public function nguoiDuyet()
+    {
+        return $this->belongsTo(NguoiDung::class, 'nguoi_duyet', 'ma_nguoi_dung');
+    }
+
+    /**
+     * Yêu cầu trả hàng liên quan
+     */
+    public function khachTraHang()
+    {
+        return $this->hasOne(KhachTraHang::class, 'ma_don_hang', 'ma_don_hang');
     }
 
     /**

@@ -174,7 +174,7 @@ class OrderController extends Controller
      */
     public function show($id)
     {
-        $donHang = DonHang::with(['khachHang', 'chiTiet.thuoc'])->findOrFail($id);
+        $donHang = DonHang::with(['khachHang', 'chiTiet.thuoc', 'nguoiDuyet'])->findOrFail($id);
         return view('admin.inventory.orders.show', compact('donHang'));
     }
 
@@ -193,7 +193,10 @@ class OrderController extends Controller
         try {
             // Đổi trạng thái đơn hàng sang đã duyệt (Kế toán duyệt)
             // Lát thủ kho sẽ tạo Phiếu xuất từ đơn hàng này.
-            $donHang->update(['trang_thai_dh' => 'da_duyet']);
+            $donHang->update([
+                'trang_thai_dh' => 'da_duyet',
+                'nguoi_duyet' => auth()->id(),
+            ]);
 
             DB::commit();
             return back()->with('success', 'Đã duyệt đơn hàng ' . $donHang->ma_don_hang . ' thành công. Đơn hàng đang chờ thủ kho xuất hàng.');

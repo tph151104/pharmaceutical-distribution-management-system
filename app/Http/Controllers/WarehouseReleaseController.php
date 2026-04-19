@@ -85,16 +85,71 @@ class WarehouseReleaseController extends Controller
     }
 
     /**
-     * Màn hình tạo phiếu xuất (Chọn đơn hàng)
+     * Màn hình tạo phiếu xuất (Chọn đơn hàng - Redesign với filter + preview)
      */
     public function create(Request $request)
     {
-        // Lấy danh sách đơn hàng đã duyệt để thủ kho chọn
-        $donHangs = DonHang::where('trang_thai_dh', 'da_duyet')->orderBy('created_at', 'desc')->get();
+        // Lấy danh sách khách hàng cho dropdown filter
+        $khachHangs = \App\Models\KhachHang::where('trang_thai_tk', 'hoat_dong')->orderBy('ten_kh')->get();
+
+        // Query đơn hàng đã duyệt với filters
+        $query = DonHang::with(['khachHang', 'chiTiet.thuoc', 'nguoiDuyet'])
+            ->where('trang_thai_dh', 'da_duyet')
+            ->orderBy('updated_at', 'desc');
+
+        if ($request->filled('from_date')) {
+            $query->whereDate('ngay_dat', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('ngay_dat', '<=', $request->to_date);
+        }
+        if ($request->filled('ma_kh')) {
+            $query->where('ma_kh', $request->ma_kh);
+        }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('ma_don_hang', 'like', "%{$search}%")
+                  ->orWhereHas('khachHang', function($kh) use ($search) {
+                      $kh->where('ten_kh', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $donHangs = $query->get();
+
         // Nếu truyền sẵn order_id từ nút "Tạo phiếu xuất"
         $selectedOrderId = $request->get('order_id');
         
-        return view('admin.inventory.sales.create', compact('donHangs', 'selectedOrderId'));
+        return view('admin.inventory.sales.create', compact('donHangs', 'selectedOrderId', 'khachHangs'));
+    }
+
+    /**
+     * AJAX: Lấy chi tiết đơn hàng để preview trước khi tạo phiếu xuất
+     */
+    public function getOrderDetail($id)
+    {
+        $donHang = DonHang::with(['chiTiet.thuoc.donViTinh', 'khachHang', 'nguoiDuyet'])->findOrFail($id);
+        
+        $items = $donHang->chiTiet->map(function ($ct) {
+            return [
+                'ma_thuoc' => $ct->ma_thuoc,
+                'ten_thuoc' => $ct->thuoc->ten_thuoc ?? $ct->ma_thuoc,
+                'don_vi_tinh' => $ct->thuoc->donViTinh->ten_dvt ?? '',
+                'so_luong' => $ct->so_luong,
+                'don_gia' => $ct->don_gia,
+                'thanh_tien' => $ct->so_luong * $ct->don_gia,
+            ];
+        });
+
+        return response()->json([
+            'ma_don_hang' => $donHang->ma_don_hang,
+            'ten_kh' => $donHang->khachHang->ten_kh ?? 'N/A',
+            'ngay_dat' => $donHang->ngay_dat->format('d/m/Y'),
+            'nguoi_duyet' => $donHang->nguoiDuyet->ho_ten_nd ?? 'N/A',
+            'tong_tien' => $donHang->tong_tien,
+            'items' => $items,
+        ]);
     }
 
     /**

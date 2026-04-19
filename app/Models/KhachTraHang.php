@@ -21,6 +21,7 @@ class KhachTraHang extends Model
         'trang_thai',
         'trang_thai_hoan_tien',
         'nguoi_duyet',
+        'nguoi_tao',
         'ngay_duyet',
         'ghi_chu_admin',
         'minh_chung_image',
@@ -57,5 +58,13 @@ class KhachTraHang extends Model
     public function nguoiDung()
     {
         return $this->belongsTo(NguoiDung::class, 'nguoi_duyet', 'ma_nguoi_dung');
+    }
+
+    /**
+     * NV bán hàng tạo đơn trả thay khách hàng
+     */
+    public function nguoiTao()
+    {
+        return $this->belongsTo(NguoiDung::class, 'nguoi_tao', 'ma_nguoi_dung');
     }
 }

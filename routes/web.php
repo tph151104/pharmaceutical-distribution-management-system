@@ -89,6 +89,7 @@ Route::middleware('auth:admin')->group(function () {
             Route::get('/', [WarehouseReleaseController::class, 'index'])->name('index');
             Route::get('/export', [WarehouseReleaseController::class, 'export'])->name('export');
             Route::get('/create', [WarehouseReleaseController::class, 'create'])->name('create');
+            Route::get('/order-detail/{id}', [WarehouseReleaseController::class, 'getOrderDetail'])->name('orderDetail');
             Route::post('/', [WarehouseReleaseController::class, 'store'])->name('store');
             Route::get('/{id}', [WarehouseReleaseController::class, 'show'])->name('show');
             Route::post('/{id}/confirm', [WarehouseReleaseController::class, 'confirm'])->name('confirm');
@@ -156,19 +157,22 @@ Route::middleware('auth:admin')->group(function () {
     //              NV Kho(2) + Kế toán(4) chỉ XEM
     // ═══════════════════════════════════════════════════════════
 
-    Route::middleware('role:1,2,3,4,5')->group(function () {
-        Route::prefix('admin/returns')->name('admin.returns.')->middleware('feature:returns')->group(function () {
-            Route::get('/', [CustomerReturnsController::class, 'index'])->name('index');
-            Route::get('/{id}', [CustomerReturnsController::class, 'show'])->name('show');
-        });
-    });
-
     Route::middleware('role:1,3,5')->group(function () {
         Route::prefix('admin/returns')->name('admin.returns.')->middleware('feature:returns')->group(function () {
+            Route::get('/create', [CustomerReturnsController::class, 'create'])->name('create');
+            Route::get('/order-items/{id}', [CustomerReturnsController::class, 'getOrderItems'])->name('orderItems');
+            Route::post('/', [CustomerReturnsController::class, 'store'])->name('store');
             Route::post('/{id}/approve', [CustomerReturnsController::class, 'approve'])->name('approve');
             Route::post('/{id}/reject', [CustomerReturnsController::class, 'reject'])->name('reject');
             Route::post('/{id}/undo-approve', [CustomerReturnsController::class, 'undoApprove'])->name('undoApprove');
             Route::post('/{id}/refund', [CustomerReturnsController::class, 'processRefund'])->name('refund');
+        });
+    });
+
+    Route::middleware('role:1,2,3,4,5')->group(function () {
+        Route::prefix('admin/returns')->name('admin.returns.')->middleware('feature:returns')->group(function () {
+            Route::get('/', [CustomerReturnsController::class, 'index'])->name('index');
+            Route::get('/{id}', [CustomerReturnsController::class, 'show'])->name('show');
         });
     });
 
