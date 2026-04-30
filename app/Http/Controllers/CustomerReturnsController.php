@@ -345,10 +345,9 @@ class CustomerReturnsController extends Controller
      */
     public function create()
     {
-        // Lấy đơn hàng đã hoàn thành và chưa có yêu cầu trả hàng
+        // Lấy đơn hàng đã hoàn thành (bao gồm cả những đơn đã từng trả hàng)
         $donHangs = DonHang::with('khachHang')
             ->where('trang_thai_dh', 'da_hoan_thanh')
-            ->whereDoesntHave('khachTraHang')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -364,12 +363,22 @@ class CustomerReturnsController extends Controller
     {
         $donHang = DonHang::with(['chiTiet.thuoc.donViTinh', 'khachHang'])->findOrFail($id);
         
-        $items = $donHang->chiTiet->map(function ($ct) {
+        $items = $donHang->chiTiet->map(function ($ct) use ($id) {
+            // Tính số lượng đã trả trước đó cho sản phẩm này (bỏ qua các yêu cầu đã bị từ chối)
+            $slDaTra = \App\Models\ChiTietTraHang::whereHas('khachTraHang', function($q) use ($id) {
+                $q->where('ma_don_hang', $id)
+                  ->where('trang_thai', '!=', 'tu_choi');
+            })->where('ma_thuoc', $ct->ma_thuoc)->sum('so_luong_tra');
+            
+            $soLuongCoTheTra = max(0, $ct->so_luong - $slDaTra);
+
             return [
                 'ma_thuoc' => $ct->ma_thuoc,
                 'ten_thuoc' => $ct->thuoc->ten_thuoc ?? $ct->ma_thuoc,
                 'don_vi_tinh' => $ct->thuoc->donViTinh->ten_dvt ?? 'Đơn vị',
                 'so_luong_mua' => $ct->so_luong,
+                'so_luong_da_tra' => $slDaTra,
+                'so_luong_co_the_tra' => $soLuongCoTheTra,
                 'don_gia' => $ct->don_gia,
                 'thanh_tien' => $ct->so_luong * $ct->don_gia,
             ];
@@ -407,10 +416,7 @@ class CustomerReturnsController extends Controller
             return back()->withInput()->withErrors(['error' => 'Chỉ có thể tạo đơn trả cho đơn hàng đã hoàn thành.']);
         }
 
-        // Kiểm tra đã có yêu cầu trả hàng chưa
-        if (KhachTraHang::where('ma_don_hang', $donHang->ma_don_hang)->exists()) {
-            return back()->withInput()->withErrors(['error' => 'Đơn hàng này đã có yêu cầu trả hàng.']);
-        }
+        // Cho phép trả nhiều lần, miễn là số lượng trả không vượt quá số lượng mua trừ đi số lượng đã trả trước đó
 
         $processedItems = [];
         $totalRefund = 0;
@@ -423,10 +429,18 @@ class CustomerReturnsController extends Controller
             $chiTietMua = $donHang->chiTiet->where('ma_thuoc', $item['ma_thuoc'])->first();
             if (!$chiTietMua) continue;
 
-            if ($slTra > $chiTietMua->so_luong) {
+            // Tính số lượng đã trả trước đó
+            $slDaTra = \App\Models\ChiTietTraHang::whereHas('khachTraHang', function($q) use ($donHang) {
+                $q->where('ma_don_hang', $donHang->ma_don_hang)
+                  ->where('trang_thai', '!=', 'tu_choi');
+            })->where('ma_thuoc', $item['ma_thuoc'])->sum('so_luong_tra');
+            
+            $soLuongCoTheTra = max(0, $chiTietMua->so_luong - $slDaTra);
+
+            if ($slTra > $soLuongCoTheTra) {
                 return back()->withInput()->withErrors([
                     'error' => 'Số lượng trả của "' . ($chiTietMua->thuoc->ten_thuoc ?? $item['ma_thuoc']) 
-                        . '" không được vượt quá số lượng đã mua (' . $chiTietMua->so_luong . ').'
+                        . '" vượt quá số lượng có thể trả (' . $soLuongCoTheTra . ').'
                 ]);
             }
 

@@ -206,23 +206,33 @@
             {{-- CHỨC NĂNG TRẢ HÀNG --}}
             @if($donHang->trang_thai_dh === 'da_hoan_thanh')
             <div class="card border-0 shadow-sm mt-3">
-                <div class="card-header bg-white"><h6 class="mb-0 fw-bold text-danger"><i class="bi bi-arrow-return-left me-2"></i>Trả hàng / Hoàn tiền</h6></div>
+                <div class="card-header bg-white"><h6 class="mb-0 fw-bold text-danger"><i class="bi bi-arrow-return-left me-2"></i>Lịch sử Trả hàng / Hoàn tiền</h6></div>
                 <div class="card-body">
-                    @if(isset($traHang) && $traHang)
-                        <div class="alert alert-info py-2 small mb-0">
-                            <strong>Trạng thái:</strong> 
-                            @if($traHang->trang_thai == 'cho_duyet') <span class="badge bg-warning">Chờ duyệt</span>
-                            @elseif($traHang->trang_thai == 'da_duyet_nhap_kho') <span class="badge bg-success">Đã nhận hàng (Hoàn tất)</span>
-                            @elseif($traHang->trang_thai == 'tu_choi') <span class="badge bg-danger">Bị từ chối</span>
-                            @endif
-                            <br>
-                            <em>Ghi chú: {{ $traHang->ghi_chu_admin ?? 'Đang chờ bộ phận kho xử lý' }}</em>
-                        </div>
+                    @if(isset($traHangs) && $traHangs->count() > 0)
+                        @foreach($traHangs as $th)
+                            <div class="alert alert-info py-2 small mb-2 border-info">
+                                <strong>Mã: {{ $th->ma_tra_hang }}</strong> - Trạng thái: 
+                                @if($th->trang_thai == 'cho_duyet') <span class="badge bg-warning">Chờ duyệt</span>
+                                @elseif($th->trang_thai == 'da_duyet_nhap_kho') <span class="badge bg-success">Đã nhận hàng (Hoàn tất)</span>
+                                @elseif($th->trang_thai == 'tu_choi') <span class="badge bg-danger">Bị từ chối</span>
+                                @endif
+                                <br>
+                                <em>Ghi chú: {{ $th->ghi_chu_admin ?? 'Đang chờ bộ phận kho xử lý' }}</em>
+                            </div>
+                        @endforeach
                     @else
-                        <div class="d-grid">
+                        <p class="text-muted small mb-3">Chưa có yêu cầu trả hàng nào.</p>
+                    @endif
+
+                    @if(!$allReturned)
+                        <div class="d-grid mt-3">
                             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalReturnOrder">
                                 Yêu cầu Trả hàng
                             </button>
+                        </div>
+                    @else
+                        <div class="alert alert-secondary py-2 small mb-0 text-center">
+                            Bạn đã yêu cầu trả lại toàn bộ sản phẩm trong đơn hàng này.
                         </div>
                     @endif
                 </div>
@@ -258,10 +268,18 @@
                                                     <td>
                                                         <div class="fw-bold">{{ $ct->thuoc->ten_thuoc ?? $ct->ma_thuoc }}</div>
                                                     </td>
-                                                    <td class="text-center">{{ $ct->so_luong }}</td>
+                                                    <td class="text-center">
+                                                        {{ $ct->so_luong }}
+                                                        @if($ct->so_luong_da_tra > 0)
+                                                            <br><small class="text-warning">Đã trả: {{ $ct->so_luong_da_tra }}</small>
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         <input type="hidden" name="items[{{$i}}][ma_thuoc]" value="{{ $ct->ma_thuoc }}">
-                                                        <input type="number" name="items[{{$i}}][so_luong]" class="form-control form-control-sm" max="{{ $ct->so_luong }}" min="0" value="0">
+                                                        <input type="number" name="items[{{$i}}][so_luong]" class="form-control form-control-sm" max="{{ $ct->so_luong_co_the_tra }}" min="0" value="0" {{ $ct->so_luong_co_the_tra == 0 ? 'disabled' : '' }}>
+                                                        @if($ct->so_luong_co_the_tra > 0)
+                                                            <small class="text-muted d-block mt-1">Tối đa: {{ $ct->so_luong_co_the_tra }}</small>
+                                                        @endif
                                                     </td>
                                                     <td>
                                                         <input type="text" name="items[{{$i}}][ly_do]" class="form-control form-control-sm" placeholder="Móp méo, cận date...">

@@ -261,9 +261,26 @@ class WholesaleController extends Controller
             ->firstOrFail();
 
         $cartCount = array_sum(array_column(session('cart', []), 'so_luong'));
-        $traHang = KhachTraHang::where('ma_don_hang', $id)->first();
+        
+        $allReturned = true;
+        foreach ($donHang->chiTiet as $ct) {
+            $slDaTra = \App\Models\ChiTietTraHang::whereHas('khachTraHang', function($q) use ($id) {
+                $q->where('ma_don_hang', $id)
+                  ->where('trang_thai', '!=', 'tu_choi');
+            })->where('ma_thuoc', $ct->ma_thuoc)->sum('so_luong_tra');
+            
+            $ct->so_luong_co_the_tra = max(0, $ct->so_luong - $slDaTra);
+            $ct->so_luong_da_tra = $slDaTra;
+            
+            if ($ct->so_luong_co_the_tra > 0) {
+                $allReturned = false;
+            }
+        }
 
-        return view('wholesale.order_detail', compact('donHang', 'cartCount', 'traHang'));
+        // Lấy danh sách các yêu cầu trả hàng đã tạo
+        $traHangs = \App\Models\KhachTraHang::where('ma_don_hang', $id)->orderBy('created_at', 'desc')->get();
+
+        return view('wholesale.order_detail', compact('donHang', 'cartCount', 'traHangs', 'allReturned'));
     }
 
     /**
@@ -423,11 +440,7 @@ class WholesaleController extends Controller
             return back()->withErrors(['error' => 'Chỉ có thể yêu cầu trả hàng đối với đơn hàng đã hoàn thành.']);
         }
 
-        // Kiểm tra đã có yêu cầu trả hàng chưa
-        $exists = KhachTraHang::where('ma_don_hang', $id)->exists();
-        if ($exists) {
-            return back()->withErrors(['error' => 'Đơn hàng này đã có yêu cầu trả hàng.']);
-        }
+        // Cho phép trả nhiều lần, miễn là tổng số lượng trả không vượt quá số lượng mua
 
         $request->validate([
             'ly_do_chung' => 'required|string',
@@ -453,8 +466,16 @@ class WholesaleController extends Controller
                 
                 if (!$chiTietMua) continue;
 
-                if ($slTra > $chiTietMua->so_luong) {
-                    return back()->withErrors(['error' => 'Số lượng trả của "' . ($chiTietMua->thuoc->ten_thuoc ?? $ct['ma_thuoc']) . '" không được vượt quá số lượng đã mua (' . $chiTietMua->so_luong . ').']);
+                // Tính số lượng đã trả trước đó
+                $slDaTra = \App\Models\ChiTietTraHang::whereHas('khachTraHang', function($q) use ($id) {
+                    $q->where('ma_don_hang', $id)
+                      ->where('trang_thai', '!=', 'tu_choi');
+                })->where('ma_thuoc', $ct['ma_thuoc'])->sum('so_luong_tra');
+                
+                $soLuongCoTheTra = max(0, $chiTietMua->so_luong - $slDaTra);
+
+                if ($slTra > $soLuongCoTheTra) {
+                    return back()->withErrors(['error' => 'Số lượng trả của "' . ($chiTietMua->thuoc->ten_thuoc ?? $ct['ma_thuoc']) . '" vượt quá số lượng có thể trả (' . $soLuongCoTheTra . ').']);
                 }
 
                 $donGia = $chiTietMua->don_gia;

@@ -578,7 +578,21 @@ class WarehouseReceiptController extends Controller
                                          ->whereRaw('so_luong_thuc_te < so_luong_nhap')
                                          ->exists();
 
-            if ($isMissing) {
+            if ($request->has('force_close')) {
+                // Ép đóng phiếu: Cập nhật lại số lượng chứng từ bằng số lượng thực tế để chốt công nợ
+                ChiTietPhieuNhap::where('ma_phieu_nhap', $id)->update([
+                    'so_luong_nhap' => DB::raw('so_luong_thuc_te')
+                ]);
+                $phieuNhap->trang_thai_phieu_nhap = 'da_nhap_kho';
+                
+                // Tính lại tổng tiền phiếu nhập theo thực tế
+                $tongTienMoi = ChiTietPhieuNhap::where('ma_phieu_nhap', $id)
+                                ->selectRaw('SUM(so_luong_thuc_te * don_gia_nhap) as tong')->value('tong');
+                $phieuNhap->tong_tien = $tongTienMoi;
+                $phieuNhap->save();
+
+                $msg = 'Đã chốt phiếu nhập theo số lượng thực nhận. Phần còn thiếu đã được hủy bỏ và công nợ đã được cập nhật lại.';
+            } elseif ($isMissing) {
                 $phieuNhap->trang_thai_phieu_nhap = 'doi_hang_ve';
                 $msg = 'Đã xác nhận lô hàng. Số lượng thực tế chưa đủ, phiếu được chuyển về "Đợi hàng về".';
             } else {

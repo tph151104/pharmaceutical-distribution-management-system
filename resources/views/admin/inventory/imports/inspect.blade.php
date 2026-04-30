@@ -67,6 +67,23 @@
                                         <span class="badge bg-warning">Đợi hàng về</span>
                                     @endif
                                 </div>
+                                @if($phieuNhap->giay_to_lien_quan || $phieuNhap->tieu_lieu_lien_quan)
+                                    <div class="col-12 mt-3 pt-2 border-top">
+                                        <div class="text-muted mb-1 small fw-semibold">Tài liệu đính kèm:</div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @if($phieuNhap->giay_to_lien_quan)
+                                                <a href="{{ asset($phieuNhap->giay_to_lien_quan) }}" target="_blank" class="badge bg-light text-primary border text-decoration-none p-2">
+                                                    <i class="bi bi-file-earmark-pdf"></i> Giấy tờ liên quan
+                                                </a>
+                                            @endif
+                                            @if($phieuNhap->tieu_lieu_lien_quan)
+                                                <a href="{{ asset($phieuNhap->tieu_lieu_lien_quan) }}" target="_blank" class="badge bg-light text-primary border text-decoration-none p-2">
+                                                    <i class="bi bi-file-earmark-text"></i> Tài liệu liên quan
+                                                </a>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                         <div class="col-md-5 ps-md-4">
@@ -110,7 +127,13 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-bottom-0 py-3 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 text-primary"><i class="bi bi-box-seam me-1"></i> Đối chiếu chi tiết</h6>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-3 align-items-center">
+                        <div class="form-check m-0" title="Tick vào đây nếu NCC không giao thêm hàng nữa. Phiếu sẽ đóng và chốt công nợ theo số lượng thực nhận.">
+                            <input class="form-check-input" type="checkbox" name="force_close" id="forceCloseCheck" value="1">
+                            <label class="form-check-label text-danger small fw-bold" for="forceCloseCheck">
+                                <i class="bi bi-exclamation-triangle"></i> Ép đóng phiếu (Nhận thiếu)
+                            </label>
+                        </div>
                         <!-- Nút xác nhận hoàn tất -->
                         <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Bạn có chắc chắn muốn xác nhận nhập kho? Số lượng thực tế sẽ ghi nhận vào Tồn Kho.');">
                             <i class="bi bi-check2-circle me-1"></i> Hoàn tất & Nhập kho
@@ -190,16 +213,10 @@
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold mb-1">Tải lên Giấy tờ liên quan (Tùy chọn)</label>
                             <input type="file" name="giay_to_lien_quan" class="form-control" accept="image/*,.pdf">
-                            @if($phieuNhap->giay_to_lien_quan)
-                                <div class="mt-1 small"><a href="{{ asset($phieuNhap->giay_to_lien_quan) }}" target="_blank"><i class="bi bi-file-earmark-check"></i> Đã tải lên tài liệu</a></div>
-                            @endif
                         </div>
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold mb-1">Tải lên Tài liệu liên quan (Tùy chọn)</label>
                             <input type="file" name="tieu_lieu_lien_quan" class="form-control" accept="image/*,.pdf">
-                            @if($phieuNhap->tieu_lieu_lien_quan)
-                                <div class="mt-1 small"><a href="{{ asset($phieuNhap->tieu_lieu_lien_quan) }}" target="_blank"><i class="bi bi-file-earmark-check"></i> Đã tải lên tài liệu</a></div>
-                            @endif
                         </div>
                     </div>
                 </div>

@@ -175,14 +175,16 @@ document.addEventListener('DOMContentLoaded', function () {
                             </td>
                             <td class="text-center">
                                 <span class="badge bg-secondary">${item.so_luong_mua}</span>
+                                ${item.so_luong_da_tra > 0 ? `<br><small class="text-warning">Đã trả: ${item.so_luong_da_tra}</small>` : ''}
                             </td>
                             <td class="text-end">${fmt.format(item.don_gia)}đ</td>
                             <td class="text-center">
                                 <input type="number" name="items[${idx}][so_luong_tra]" 
                                        class="form-control form-control-sm text-center qty-input"
-                                       min="0" max="${item.so_luong_mua}" value="0" 
-                                       data-price="${item.don_gia}" data-max="${item.so_luong_mua}">
-                                <div class="form-text small text-muted">Tối đa: ${item.so_luong_mua}</div>
+                                       min="0" max="${item.so_luong_co_the_tra}" value="0" 
+                                       data-price="${item.don_gia}" data-max="${item.so_luong_co_the_tra}"
+                                       ${item.so_luong_co_the_tra === 0 ? 'disabled' : ''}>
+                                <div class="form-text small text-muted">Tối đa: ${item.so_luong_co_the_tra}</div>
                             </td>
                             <td>
                                 <input type="text" name="items[${idx}][ly_do]" class="form-control form-control-sm" placeholder="Lý do...">
