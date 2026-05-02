@@ -210,9 +210,6 @@ class WholesaleController extends Controller
                 'ngay_dat' => Carbon::now(),
                 'trang_thai_dh' => 'cho_xu_ly',
                 'tong_tien' => $tongTien,
-                'image1' => '',
-                'image2' => '',
-                'image3' => '',
             ]);
 
             foreach ($cart as $item) {

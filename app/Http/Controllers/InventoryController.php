@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\TonKho;
 use App\Models\Thuoc;
 use App\Models\TonKhoKhuVuc;
+use App\Models\LichSuDichChuyenKho;
 use App\Services\InventoryLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class InventoryController extends Controller
@@ -161,6 +163,22 @@ class InventoryController extends Controller
                         'so_luong' => $soLuongChuyen
                     ]);
                 }
+            }
+
+            // Ghi log dịch chuyển kho (lịch sử luân chuyển)
+            if ($soLuongChuyen > 0) {
+                LichSuDichChuyenKho::create([
+                    'ma_phieu_chuyen' => 'CHCK-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
+                    'ma_thuoc' => $tonKho->ma_thuoc,
+                    'ma_phieu_nhap' => $tonKho->ma_phieu_nhap,
+                    'so_lo' => $tonKho->so_lo,
+                    'tu_khu_vuc' => 'KV03_THANH_PHAM',
+                    'den_khu_vuc' => 'KV04_CHO_XU_LY',
+                    'so_luong_chuyen' => $soLuongChuyen,
+                    'nguoi_thuc_hien' => auth()->id(),
+                    'ngay_chuyen' => Carbon::now(),
+                    'ly_do_chuyen' => '[Ngưng bán] ' . $request->ly_do,
+                ]);
             }
 
             // Ghi log

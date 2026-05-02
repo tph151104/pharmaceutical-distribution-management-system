@@ -80,9 +80,23 @@
                     <div class="mb-2"><strong>Địa chỉ:</strong> {{ $donHang->khachHang->dia_chi ?? '' }}</div>
                     <div class="mb-2"><strong>Ngày đặt:</strong> {{ $donHang->ngay_dat ? $donHang->ngay_dat->format('d/m/Y H:i') : '' }}</div>
                     @if($donHang->nguoi_duyet)
-                    <div class="mb-0">
+                    <div class="mb-2">
                         <strong>Người duyệt:</strong> 
                         <span class="badge bg-success">{{ $donHang->nguoiDuyet->ho_ten_nd ?? $donHang->nguoi_duyet }}</span>
+                    </div>
+                    @endif
+                    @if($donHang->trang_thai_dh == 'da_huy')
+                    <div class="mt-2 pt-2 border-top">
+                        <div class="mb-2">
+                            <strong>Người hủy:</strong> 
+                            <span class="badge bg-danger">{{ $donHang->nguoiHuy->ho_ten_nd ?? $donHang->nguoi_huy ?? 'N/A' }}</span>
+                        </div>
+                        @if($donHang->ly_do_huy)
+                        <div class="mb-0">
+                            <strong>Lý do hủy:</strong> 
+                            <span class="text-danger">{{ $donHang->ly_do_huy }}</span>
+                        </div>
+                        @endif
                     </div>
                     @endif
                 </div>
@@ -108,6 +122,9 @@
                     @if(!in_array($donHang->trang_thai_dh, ['dang_van_chuyen', 'da_hoan_thanh', 'da_huy']))
                         <form method="POST" action="{{ route('admin.orders.cancel', $donHang->ma_don_hang) }}" onsubmit="return confirm('Xác nhận hủy đơn hàng?')">
                             @csrf
+                            <div class="mb-2">
+                                <textarea name="ly_do_huy" class="form-control form-control-sm" rows="2" placeholder="Nhập lý do hủy đơn..." required></textarea>
+                            </div>
                             <button type="submit" class="btn btn-outline-danger w-100">
                                 <i class="bi bi-x-circle me-1"></i>Hủy đơn hàng
                             </button>

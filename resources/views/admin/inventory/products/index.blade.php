@@ -51,7 +51,7 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="tab-categories" data-bs-toggle="tab" data-bs-target="#pane-categories" type="button" role="tab">
-                <i class="bi bi-tags me-1"></i> Nhóm sản phẩm <span class="badge bg-secondary ms-1">{{ $nhom_thuocs->count() }}</span>
+                <i class="bi bi-tags me-1"></i> Nhóm sản phẩm <span class="badge bg-warning text-primary ms-1">{{ $nhom_thuocs->count() }}</span>
             </button>
         </li>
         <li class="nav-item" role="presentation">

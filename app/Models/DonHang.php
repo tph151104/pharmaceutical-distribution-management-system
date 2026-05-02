@@ -17,12 +17,11 @@ class DonHang extends Model
         'ngay_dat',
         'trang_thai_dh',
         'nguoi_duyet',
+        'nguoi_huy',
+        'ly_do_huy',
         'tong_tien',
         'dia_chi_giao',
         'ghi_chu',
-        'image1',
-        'image2',
-        'image3',
     ];
 
     protected $casts = [
@@ -51,6 +50,14 @@ class DonHang extends Model
     public function nguoiDuyet()
     {
         return $this->belongsTo(NguoiDung::class, 'nguoi_duyet', 'ma_nguoi_dung');
+    }
+
+    /**
+     * Người hủy đơn hàng
+     */
+    public function nguoiHuy()
+    {
+        return $this->belongsTo(NguoiDung::class, 'nguoi_huy', 'ma_nguoi_dung');
     }
 
     /**

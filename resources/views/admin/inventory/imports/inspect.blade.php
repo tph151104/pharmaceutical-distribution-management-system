@@ -213,10 +213,16 @@
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold mb-1">Tải lên Giấy tờ liên quan (Tùy chọn)</label>
                             <input type="file" name="giay_to_lien_quan" class="form-control" accept="image/*,.pdf">
+                            @if($phieuNhap->giay_to_lien_quan)
+                                <div class="mt-1 small"><a href="{{ asset($phieuNhap->giay_to_lien_quan) }}" target="_blank"><i class="bi bi-file-earmark-check"></i> Đã tải lên tài liệu</a></div>
+                            @endif
                         </div>
                         <div class="col-12 col-md-6">
                             <label class="form-label small fw-semibold mb-1">Tải lên Tài liệu liên quan (Tùy chọn)</label>
                             <input type="file" name="tieu_lieu_lien_quan" class="form-control" accept="image/*,.pdf">
+                            @if($phieuNhap->tieu_lieu_lien_quan)
+                                <div class="mt-1 small"><a href="{{ asset($phieuNhap->tieu_lieu_lien_quan) }}" target="_blank"><i class="bi bi-file-earmark-check"></i> Đã tải lên tài liệu</a></div>
+                            @endif
                         </div>
                     </div>
                 </div>

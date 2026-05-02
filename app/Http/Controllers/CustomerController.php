@@ -117,6 +117,16 @@ class CustomerController extends Controller
     {
         $khachHang = KhachHang::findOrFail($id);
         
+        // Kiểm tra xem khách hàng đã có đơn hàng chưa
+        if ($khachHang->donHangs()->exists()) {
+            return back()->withErrors(['error' => 'Không thể xoá vì khách hàng này đã có đơn hàng trong hệ thống.']);
+        }
+
+        // Kiểm tra xem khách hàng đã có yêu cầu trả hàng chưa
+        if ($khachHang->khachTraHangs()->exists()) {
+            return back()->withErrors(['error' => 'Không thể xoá vì khách hàng này đã có yêu cầu trả hàng trong hệ thống.']);
+        }
+
         try {
             $khachHang->delete();
             return redirect()->route('customers.index')->with('success', 'Đã xoá khách hàng thành công!');

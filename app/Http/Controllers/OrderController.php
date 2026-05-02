@@ -152,9 +152,6 @@ class OrderController extends Controller
                 'ngay_dat' => Carbon::now(),
                 'trang_thai_dh' => 'cho_xu_ly',
                 'tong_tien' => $tongTien,
-                'image1' => '',
-                'image2' => '',
-                'image3' => '',
             ]);
 
             foreach ($chiTietData as $ct) {
@@ -209,7 +206,7 @@ class OrderController extends Controller
     /**
      * Hủy đơn hàng
      */
-    public function cancel($id)
+    public function cancel(Request $request, $id)
     {
         $donHang = DonHang::findOrFail($id);
 
@@ -218,7 +215,11 @@ class OrderController extends Controller
             return back()->withErrors(['error' => "Không thể hủy đơn hàng đang ở trạng thái {$statusName}."]);
         }
 
-        $donHang->update(['trang_thai_dh' => 'da_huy']);
+        $donHang->update([
+            'trang_thai_dh' => 'da_huy',
+            'nguoi_huy' => auth()->id(),
+            'ly_do_huy' => $request->ly_do_huy ?? 'Không có lý do',
+        ]);
 
         return back()->with('success', 'Đã hủy đơn hàng ' . $donHang->ma_don_hang);
     }

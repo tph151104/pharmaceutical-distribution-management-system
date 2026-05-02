@@ -42,4 +42,20 @@ class KhachHang extends Authenticatable
     {
         return $this->mat_khau;
     }
+
+    /**
+     * Các đơn hàng của khách hàng
+     */
+    public function donHangs()
+    {
+        return $this->hasMany(DonHang::class, 'ma_kh', 'ma_kh');
+    }
+
+    /**
+     * Các yêu cầu trả hàng của khách hàng
+     */
+    public function khachTraHangs()
+    {
+        return $this->hasMany(KhachTraHang::class, 'ma_kh', 'ma_kh');
+    }
 }

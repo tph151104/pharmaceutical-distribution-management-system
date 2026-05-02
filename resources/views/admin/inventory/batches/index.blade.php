@@ -206,7 +206,7 @@
                                 <button type="button" class="btn btn-sm btn-outline-info" title="Xem vị trí phân bổ"
                                     data-thuoc="{{ $ton->thuoc->ten_thuoc ?? $ton->ma_thuoc }}"
                                     data-lo="{{ $ton->so_lo }}"
-                                    data-locations="{{ htmlspecialchars(json_encode($locationsData)) }}"
+                                    data-locations="{{ json_encode($locationsData) }}"
                                     onclick="openLocationsModal(this)">
                                     <i class="bi bi-geo-alt"></i>
                                 </button>

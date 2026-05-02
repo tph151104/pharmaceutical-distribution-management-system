@@ -129,6 +129,33 @@
                                 {{ number_format($item->so_luong) }}
                             </td>
                             <td class="text-end">
+                                @php
+                                    $detailLocations = \App\Models\TonKhoKhuVuc::with('khuVuc')
+                                        ->where('ma_thuoc', $item->ma_thuoc)
+                                        ->where('ma_phieu_nhap', $item->ma_phieu_nhap)
+                                        ->where('so_lo', $item->so_lo)
+                                        ->get();
+                                    $detailHistory = \App\Models\LichSuDichChuyenKho::with(['tuKhuVucKho', 'denKhuVucKho', 'nguoiThucHien'])
+                                        ->where('ma_thuoc', $item->ma_thuoc)
+                                        ->where('so_lo', $item->so_lo)
+                                        ->orderBy('ngay_chuyen', 'desc')
+                                        ->limit(10)
+                                        ->get();
+                                @endphp
+                                <button type="button" class="btn btn-sm btn-outline-info d-inline-flex align-items-center me-1"
+                                    data-thuoc="{{ $item->thuoc->ten_thuoc ?? 'N/A' }}"
+                                    data-ma-thuoc="{{ $item->ma_thuoc }}"
+                                    data-so-lo="{{ $item->so_lo }}"
+                                    data-ma-pn="{{ $item->ma_phieu_nhap }}"
+                                    data-khu-vuc="{{ $item->khuVuc->ten_khu_vuc ?? $item->ma_khu_vuc }}"
+                                    data-so-luong="{{ $item->so_luong }}"
+                                    data-hsd="{{ ($item->tonKho && $item->tonKho->han_su_dung) ? $item->tonKho->han_su_dung->format('d/m/Y') : 'N/A' }}"
+                                    data-trang-thai="{{ $item->tonKho->trang_thai_lo ?? 'N/A' }}"
+                                    data-locations="{{ json_encode($detailLocations->map(fn($l) => ['kv' => $l->khuVuc->ten_khu_vuc ?? $l->ma_khu_vuc, 'sl' => $l->so_luong])->toArray()) }}"
+                                    data-history="{{ json_encode($detailHistory->map(fn($h) => ['ngay' => $h->ngay_chuyen ? $h->ngay_chuyen->format('d/m/Y H:i') : '', 'tu' => $h->tuKhuVucKho->ten_khu_vuc ?? $h->tu_khu_vuc, 'den' => $h->denKhuVucKho->ten_khu_vuc ?? $h->den_khu_vuc, 'sl' => $h->so_luong_chuyen, 'ly_do' => $h->ly_do_chuyen ?? '', 'nguoi' => $h->nguoiThucHien->ho_ten_nd ?? $h->nguoi_thuc_hien])->toArray()) }}"
+                                    onclick="openDetailModal(this)">
+                                    <i class="bi bi-eye me-1"></i> Chi tiết
+                                </button>
                                 <button onclick="openTransferModal({{ $item->id }}, '{{ $item->thuoc ? $item->thuoc->ten_thuoc : 'N/A' }}', '{{ $item->so_lo }}', '{{ $item->khuVuc->ten_khu_vuc }}', {{ $item->so_luong }})" 
                                     class="btn btn-sm btn-primary d-inline-flex align-items-center shadow-sm">
                                     <i class="bi bi-arrow-left-right me-1"></i> Luân Chuyển
@@ -156,7 +183,79 @@
     </div>
 </div>
 
-<!-- Modal Bootstrap 5 -->
+<!-- Modal Chi Tiết -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-info-circle me-2"></i>Chi tiết lô hàng tại kho</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Thông tin chung -->
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <div class="small text-muted">Sản phẩm</div>
+                        <div class="fw-bold text-primary" id="detail_thuoc"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">Số lô</div>
+                        <div class="fw-semibold" id="detail_so_lo"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small text-muted">HSD</div>
+                        <div class="fw-semibold" id="detail_hsd"></div>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <div class="small text-muted">Mã phiếu nhập</div>
+                        <div class="fw-semibold" id="detail_ma_pn"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">Khu vực hiện tại</div>
+                        <span class="badge bg-info text-dark" id="detail_khu_vuc"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="small text-muted">Trạng thái lô</div>
+                        <span class="badge" id="detail_trang_thai"></span>
+                    </div>
+                </div>
+
+                <!-- Phân bổ khu vực -->
+                <h6 class="fw-bold border-bottom pb-2 mb-2"><i class="bi bi-geo-alt me-1"></i>Phân bổ theo khu vực</h6>
+                <table class="table table-sm table-bordered mb-3">
+                    <thead class="table-light">
+                        <tr><th>Khu vực</th><th class="text-end" style="width:100px;">Số lượng</th></tr>
+                    </thead>
+                    <tbody id="detail_locations_body"></tbody>
+                </table>
+
+                <!-- Lịch sử luân chuyển gần đây -->
+                <h6 class="fw-bold border-bottom pb-2 mb-2"><i class="bi bi-clock-history me-1"></i>Lịch sử luân chuyển gần đây</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-nowrap">Thời gian</th>
+                                <th>Hành trình</th>
+                                <th class="text-center" style="width:70px;">SL</th>
+                                <th>Người thực hiện</th>
+                                <th>Lý do</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail_history_body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Luân Chuyển -->
 <div class="modal fade" id="transferModal" tabindex="-1" aria-labelledby="transferModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow">
@@ -170,7 +269,6 @@
                 @csrf
                 <input type="hidden" name="id_ton_kho_khu_vuc" id="modal_id_ton_kho_khu_vuc">
                 <div class="modal-body bg-light">
-                    <!-- Detail info -->
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-body p-3">
                             <div class="d-flex align-items-center mb-2 pb-2 border-bottom">
@@ -181,7 +279,6 @@
                                 <span class="text-muted fw-bold me-2" style="width: 70px;">Số Lô:</span>
                                 <span id="modal_so_lo" class="fw-bold text-dark"></span>
                             </div>
-                            
                             <div class="row g-2 text-center text-sm">
                                 <div class="col-6">
                                     <div class="p-2 border rounded bg-white mt-1">
@@ -198,8 +295,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Form inputs -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark">Chuyển đến Khu vực đích <span class="text-danger">*</span></label>
                         <select name="den_khu_vuc" required class="form-select border-secondary-subtle">
@@ -209,13 +304,11 @@
                             @endforeach
                         </select>
                     </div>
-                    
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark">Số lượng chuyển <span class="text-danger">*</span></label>
                         <input type="number" name="so_luong_chuyen" id="modal_so_luong_chuyen" min="1" required class="form-control border-secondary-subtle">
                         <div class="form-text">Tối đa: <strong id="modal_hint_max" class="text-primary">0</strong></div>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark">Lý do luân chuyển (Tuỳ chọn)</label>
                         <textarea name="ly_do" rows="2" class="form-control border-secondary-subtle" placeholder="Ghi chú thêm..."></textarea>
@@ -250,12 +343,67 @@
         
         const inputSL = document.getElementById('modal_so_luong_chuyen');
         inputSL.max = maxQty;
-        inputSL.value = maxQty; // Default to max
+        inputSL.value = maxQty;
         
         if (transferModal) {
             transferModal.show();
         }
     }
+
+    function openDetailModal(btn) {
+        document.getElementById('detail_thuoc').textContent = btn.dataset.thuoc;
+        document.getElementById('detail_so_lo').textContent = btn.dataset.soLo;
+        document.getElementById('detail_hsd').textContent = btn.dataset.hsd;
+        document.getElementById('detail_ma_pn').textContent = btn.dataset.maPn;
+        document.getElementById('detail_khu_vuc').textContent = btn.dataset.khuVuc;
+
+        // Trạng thái lô
+        const ttBadge = document.getElementById('detail_trang_thai');
+        const tt = btn.dataset.trangThai;
+        const ttMap = {
+            'dang_ban': ['Đang bán', 'bg-success'],
+            'cho_duyet': ['Chờ duyệt', 'bg-secondary'],
+            'ngung_ban': ['Ngưng bán', 'bg-warning text-dark'],
+            'het_han': ['Hết hạn', 'bg-danger']
+        };
+        ttBadge.textContent = (ttMap[tt] || [tt, 'bg-light text-dark'])[0];
+        ttBadge.className = 'badge ' + (ttMap[tt] || [tt, 'bg-light text-dark'])[1];
+
+        // Phân bổ khu vực
+        let locations = [];
+        try { locations = JSON.parse(btn.dataset.locations || '[]'); } catch(e) {}
+        const locBody = document.getElementById('detail_locations_body');
+        locBody.innerHTML = '';
+        if (locations.length > 0) {
+            locations.forEach(l => {
+                locBody.innerHTML += `<tr><td><span class="badge bg-light text-dark border"><i class="bi bi-box me-1"></i>${l.kv}</span></td><td class="text-end fw-bold">${l.sl}</td></tr>`;
+            });
+        } else {
+            locBody.innerHTML = '<tr><td colspan="2" class="text-center text-muted small py-2">Không có dữ liệu</td></tr>';
+        }
+
+        // Lịch sử luân chuyển
+        let history = [];
+        try { history = JSON.parse(btn.dataset.history || '[]'); } catch(e) {}
+        const hisBody = document.getElementById('detail_history_body');
+        hisBody.innerHTML = '';
+        if (history.length > 0) {
+            history.forEach(h => {
+                hisBody.innerHTML += `<tr>
+                    <td class="text-nowrap small">${h.ngay}</td>
+                    <td><span class="badge bg-secondary">${h.tu}</span> <i class="bi bi-arrow-right text-muted mx-1"></i> <span class="badge bg-info text-dark">${h.den}</span></td>
+                    <td class="text-center fw-bold text-success">+${h.sl}</td>
+                    <td class="small">${h.nguoi}</td>
+                    <td class="small text-muted">${h.ly_do || '-'}</td>
+                </tr>`;
+            });
+        } else {
+            hisBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted small py-2">Chưa có lịch sử luân chuyển</td></tr>';
+        }
+
+        new bootstrap.Modal(document.getElementById('detailModal')).show();
+    }
 </script>
 @endpush
 @endsection
+

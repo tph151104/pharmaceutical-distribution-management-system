@@ -54,13 +54,11 @@ Route::middleware('auth:admin')->group(function () {
 
     // ── Tài khoản cá nhân (Tất cả roles) ─────────────────────
     Route::prefix('account')->name('account.')->group(function () {
-        Route::get('/profile', function () {
-            return view('admin.account.profile');
-        })->name('profile');
+        Route::get('/profile', [\App\Http\Controllers\AccountController::class, 'profile'])->name('profile');
+        Route::post('/profile', [\App\Http\Controllers\AccountController::class, 'updateProfile'])->name('updateProfile');
 
-        Route::get('/password', function () {
-            return view('admin.account.password');
-        })->name('password');
+        Route::get('/password', [\App\Http\Controllers\AccountController::class, 'password'])->name('password');
+        Route::post('/password', [\App\Http\Controllers\AccountController::class, 'updatePassword'])->name('updatePassword');
     });
 
     // ═══════════════════════════════════════════════════════════
