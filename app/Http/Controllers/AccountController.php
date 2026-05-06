@@ -29,7 +29,7 @@ class AccountController extends Controller
         $user->email = $request->email;
         $user->sdt = $request->sdt;
         
-        // Save using Eloquent to update specific fields without side effects on password etc.
+        // Lưu bằng Eloquent để cập nhật các trường cụ thể mà không ảnh hưởng đến mật khẩu, v.v.
         $user->save();
 
         return redirect()->route('account.profile')->with('success', 'Đã cập nhật thông tin cá nhân thành công.');

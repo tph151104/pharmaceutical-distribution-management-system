@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+<?php use App\Models\TonKhoKhuVuc; use App\Models\LichSuDichChuyenKho; ?>
+
 @section('title', 'Quản lý Luân chuyển Kho')
 
 @section('content')
@@ -130,12 +132,12 @@
                             </td>
                             <td class="text-end">
                                 @php
-                                    $detailLocations = \App\Models\TonKhoKhuVuc::with('khuVuc')
+                                    $detailLocations = TonKhoKhuVuc::with('khuVuc')
                                         ->where('ma_thuoc', $item->ma_thuoc)
                                         ->where('ma_phieu_nhap', $item->ma_phieu_nhap)
                                         ->where('so_lo', $item->so_lo)
                                         ->get();
-                                    $detailHistory = \App\Models\LichSuDichChuyenKho::with(['tuKhuVucKho', 'denKhuVucKho', 'nguoiThucHien'])
+                                    $detailHistory = LichSuDichChuyenKho::with(['tuKhuVucKho', 'denKhuVucKho', 'nguoiThucHien'])
                                         ->where('ma_thuoc', $item->ma_thuoc)
                                         ->where('so_lo', $item->so_lo)
                                         ->orderBy('ngay_chuyen', 'desc')
@@ -152,14 +154,25 @@
                                     data-hsd="{{ ($item->tonKho && $item->tonKho->han_su_dung) ? $item->tonKho->han_su_dung->format('d/m/Y') : 'N/A' }}"
                                     data-trang-thai="{{ $item->tonKho->trang_thai_lo ?? 'N/A' }}"
                                     data-locations="{{ json_encode($detailLocations->map(fn($l) => ['kv' => $l->khuVuc->ten_khu_vuc ?? $l->ma_khu_vuc, 'sl' => $l->so_luong])->toArray()) }}"
-                                    data-history="{{ json_encode($detailHistory->map(fn($h) => ['ngay' => $h->ngay_chuyen ? $h->ngay_chuyen->format('d/m/Y H:i') : '', 'tu' => $h->tuKhuVucKho->ten_khu_vuc ?? $h->tu_khu_vuc, 'den' => $h->denKhuVucKho->ten_khu_vuc ?? $h->den_khu_vuc, 'sl' => $h->so_luong_chuyen, 'ly_do' => $h->ly_do_chuyen ?? '', 'nguoi' => $h->nguoiThucHien->ho_ten_nd ?? $h->nguoi_thuc_hien])->toArray()) }}"
+                                    data-history="{{ json_encode($detailHistory->map(fn($h) => ['ngay' => $h->ngay_chuyen ? $h->ngay_chuyen->format('d/m/Y H:i') : '', 'tu' => $h->tu_khu_vuc ? ($h->tuKhuVucKho->ten_khu_vuc ?? $h->tu_khu_vuc) : 'Nhận hàng', 'den' => $h->den_khu_vuc ? ($h->denKhuVucKho->ten_khu_vuc ?? $h->den_khu_vuc) : 'Xuất kho', 'sl' => $h->so_luong_chuyen, 'ly_do' => $h->ly_do_chuyen ?? '', 'nguoi' => $h->nguoiThucHien->ho_ten_nd ?? $h->nguoi_thuc_hien])->toArray()) }}"
                                     onclick="openDetailModal(this)">
                                     <i class="bi bi-eye me-1"></i> Chi tiết
                                 </button>
-                                <button onclick="openTransferModal({{ $item->id }}, '{{ $item->thuoc ? $item->thuoc->ten_thuoc : 'N/A' }}', '{{ $item->so_lo }}', '{{ $item->khuVuc->ten_khu_vuc }}', {{ $item->so_luong }})" 
+                                @if($item->ma_khu_vuc !== 'KV05_LOAI_BO')
+                                <button onclick="openTransferModal({{ $item->id }}, '{{ $item->thuoc ? $item->thuoc->ten_thuoc : 'N/A' }}', '{{ $item->so_lo }}', '{{ $item->khuVuc->ten_khu_vuc }}', {{ $item->so_luong }}, '{{ $item->ma_khu_vuc }}')" 
                                     class="btn btn-sm btn-primary d-inline-flex align-items-center shadow-sm">
                                     <i class="bi bi-arrow-left-right me-1"></i> Luân Chuyển
                                 </button>
+                                @if($item->ma_khu_vuc === 'KV04_CHO_XU_LY')
+                                <a href="{{ route('supplier-returns.create', ['ma_thuoc' => $item->ma_thuoc, 'so_lo' => $item->so_lo, 'ma_phieu_nhap' => $item->ma_phieu_nhap]) }}" class="btn btn-sm btn-warning d-inline-flex align-items-center shadow-sm ms-1">
+                                    <i class="bi bi-box-arrow-right me-1"></i> Trả NCC
+                                </a>
+                                @endif
+                                @else
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                    <i class="bi bi-lock me-1"></i>Đã loại bỏ
+                                </span>
+                                @endif
                             </td>
                         </tr>
                     @empty
@@ -268,6 +281,7 @@
             <form action="{{ route('transfers.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="id_ton_kho_khu_vuc" id="modal_id_ton_kho_khu_vuc">
+                <input type="hidden" id="modal_ma_khu_vuc" value="">
                 <div class="modal-body bg-light">
                     <div class="card border-0 shadow-sm mb-4">
                         <div class="card-body p-3">
@@ -309,6 +323,10 @@
                         <input type="number" name="so_luong_chuyen" id="modal_so_luong_chuyen" min="1" required class="form-control border-secondary-subtle">
                         <div class="form-text">Tối đa: <strong id="modal_hint_max" class="text-primary">0</strong></div>
                     </div>
+                    <div class="alert alert-warning small mb-3" id="lyDoWarning" style="display: none;">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        <strong>Bắt buộc nhập lý do!</strong> Khi chuyển hàng từ <em>Kho Chờ xử lý</em> trở lại <em>Kho Thành phẩm</em>, bạn phải ghi rõ lý do.
+                    </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark">Lý do luân chuyển (Tuỳ chọn)</label>
                         <textarea name="ly_do" rows="2" class="form-control border-secondary-subtle" placeholder="Ghi chú thêm..."></textarea>
@@ -328,13 +346,34 @@
 @push('scripts')
 <script>
     let transferModal;
+    // Ma trận chuyển kho hợp lệ từ backend
+    const allowedTransfers = @json($allowedTransfers);
     
     document.addEventListener("DOMContentLoaded", function() {
         transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
+
+        // Lắng nghe thay đổi dropdown khu vực đích để hiện cảnh báo KV04→KV03
+        const denKhuVucSelect = document.querySelector('select[name="den_khu_vuc"]');
+        const lyDoTextarea = document.querySelector('textarea[name="ly_do"]');
+        const lyDoWarning = document.getElementById('lyDoWarning');
+
+        if (denKhuVucSelect) {
+            denKhuVucSelect.addEventListener('change', function() {
+                const currentSource = document.getElementById('modal_ma_khu_vuc').value;
+                if (currentSource === 'KV04_CHO_XU_LY' && this.value === 'KV03_THANH_PHAM') {
+                    lyDoWarning.style.display = 'block';
+                    lyDoTextarea.required = true;
+                } else {
+                    lyDoWarning.style.display = 'none';
+                    lyDoTextarea.required = false;
+                }
+            });
+        }
     });
 
-    function openTransferModal(id, tenThuoc, soLo, tuKhuVuc, maxQty) {
+    function openTransferModal(id, tenThuoc, soLo, tuKhuVuc, maxQty, maKhuVuc) {
         document.getElementById('modal_id_ton_kho_khu_vuc').value = id;
+        document.getElementById('modal_ma_khu_vuc').value = maKhuVuc;
         document.getElementById('modal_ten_thuoc').textContent = tenThuoc;
         document.getElementById('modal_so_lo').textContent = soLo;
         document.getElementById('modal_tu_khu_vuc').textContent = tuKhuVuc;
@@ -344,6 +383,23 @@
         const inputSL = document.getElementById('modal_so_luong_chuyen');
         inputSL.max = maxQty;
         inputSL.value = maxQty;
+
+        // Lọc dropdown khu vực đích theo ma trận GSP
+        const denKhuVucSelect = document.querySelector('select[name="den_khu_vuc"]');
+        const allowed = allowedTransfers[maKhuVuc] || [];
+        
+        Array.from(denKhuVucSelect.options).forEach(opt => {
+            if (opt.value === '') {
+                opt.style.display = ''; // Luôn hiện option rỗng
+            } else {
+                opt.style.display = allowed.includes(opt.value) ? '' : 'none';
+            }
+        });
+        denKhuVucSelect.value = ''; // Reset selection
+
+        // Reset cảnh báo lý do
+        document.getElementById('lyDoWarning').style.display = 'none';
+        document.querySelector('textarea[name="ly_do"]').required = false;
         
         if (transferModal) {
             transferModal.show();

@@ -78,7 +78,7 @@ class MedicineController extends Controller
                                         //hàm "lấp đầy" chuỗi.
         $validated['ma_thuoc'] = 'TH' . str_pad($newNum, 4, '0', STR_PAD_LEFT);//Bù vào bên trái
 
-        // Upload images
+        // Tải lên hình ảnh
         $imagePaths = [];
         for ($i = 1; $i <= 3; $i++) {
             if ($request->hasFile('image'.$i)) {
@@ -129,7 +129,7 @@ class MedicineController extends Controller
                 $image->move(public_path('uploads/thuoc'), $imageName);
                 $validated['image'.$i] = 'uploads/thuoc/' . $imageName;
                 
-                // Delete old image if exists
+                // Xóa hình ảnh cũ nếu tồn tại
                 if ($thuoc->{'image'.$i} && file_exists(public_path($thuoc->{'image'.$i}))) {
                     @unlink(public_path($thuoc->{'image'.$i}));
                 }
@@ -154,7 +154,7 @@ class MedicineController extends Controller
             return redirect()->route('products.index')->with('error', "Không thể xoá thuốc " . $thuoc->ten_thuoc . " vì sản phẩm này đã có dữ liệu trong tồn kho.");
         }
 
-        // Delete images
+        // Xóa hình ảnh
         for ($i = 1; $i <= 3; $i++) {
             if ($thuoc->{'image'.$i} && file_exists(public_path($thuoc->{'image'.$i}))) {
                 @unlink(public_path($thuoc->{'image'.$i}));

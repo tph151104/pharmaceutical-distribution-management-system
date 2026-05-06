@@ -41,7 +41,6 @@
                             <option value="">-- Tất cả --</option>
                             <option value="nhap" {{ request('loai_gd') == 'nhap' ? 'selected' : '' }}>Nhập kho</option>
                             <option value="xuat" {{ request('loai_gd') == 'xuat' ? 'selected' : '' }}>Xuất kho</option>
-                            <option value="dieu_chinh" {{ request('loai_gd') == 'dieu_chinh' ? 'selected' : '' }}>Điều chỉnh</option>
                         </select>
                     </div>
                     <div class="col-md-3">

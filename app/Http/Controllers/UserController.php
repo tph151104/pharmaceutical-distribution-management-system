@@ -52,7 +52,7 @@ class UserController extends Controller
             'mat_khau'      => 'required|string|min:6',
             'email'         => 'required|email|max:191|unique:nguoi_dung',
             'sdt'           => 'required|string|max:20',
-            'role'          => 'required|integer|in:1,2,3,4,5',
+            'role'          => 'required|integer|in:2,3,4,5',
         ], [
             'ten_dang_nhap.unique' => 'Tên đăng nhập đã tồn tại.',
             'email.unique'         => 'Email đã được sử dụng.',
@@ -99,7 +99,7 @@ class UserController extends Controller
             'ho_ten_nd'     => 'required|string|max:255',
             'email'         => 'required|email|max:191|unique:nguoi_dung,email,' . $id . ',ma_nguoi_dung',
             'sdt'           => 'required|string|max:20',
-            'role'          => 'required|integer|in:1,2,3,4,5',
+            'role'          => 'required|integer|in:2,3,4,5',
         ]);
 
         $data = $request->only(['ho_ten_nd', 'email', 'sdt', 'role']);

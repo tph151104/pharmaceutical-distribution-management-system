@@ -85,7 +85,7 @@ class XuatKhoService
     public function xuatKho(string $maThuoc, string $soLo, string $maPhieuNhap, int $soLuongXuat): bool
     {
         return DB::transaction(function () use ($maThuoc, $soLo, $maPhieuNhap, $soLuongXuat) {
-            // Lock row để tránh race condition
+            // Khóa hàng (Lock row) để tránh tranh chấp dữ liệu (race condition)
             $lo = TonKho::where('ma_thuoc', $maThuoc)
                 ->where('so_lo', $soLo)
                 ->where('ma_phieu_nhap', $maPhieuNhap)

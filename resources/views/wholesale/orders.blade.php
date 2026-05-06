@@ -1,5 +1,7 @@
 @extends('layouts.wholesale')
 
+<?php use App\Models\PhieuXuat; use App\Models\ThanhToan; ?>
+
 @section('title', 'Đơn hàng của tôi')
 
 @section('content')
@@ -36,8 +38,8 @@
                     <tbody>
                         @forelse($donHangs as $dh)
                             @php
-                                $px = \App\Models\PhieuXuat::where('ma_don_hang', $dh->ma_don_hang)->first();
-                                $daTra = $px ? \App\Models\ThanhToan::where('ma_phieu_xuat', $px->ma_phieu_xuat)->sum('so_tien_tt') : 0;
+                                $px = PhieuXuat::where('ma_don_hang', $dh->ma_don_hang)->first();
+                                $daTra = $px ? ThanhToan::where('ma_phieu_xuat', $px->ma_phieu_xuat)->sum('so_tien_tt') : 0;
                                 $no = $dh->tong_tien - $daTra;
                             @endphp
                             <tr>

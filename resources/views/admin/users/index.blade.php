@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+<?php use App\Models\NguoiDung; ?>
+
 @section('title', 'Quản lý Người dùng')
 
 @section('content-header')
@@ -47,7 +49,7 @@
             <div class="col-md-2">
                 <select class="form-select form-select-sm" name="role">
                     <option value="">Tất cả chức vụ</option>
-                    @foreach(\App\Models\NguoiDung::ROLE_NAMES as $id => $name)
+                    @foreach(NguoiDung::ROLE_NAMES as $id => $name)
                         <option value="{{ $id }}" {{ request('role') == $id ? 'selected' : '' }}>{{ $name }}</option>
                     @endforeach
                 </select>
@@ -118,9 +120,9 @@
                             @endif
                         </td>
                         <td class="text-center">
-                            <div class="btn-group btn-group-sm">
+                            <div class="d-flex gap-2 justify-content-center">
                                 
-                                <button class="btn btn-outline-primary" title="Sửa"
+                                <button class="btn btn-sm btn-outline-primary" title="Sửa"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editUserModal"
                                         data-id="{{ $user->ma_nguoi_dung }}"
@@ -134,7 +136,7 @@
                                 <form method="POST" action="{{ route('admin.users.toggleStatus', $user->ma_nguoi_dung) }}"
                                       class="d-inline" onsubmit="return confirm('Xác nhận thay đổi trạng thái?')">
                                     @csrf @method('PUT')
-                                    <button type="submit" class="btn btn-outline-warning" title="{{ $user->trang_thai === 'cho_phep_hd' ? 'Vô hiệu hóa' : 'Kích hoạt' }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning" title="{{ $user->trang_thai === 'cho_phep_hd' ? 'Vô hiệu hóa' : 'Kích hoạt' }}">
                                         <i class="bi bi-{{ $user->trang_thai === 'cho_phep_hd' ? 'lock' : 'unlock' }}"></i>
                                     </button>
                                 </form>
@@ -142,7 +144,7 @@
                                 <form method="POST" action="{{ route('admin.users.destroy', $user->ma_nguoi_dung) }}"
                                       class="d-inline" onsubmit="return confirm('Xác nhận xóa người dùng này?')">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger" title="Xóa">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -202,8 +204,10 @@
                         <label class="form-label fw-semibold">Chức vụ <span class="text-danger">*</span></label>
                         <select class="form-select" name="role" required>
                             <option value="">-- Chọn chức vụ --</option>
-                            @foreach(\App\Models\NguoiDung::ROLE_NAMES as $id => $name)
-                                <option value="{{ $id }}">{{ $name }}</option>
+                            @foreach(NguoiDung::ROLE_NAMES as $id => $name)
+                                @if($id !== NguoiDung::ROLE_ADMIN)
+                                    <option value="{{ $id }}">{{ $name }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
@@ -257,8 +261,10 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Chức vụ <span class="text-danger">*</span></label>
                         <select class="form-select" name="role" id="edit_role" required>
-                            @foreach(\App\Models\NguoiDung::ROLE_NAMES as $id => $name)
-                                <option value="{{ $id }}">{{ $name }}</option>
+                            @foreach(NguoiDung::ROLE_NAMES as $id => $name)
+                                @if($id !== NguoiDung::ROLE_ADMIN)
+                                    <option value="{{ $id }}">{{ $name }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>

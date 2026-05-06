@@ -25,4 +25,9 @@ class NhaCungCap extends Model
     {
         return $this->hasMany(PhieuNhap::class, 'ma_ncc', 'ma_ncc');
     }
+
+    public function cacPhieuTra()
+    {
+        return $this->hasMany(PhieuTraNcc::class, 'ma_ncc', 'ma_ncc');
+    }
 }

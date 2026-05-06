@@ -47,9 +47,11 @@ class InventoryController extends Controller
         // Xử lý tìm kiếm 
         if ($request->has('search') && $request->search != '') {
             $searchTerm = $request->search;
-            $query->whereHas('thuoc', function($q) use ($searchTerm) {
-                $q->where('ma_thuoc', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('ten_thuoc', 'like', '%' . $searchTerm . '%');
+            $query->where(function($q) use ($searchTerm) {
+                $q->whereHas('thuoc', function($qThuoc) use ($searchTerm) {
+                    $qThuoc->where('ma_thuoc', 'like', '%' . $searchTerm . '%')
+                           ->orWhere('ten_thuoc', 'like', '%' . $searchTerm . '%');
+                })->orWhere('ma_phieu_nhap', 'like', '%' . $searchTerm . '%');
             });
         }
 

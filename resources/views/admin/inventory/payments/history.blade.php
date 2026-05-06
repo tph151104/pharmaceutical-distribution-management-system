@@ -34,7 +34,7 @@
                 <li class="nav-item" role="presentation">
                     <a href="{{ route('payments.history', ['tab' => 'tra_hang', 'group_by' => request('group_by'), 'search' => request('search'), 'from_date' => request('from_date'), 'to_date' => request('to_date')]) }}"
                        class="nav-link {{ $tab == 'tra_hang' ? 'active bg-warning text-dark' : 'text-warning' }}">
-                        <i class="bi bi-arrow-return-left me-1"></i>Hoàn trả đơn hàng (KH)
+                        <i class="bi bi-arrow-return-left me-1"></i>Hoàn trả hàng (KH & NCC)
                     </a>
                 </li>
             </ul>
@@ -61,7 +61,7 @@
                         <input class="form-check-input" type="checkbox" role="switch" id="groupByBtn"
                                name="group_by" value="true" {{ $groupBy == 'true' ? 'checked' : '' }}>
                         <label class="form-check-label small fw-medium text-dark" for="groupByBtn">
-                            {{ $tab === 'tra_hang' ? 'Gom nhóm theo Mã Đơn Trả' : 'Gom nhóm theo Mã Phiếu' }}
+                            {{ $tab === 'tra_hang' ? 'Gom nhóm theo Mã Đơn/Phiếu' : 'Gom nhóm theo Mã Phiếu' }}
                         </label>
                     </div>
                 </div>
@@ -90,8 +90,8 @@
                         {{-- CHẾ ĐỘ GOM NHÓM --}}
                         <thead class="table-light">
                             <tr>
-                                <th class="ps-3 border-bottom-0">Mã Đơn Trả</th>
-                                <th class="border-bottom-0">Khách Hàng</th>
+                                <th class="ps-3 border-bottom-0">Mã Đơn/Phiếu</th>
+                                <th class="border-bottom-0">Đối Tác</th>
                                 <th class="border-bottom-0 text-center">Số giao dịch</th>
                                 <th class="border-bottom-0 text-end">Tổng đã hoàn (trong kỳ lọc)</th>
                                 <th class="pe-3 border-bottom-0 text-end">Hành động</th>
@@ -101,12 +101,14 @@
                             @forelse($transactions as $maTraHang => $groupTx)
                                 @php
                                     $firstTx = $groupTx->first();
-                                    $khachHang = $firstTx->khachTraHang->khachHang->ten_kh ?? 'N/A';
+                                    $doiTuong = $firstTx->ma_phieu_tra_ncc 
+                                        ? ($firstTx->phieuTraNcc->nhaCungCap->ten_ncc ?? 'N/A')
+                                        : ($firstTx->khachTraHang->khachHang->ten_kh ?? 'N/A');
                                     $tongTienNhom = $groupTx->sum('so_tien_tt');
                                 @endphp
                                 <tr class="table-secondary border-bottom">
                                     <td class="ps-3 fw-bold text-warning">{{ $maTraHang ?? 'Không chỉ định' }}</td>
-                                    <td class="fw-semibold">{{ $khachHang }}</td>
+                                    <td class="fw-semibold">{{ $doiTuong }}</td>
                                     <td class="text-center"><span class="badge bg-secondary">{{ $groupTx->count() }} GD</span></td>
                                     <td class="text-end fw-bold text-warning">
                                         {{ number_format($tongTienNhom) }}đ
@@ -162,8 +164,8 @@
                             <tr>
                                 <th class="ps-3 border-bottom-0">Ngày GD</th>
                                 <th class="border-bottom-0">Mã GD</th>
-                                <th class="border-bottom-0">Mã Đơn Trả</th>
-                                <th class="border-bottom-0">Khách Hàng</th>
+                                <th class="border-bottom-0">Mã Đơn/Phiếu</th>
+                                <th class="border-bottom-0">Đối Tác</th>
                                 <th class="border-bottom-0">Phương thức TT</th>
                                 <th class="border-bottom-0 text-end">Số Tiền Hoàn (VNĐ)</th>
                                 <th class="pe-3 border-bottom-0 text-center">Khác</th>
@@ -177,8 +179,14 @@
                                         <div class="small text-muted">{{ $tx->created_at->format('H:i:s') }}</div>
                                     </td>
                                     <td><span class="fw-semibold text-warning">{{ $tx->ma_thanh_toan }}</span></td>
-                                    <td><span class="fw-medium">{{ $tx->ma_tra_hang }}</span></td>
-                                    <td>{{ $tx->khachTraHang->khachHang->ten_kh ?? 'N/A' }}</td>
+                                    <td><span class="fw-medium">{{ $tx->ma_tra_hang ?: $tx->ma_phieu_tra_ncc }}</span></td>
+                                    <td>
+                                        @if($tx->ma_phieu_tra_ncc)
+                                            <i class="bi bi-building me-1 text-muted"></i>{{ $tx->phieuTraNcc->nhaCungCap->ten_ncc ?? 'N/A' }}
+                                        @else
+                                            <i class="bi bi-person me-1 text-muted"></i>{{ $tx->khachTraHang->khachHang->ten_kh ?? 'N/A' }}
+                                        @endif
+                                    </td>
                                     <td>{{ $tx->phuong_thuc_tt }}</td>
                                     <td class="text-end fw-bold text-warning">
                                         {{ number_format($tx->so_tien_tt) }}

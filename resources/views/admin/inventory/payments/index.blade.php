@@ -56,9 +56,10 @@
                     <button class="nav-link {{ $activeTab == 'tra_hang' ? 'active' : '' }} fw-semibold"
                             id="return-tab" data-bs-toggle="tab" data-bs-target="#return-pane"
                             type="button" role="tab">
-                        <i class="bi bi-arrow-return-left text-warning me-1"></i>Hoàn trả đơn hàng (KH)
-                        @if($donTraHangs->count() > 0)
-                            <span class="badge bg-warning text-dark ms-1">{{ $donTraHangs->count() }}</span>
+                        <i class="bi bi-arrow-return-left text-warning me-1"></i>Hoàn trả hàng (KH & NCC)
+                        @php $totalPending = $donTraHangs->count() + $traNccs->count(); @endphp
+                        @if($totalPending > 0)
+                            <span class="badge bg-warning text-dark ms-1">{{ $totalPending }}</span>
                         @endif
                     </button>
                 </li>
@@ -206,17 +207,16 @@
                         </a>
                     </div>
                     <div class="table-responsive">
+                        <h6 class="p-3 mb-0 bg-light border-bottom text-primary fw-bold"><i class="bi bi-person-badge me-2"></i>Khách hàng trả hàng (Cần hoàn tiền)</h6>
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
                                     <th class="ps-3">Mã Đơn Trả</th>
                                     <th>Khách Hàng</th>
                                     <th>Đơn Hàng Gốc</th>
-                                    <th>Ngày Duyệt</th>
                                     <th>Tổng Hoàn</th>
                                     <th>Đã Hoàn</th>
-                                    <th>Còn Phải Hoàn</th>
-                                    <th>Trạng Thái</th>
+                                    <th>Còn Lại</th>
                                     <th class="text-end pe-3">Thao tác</th>
                                 </tr>
                             </thead>
@@ -224,44 +224,75 @@
                                 @forelse($donTraHangs as $dth)
                                     <tr>
                                         <td class="ps-3 fw-medium">
-                                            <a href="{{ route('admin.returns.show', $dth->ma_tra_hang) }}" class="text-decoration-none">
-                                                {{ $dth->ma_tra_hang }}
-                                            </a>
+                                            <a href="{{ route('admin.returns.show', $dth->ma_tra_hang) }}" class="text-decoration-none">{{ $dth->ma_tra_hang }}</a>
                                         </td>
                                         <td>{{ $dth->khachHang->ten_kh ?? 'N/A' }}</td>
                                         <td class="small text-muted">{{ $dth->ma_don_hang }}</td>
-                                        <td class="small">{{ $dth->ngay_duyet ? $dth->ngay_duyet->format('d/m/Y') : '-' }}</td>
                                         <td class="fw-semibold">{{ number_format($dth->tong_tien_hoan_tra) }}</td>
                                         <td class="text-success">{{ number_format($dth->so_tien_da_hoan ?? 0) }}</td>
                                         <td class="text-danger fw-bold">{{ number_format($dth->so_tien_con_hoan) }}</td>
-                                        <td>
-                                            @if($dth->trang_thai_hoan_tien == 'chua_hoan')
-                                                <span class="badge bg-danger shadow-sm"><i class="bi bi-x-circle me-1"></i>Chưa hoàn tiền</span>
-                                            @else
-                                                <span class="badge bg-warning text-dark shadow-sm"><i class="bi bi-hourglass-split me-1"></i>Hoàn một phần</span>
-                                            @endif
-                                        </td>
                                         <td class="text-end pe-3">
                                             <button type="button" class="btn btn-sm btn-warning fw-semibold"
                                                     onclick="openRefundModal({
-                                                        ma_tra_hang: '{{ $dth->ma_tra_hang }}',
-                                                        khach_hang: '{{ $dth->khachHang->ten_kh ?? "N/A" }}',
-                                                        ma_don_hang: '{{ $dth->ma_don_hang }}',
-                                                        tong_hoan: {{ $dth->tong_tien_hoan_tra ?? 0 }},
-                                                        da_hoan: {{ $dth->so_tien_da_hoan ?? 0 }},
-                                                        con_hoan: {{ $dth->so_tien_con_hoan ?? 0 }}
+                                                        type: 'customer',
+                                                        ma_phieu: '{{ $dth->ma_tra_hang }}',
+                                                        doituong: '{{ $dth->khachHang->ten_kh ?? "N/A" }}',
+                                                        phu_de: 'Đơn hàng: {{ $dth->ma_don_hang }}',
+                                                        tong: {{ $dth->tong_tien_hoan_tra ?? 0 }},
+                                                        da_tra: {{ $dth->so_tien_da_hoan ?? 0 }},
+                                                        con_lai: {{ $dth->so_tien_con_hoan ?? 0 }}
                                                     })">
-                                                <i class="bi bi-arrow-return-left me-1"></i>Hoàn tiền
+                                                <i class="bi bi-cash me-1"></i>Hoàn tiền
                                             </button>
                                         </td>
                                     </tr>
                                 @empty
+                                    <tr><td colspan="7" class="text-center py-3 text-muted small">Không có đơn khách trả hàng nào cần hoàn tiền.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+
+                        <h6 class="p-3 mb-0 bg-light border-bottom border-top text-danger fw-bold"><i class="bi bi-building me-2"></i>Trả hàng Nhà Cung Cấp (Cần nhận lại tiền)</h6>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Mã Phiếu Trả</th>
+                                    <th>Nhà Cung Cấp</th>
+                                    <th>Ngày Tạo</th>
+                                    <th>Tổng Tiền</th>
+                                    <th>Đã Nhận</th>
+                                    <th>Còn Lại</th>
+                                    <th class="text-end pe-3">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($traNccs as $tn)
                                     <tr>
-                                        <td colspan="9" class="text-center py-4 text-muted">
-                                            <i class="bi bi-check-circle fs-4 d-block mb-2 text-success"></i>
-                                            Không có đơn trả hàng nào cần hoàn tiền.
+                                        <td class="ps-3 fw-medium">
+                                            <a href="{{ route('supplier-returns.show', $tn->ma_phieu_tra_ncc) }}" class="text-decoration-none">{{ $tn->ma_phieu_tra_ncc }}</a>
+                                        </td>
+                                        <td>{{ $tn->nhaCungCap->ten_ncc ?? 'N/A' }}</td>
+                                        <td class="small">{{ $tn->ngay_tao ? $tn->ngay_tao->format('d/m/Y') : '-' }}</td>
+                                        <td class="fw-semibold">{{ number_format($tn->tong_tien) }}</td>
+                                        <td class="text-success">{{ number_format($tn->so_tien_da_nhan ?? 0) }}</td>
+                                        <td class="text-danger fw-bold">{{ number_format($tn->so_tien_con_nhan) }}</td>
+                                        <td class="text-end pe-3">
+                                            <button type="button" class="btn btn-sm btn-danger fw-semibold"
+                                                    onclick="openRefundModal({
+                                                        type: 'supplier',
+                                                        ma_phieu: '{{ $tn->ma_phieu_tra_ncc }}',
+                                                        doituong: '{{ $tn->nhaCungCap->ten_ncc ?? "N/A" }}',
+                                                        phu_de: 'Mã phiếu trả: {{ $tn->ma_phieu_tra_ncc }}',
+                                                        tong: {{ $tn->tong_tien ?? 0 }},
+                                                        da_tra: {{ $tn->so_tien_da_nhan ?? 0 }},
+                                                        con_lai: {{ $tn->so_tien_con_nhan ?? 0 }}
+                                                    })">
+                                                <i class="bi bi-wallet2 me-1"></i>Nhận tiền
+                                            </button>
                                         </td>
                                     </tr>
+                                @empty
+                                    <tr><td colspan="7" class="text-center py-3 text-muted small">Không có phiếu trả NCC nào cần thu hồi tiền.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -361,28 +392,28 @@
                     <div class="modal-body py-0 pt-3">
                         <div class="bg-light p-3 rounded mb-3">
                             <div class="row mb-1">
-                                <div class="col-5 text-muted small">Mã đơn trả:</div>
-                                <div class="col-7 fw-bold" id="ref_ma_tra_hang">-</div>
+                                <div class="col-5 text-muted small">Mã chứng từ:</div>
+                                <div class="col-7 fw-bold" id="ref_ma_phieu">-</div>
                             </div>
                             <div class="row mb-1">
-                                <div class="col-5 text-muted small">Khách hàng:</div>
-                                <div class="col-7 fw-medium" id="ref_khach_hang">-</div>
+                                <div class="col-5 text-muted small">Đối tượng:</div>
+                                <div class="col-7 fw-medium" id="ref_doi_tuong">-</div>
                             </div>
                             <div class="row mb-1">
-                                <div class="col-5 text-muted small">Đơn hàng gốc:</div>
-                                <div class="col-7 small text-muted" id="ref_ma_don_hang">-</div>
+                                <div class="col-5 text-muted small" id="ref_lbl_phu_de">Thông tin:</div>
+                                <div class="col-7 small text-muted" id="ref_val_phu_de">-</div>
                             </div>
                             <div class="row mb-1">
-                                <div class="col-5 text-muted small">Tổng cần hoàn:</div>
-                                <div class="col-7 fw-semibold" id="ref_tong_hoan">0</div>
+                                <div class="col-5 text-muted small">Tổng tiền:</div>
+                                <div class="col-7 fw-semibold" id="ref_tong">0</div>
                             </div>
                             <div class="row mb-1">
-                                <div class="col-5 text-muted small">Đã hoàn:</div>
-                                <div class="col-7 text-success" id="ref_da_hoan">0</div>
+                                <div class="col-5 text-muted small">Đã xử lý:</div>
+                                <div class="col-7 text-success" id="ref_da_tra">0</div>
                             </div>
                             <div class="row border-top pt-1 mt-1">
-                                <div class="col-5 text-muted small fw-bold">Còn phải hoàn:</div>
-                                <div class="col-7 text-danger fw-bold fs-5" id="ref_con_hoan">0</div>
+                                <div class="col-5 text-muted small fw-bold">Còn lại:</div>
+                                <div class="col-7 text-danger fw-bold fs-5" id="ref_con_lai">0</div>
                             </div>
                         </div>
 
@@ -475,24 +506,32 @@
 
     function openRefundModal(data) {
         // Set form action dynamically
-        document.getElementById('refundForm').action = `/admin/returns/${data.ma_tra_hang}/refund`;
+        if (data.type === 'customer') {
+            document.getElementById('refundForm').action = `/admin/returns/${data.ma_phieu}/refund`;
+            document.getElementById('refundModalLabel').innerHTML = '<i class="bi bi-arrow-return-left me-2"></i>Hoàn Tiền Cho Khách Hàng';
+            document.getElementById('refundModalLabel').className = 'modal-title fw-bold text-warning';
+        } else {
+            document.getElementById('refundForm').action = `/admin/supplier-returns/${data.ma_phieu}/process-refund`;
+            document.getElementById('refundModalLabel').innerHTML = '<i class="bi bi-wallet2 me-2"></i>Nhận Tiền Từ Nhà Cung Cấp';
+            document.getElementById('refundModalLabel').className = 'modal-title fw-bold text-danger';
+        }
 
-        document.getElementById('ref_ma_tra_hang').textContent = data.ma_tra_hang;
-        document.getElementById('ref_khach_hang').textContent = data.khach_hang;
-        document.getElementById('ref_ma_don_hang').textContent = data.ma_don_hang;
-        document.getElementById('ref_tong_hoan').textContent = new Intl.NumberFormat('vi-VN').format(data.tong_hoan) + ' đ';
-        document.getElementById('ref_da_hoan').textContent = new Intl.NumberFormat('vi-VN').format(data.da_hoan) + ' đ';
-        document.getElementById('ref_con_hoan').textContent = new Intl.NumberFormat('vi-VN').format(data.con_hoan) + ' đ';
+        document.getElementById('ref_ma_phieu').textContent = data.ma_phieu;
+        document.getElementById('ref_doi_tuong').textContent = data.doituong;
+        document.getElementById('ref_val_phu_de').textContent = data.phu_de;
+        document.getElementById('ref_tong').textContent = new Intl.NumberFormat('vi-VN').format(data.tong) + ' đ';
+        document.getElementById('ref_da_tra').textContent = new Intl.NumberFormat('vi-VN').format(data.da_tra) + ' đ';
+        document.getElementById('ref_con_lai').textContent = new Intl.NumberFormat('vi-VN').format(data.con_lai) + ' đ';
 
         let inputRef = document.getElementById('ref_so_tien');
-        inputRef.max = data.con_hoan;
-        inputRef.value = data.con_hoan;
+        inputRef.max = data.con_lai;
+        inputRef.value = data.con_lai;
 
         inputRef.oninput = function () {
             let val = parseFloat(this.value);
             let btn = document.getElementById('btn_submit_refund');
             let err = document.getElementById('ref_error_so_tien');
-            if (val > data.con_hoan) {
+            if (val > data.con_lai) {
                 btn.disabled = true;
                 err.classList.remove('d-none');
             } else {

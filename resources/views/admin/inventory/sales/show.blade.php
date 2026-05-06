@@ -371,10 +371,12 @@
                         <div class="alert alert-success mb-0 px-4 py-2 border border-success border-opacity-50">
                             <i class="bi bi-check-circle-fill me-2"></i>Đơn hàng đã hoàn thành!
                         </div>
+                        @if($phieuXuat->donHang && $phieuXuat->donHang->trang_thai_dh == 'dang_van_chuyen')
                         <form action="{{ route('sales.undoComplete', $phieuXuat->ma_phieu_xuat) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn Hoàn tác việc Đã giao hàng? Trạng thái sẽ trở về Đã xuất kho.');">
                             @csrf
                             <button type="submit" class="btn btn-outline-danger px-4 fw-medium"><i class="bi bi-arrow-return-left me-2"></i>Hoàn tác Đã Giao</button>
                         </form>
+                        @endif
                     @endif
                 </div>
             </div>

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
+     * Đăng ký bất kỳ dịch vụ ứng dụng nào.
      *
      * @return void
      */
@@ -19,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Bootstrap any application services.
+     * Khởi tạo (Bootstrap) bất kỳ dịch vụ ứng dụng nào.
      *
      * @return void
      */

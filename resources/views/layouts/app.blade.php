@@ -1,5 +1,10 @@
 <!doctype html>
 <html lang="vi">
+
+<?php
+    use App\Models\DonHang;
+    use App\Models\KhachTraHang;
+?>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -279,6 +284,12 @@
                 <span>Luân chuyển khu vực</span>
             </a>
         </li>
+        <li>
+            <a href="{{ route('supplier-returns.index') }}" class="sidebar-link {{ request()->routeIs('supplier-returns.*') ? 'active' : '' }}">
+                <span class="sidebar-link-icon"><i class="bi bi-box-arrow-right"></i></span>
+                <span>Trả Hàng NCC</span>
+            </a>
+        </li>
         @endif
 
         {{-- ═══ TRẢ HÀNG: Tất cả roles nhưng NV Kho(2) + Kế toán(4) chỉ xem ═══ --}}
@@ -351,8 +362,8 @@
         <li class="sidebar-section-title">Báo cáo & Công nợ</li>
         @endif
 
-        {{-- BC Tồn kho: Admin(1), Trưởng kho(5), Kế toán(4) --}}
-        @if($user->hasRole(1, 4, 5))
+        {{-- BC Tồn kho: Admin(1), Trưởng kho(5), Kế toán(4), NV Kho(2) --}}
+        @if($user->hasRole(1, 4, 5,2))
         <li>
             <a href="{{ route('reports.stock') }}" class="sidebar-link {{ request()->routeIs('reports.stock*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon"><i class="bi bi-clipboard-data"></i></span>
@@ -414,15 +425,14 @@
                     <button class="btn btn-light d-lg-none" type="button" id="sidebarToggle">
                         <i class="bi bi-list"></i>
                     </button>
-                    <!-- Global search removed to keep layout clean -->
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     @php
                         // Lấy thông báo thực tế (chỉ tính đơn hàng và trả hàng đang chờ duyệt cho các role có quyền)
                         $tongThongBao = 0;
                         if ($user->hasRole(1, 3, 5)) {
-                            $tongThongBao += \App\Models\DonHang::where('trang_thai_dh', 'cho_xu_ly')->count();
-                            $tongThongBao += \App\Models\KhachTraHang::where('trang_thai', 'cho_duyet')->count();
+                            $tongThongBao += DonHang::where('trang_thai_dh', 'cho_xu_ly')->count();
+                            $tongThongBao += KhachTraHang::where('trang_thai', 'cho_duyet')->count();
                         }
                     @endphp
                     

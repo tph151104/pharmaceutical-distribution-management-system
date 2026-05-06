@@ -21,6 +21,7 @@ class FeatureToggleSeeder extends Seeder
             ['ma_chuc_nang' => 'batches',   'ten_chuc_nang' => 'Tồn kho & Lô hàng'],
             ['ma_chuc_nang' => 'orders',    'ten_chuc_nang' => 'Đơn đặt hàng'],
             ['ma_chuc_nang' => 'returns',   'ten_chuc_nang' => 'Khách trả hàng'],
+            ['ma_chuc_nang' => 'supplier_returns', 'ten_chuc_nang' => 'Trả hàng nhà cung cấp'],
             ['ma_chuc_nang' => 'products',  'ten_chuc_nang' => 'Danh mục Thuốc'],
             ['ma_chuc_nang' => 'suppliers', 'ten_chuc_nang' => 'Nhà cung cấp'],
             ['ma_chuc_nang' => 'customers', 'ten_chuc_nang' => 'Khách hàng'],

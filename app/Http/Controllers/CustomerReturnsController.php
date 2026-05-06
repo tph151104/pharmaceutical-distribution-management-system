@@ -236,7 +236,7 @@ class CustomerReturnsController extends Controller
             }
 
             // Sinh mã thanh toán
-            $prefix = 'TTR';
+            $prefix = 'TTHTK';
             $lastTT = ThanhToan::where('ma_thanh_toan', 'like', $prefix . '%')->orderBy('ma_thanh_toan', 'desc')->first();
             $nextId = 1;
             if ($lastTT && preg_match('/' . $prefix . '(\d+)/', $lastTT->ma_thanh_toan, $matches)) {
@@ -365,7 +365,7 @@ class CustomerReturnsController extends Controller
         
         $items = $donHang->chiTiet->map(function ($ct) use ($id) {
             // Tính số lượng đã trả trước đó cho sản phẩm này (bỏ qua các yêu cầu đã bị từ chối)
-            $slDaTra = \App\Models\ChiTietTraHang::whereHas('khachTraHang', function($q) use ($id) {
+            $slDaTra = ChiTietTraHang::whereHas('khachTraHang', function($q) use ($id) {
                 $q->where('ma_don_hang', $id)
                   ->where('trang_thai', '!=', 'tu_choi');
             })->where('ma_thuoc', $ct->ma_thuoc)->sum('so_luong_tra');
@@ -430,7 +430,7 @@ class CustomerReturnsController extends Controller
             if (!$chiTietMua) continue;
 
             // Tính số lượng đã trả trước đó
-            $slDaTra = \App\Models\ChiTietTraHang::whereHas('khachTraHang', function($q) use ($donHang) {
+            $slDaTra = ChiTietTraHang::whereHas('khachTraHang', function($q) use ($donHang) {
                 $q->where('ma_don_hang', $donHang->ma_don_hang)
                   ->where('trang_thai', '!=', 'tu_choi');
             })->where('ma_thuoc', $item['ma_thuoc'])->sum('so_luong_tra');

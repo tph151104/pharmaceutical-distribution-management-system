@@ -33,7 +33,7 @@ class TonKhoKhuVuc extends Model
 
     protected $tonKhoCache = null;
 
-    // Accessor that replaces the broken composite-key relationship
+    // Accessor thay thế mối quan hệ khóa chính phức tạp bị lỗi
     public function getTonKhoAttribute()
     {
         if ($this->tonKhoCache !== null) {

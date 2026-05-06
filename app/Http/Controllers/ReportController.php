@@ -8,6 +8,10 @@ use App\Models\ThanhToan;
 use App\Models\PhieuXuat;
 use App\Models\PhieuNhap;
 use App\Models\KhuVucKho;
+use App\Models\DonHang;
+use App\Models\NguoiDung;
+use App\Models\KhachTraHang;
+use App\Models\PhieuTraNcc;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -20,16 +24,22 @@ class ReportController extends Controller
     private function buildStockQuery(Request $request)
     {
         // $query = TonKho::with(['thuoc', 'chiTietKhuVuc.khuVuc'])
-        $query = TonKho::with(['thuoc'])
+        $query = TonKho::with(['thuoc', 'phieuNhap.nhaCungCap'])
             ->where('so_luong_ton', '>', 0);
         
-        // Lọc theo tên thuốc hoặc số lô
-        if ($request->has('search') && $request->search != '') {
+        // Lọc theo tên thuốc, mã thuốc, số lô hoặc nhà cung cấp
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->whereHas('thuoc', function($qThuoc) use ($search) {
-                    $qThuoc->where('ten_thuoc', 'like', "%$search%");
-                })->orWhere('so_lo', 'like', "%$search%");
+                $q->where('ma_thuoc', 'like', "%$search%")
+                  ->orWhere('so_lo', 'like', "%$search%")
+                  ->orWhereHas('thuoc', function($qThuoc) use ($search) {
+                      $qThuoc->where('ten_thuoc', 'like', "%$search%")
+                             ->orWhere('ma_thuoc', 'like', "%$search%");
+                  })
+                  ->orWhereHas('phieuNhap.nhaCungCap', function($qNcc) use ($search) {
+                      $qNcc->where('ten_ncc', 'like', "%$search%");
+                  });
             });
         }
 
@@ -39,10 +49,14 @@ class ReportController extends Controller
         }
 
         // Lọc theo khu vực
-        if ($request->has('ma_khu_vuc') && $request->ma_khu_vuc != '') {
-            $query->whereHas('chiTietKhuVuc', function($q) use ($request) {
-                $q->where('ma_khu_vuc', $request->ma_khu_vuc)
-                  ->where('so_luong', '>', 0);
+        if ($request->filled('ma_khu_vuc')) {
+            $maKhuVuc = $request->ma_khu_vuc;
+            $query->whereHas('chiTietKhuVuc', function($q) use ($maKhuVuc) {
+                $q->where('ma_khu_vuc', $maKhuVuc)
+                  ->where('so_luong', '>', 0)
+                  // Ràng buộc thêm để khớp chính xác lô hàng (Composite Key)
+                  ->whereColumn('ton_kho_khu_vuc.ma_phieu_nhap', 'ton_kho.ma_phieu_nhap')
+                  ->whereColumn('ton_kho_khu_vuc.so_lo', 'ton_kho.so_lo');
             });
         }
 
@@ -81,7 +95,8 @@ class ReportController extends Controller
      */
     private function buildMovementsQuery(Request $request)
     {
-        $query = LichSuKho::with(['thuoc', 'nguoiDung']);
+        $query = LichSuKho::with(['thuoc', 'nguoiDung'])
+            ->where('loai_giao_dich', '!=', 'dieu_chinh');
 
         // Filter by date range
         if ($request->has('tu_ngay') && $request->tu_ngay != '') {
@@ -221,7 +236,7 @@ class ReportController extends Controller
         }
 
         if (!$loai || $loai == 'hoan_tra') {
-            $ktQuery = \App\Models\KhachTraHang::with('khachHang')
+            $ktQuery = KhachTraHang::with('khachHang')
                 ->withSum('thanhToans as so_tien_da_hoan', 'so_tien_tt')
                 ->whereIn('trang_thai_hoan_tien', ['chua_hoan', 'mot_phan']);
 
@@ -251,6 +266,33 @@ class ReportController extends Controller
             }));
         }
 
+        if (!$loai || $loai == 'tra_hang_ncc') {
+            $tnQuery = PhieuTraNcc::with('nhaCungCap')
+                ->withSum('thanhToans as so_tien_da_nhan', 'so_tien_tt')
+                ->whereIn('trang_thai', ['da_duyet', 'da_hoan_thanh']);
+
+            if ($fromDate) $tnQuery->whereDate('ngay_tao', '>=', $fromDate);
+            if ($toDate) $tnQuery->whereDate('ngay_tao', '<=', $toDate);
+            if ($search) {
+                $tnQuery->where(function($q) use ($search) {
+                    $q->where('ma_phieu_tra_ncc', 'like', "%{$search}%")
+                      ->orWhereHas('nhaCungCap', function($ncc) use ($search) {
+                          $ncc->where('ten_ncc', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            $all = $all->merge($tnQuery->get()->map(function($item) {
+                $item->loai_thanh_toan = 'tra_hang_ncc';
+                $item->so_tien_con_no = $item->tong_tien - ($item->so_tien_da_nhan ?? 0);
+                $item->doi_tuong = $item->nhaCungCap->ten_ncc ?? 'N/A';
+                $item->sdt = $item->nhaCungCap->so_dien_thoai ?? '';
+                $item->ma_chung_tu = $item->ma_phieu_tra_ncc;
+                $item->ngay_gd = $item->ngay_tao;
+                return $item;
+            })->filter(fn($item) => $item->so_tien_con_no > 0.01));
+        }
+
         return $all->sortByDesc('ngay_gd');
     }
 
@@ -274,7 +316,7 @@ class ReportController extends Controller
         $debts->appends($request->all());
 
         // --- Data cho Biểu đồ Công nợ (Tròn) ---
-        $tongPhaiThu = $allDebts->where('loai_thanh_toan', 'xuat')->sum('so_tien_con_no');
+        $tongPhaiThu = $allDebts->whereIn('loai_thanh_toan', ['xuat', 'tra_hang_ncc'])->sum('so_tien_con_no');
         $tongPhaiTra = $allDebts->whereIn('loai_thanh_toan', ['nhap', 'hoan_tra'])->sum('so_tien_con_no');
 
         // --- Tổng công nợ (không phụ thuộc filter) ---
@@ -291,8 +333,19 @@ class ReportController extends Controller
                 return $pn->tong_tien - ($pn->so_tien_da_tra ?? 0);
             });
 
+        // Trừ đi số tiền NCC đang nợ mình (do trả hàng)
+        $tongNoPhaiThuTuNCC = PhieuTraNcc::withSum('thanhToans as so_tien_da_nhan', 'so_tien_tt')
+            ->whereIn('trang_thai', ['da_duyet', 'da_hoan_thanh'])
+            ->get()
+            ->sum(function($tn) {
+                return $tn->tong_tien - ($tn->so_tien_da_nhan ?? 0);
+            });
+        
+        // Hiển thị nợ ròng với NCC
+        $tongCongNoNCC_Net = $tongCongNoNCC - $tongNoPhaiThuTuNCC;
+
         // Thêm nợ hoàn trả khách hàng vào tổng nợ phải trả
-        $tongCongNoNCC += \App\Models\KhachTraHang::withSum('thanhToans as so_tien_da_hoan', 'so_tien_tt')
+        $tongCongNoNCC += KhachTraHang::withSum('thanhToans as so_tien_da_hoan', 'so_tien_tt')
             ->whereIn('trang_thai_hoan_tien', ['chua_hoan', 'mot_phan'])
             ->get()
             ->sum(function($kt) {
@@ -300,10 +353,10 @@ class ReportController extends Controller
             });
 
         // --- Tổng doanh thu hệ thống ---
-        $tongDoanhThu = \App\Models\DonHang::where('trang_thai_dh', 'da_hoan_thanh')->sum('tong_tien');
+        $tongDoanhThu = DonHang::where('trang_thai_dh', 'da_hoan_thanh')->sum('tong_tien');
 
         // --- Doanh thu theo nhân viên duyệt ---
-        $staffRevenue = \App\Models\DonHang::select('nguoi_duyet')
+        $staffRevenue = DonHang::select('nguoi_duyet')
             ->selectRaw('COUNT(*) as so_don')
             ->selectRaw('SUM(tong_tien) as tong_doanh_thu')
             ->where('trang_thai_dh', 'da_hoan_thanh')
@@ -311,7 +364,7 @@ class ReportController extends Controller
             ->groupBy('nguoi_duyet')
             ->get()
             ->map(function ($item) {
-                $user = \App\Models\NguoiDung::find($item->nguoi_duyet);
+                $user = NguoiDung::find($item->nguoi_duyet);
                 $item->ho_ten = $user->ho_ten_nd ?? $item->nguoi_duyet;
                 $item->role_name = $user->role_name ?? 'N/A';
                 return $item;
@@ -319,7 +372,7 @@ class ReportController extends Controller
             ->sortByDesc('tong_doanh_thu');
 
         // Filter theo nhân viên duyệt
-        $nhanViens = \App\Models\NguoiDung::whereIn('role', [1, 3, 5])->get();
+        $nhanViens = NguoiDung::whereIn('role', [1, 3, 5])->get();
         $selectedNV = $request->nguoi_duyet;
 
         // Nếu có filter theo NV duyệt, lọc dữ liệu staffRevenue
@@ -347,7 +400,8 @@ class ReportController extends Controller
             'tongPhaiThu' => $tongPhaiThu, 
             'tongPhaiTra' => $tongPhaiTra, 
             'tongCongNoKH' => $tongCongNoKH,
-            'tongCongNoNCC' => $tongCongNoNCC,
+            'tongCongNoNCC' => $tongCongNoNCC, // Nợ gốc phải trả
+            'tongNoPhaiThuTuNCC' => $tongNoPhaiThuTuNCC, // Nợ NCC phải hoàn cho mình
             'tongDoanhThu' => $tongDoanhThu,
             'staffRevenue' => $staffRevenue,
             'nhanViens' => $nhanViens,

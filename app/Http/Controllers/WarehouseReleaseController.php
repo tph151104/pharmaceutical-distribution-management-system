@@ -10,6 +10,7 @@ use App\Models\TonKhoKhuVuc;
 use App\Models\DonHang;
 use App\Models\ThanhToan;
 use App\Models\KhachTraHang;
+use App\Models\KhachHang;
 use App\Services\InventoryLogService;
 use Illuminate\Support\Facades\DB;
 
@@ -90,7 +91,7 @@ class WarehouseReleaseController extends Controller
     public function create(Request $request)
     {
         // Lấy danh sách khách hàng cho dropdown filter
-        $khachHangs = \App\Models\KhachHang::where('trang_thai_tk', 'hoat_dong')->orderBy('ten_kh')->get();
+        $khachHangs = KhachHang::where('trang_thai_tk', 'hoat_dong')->orderBy('ten_kh')->get();
 
         // Query đơn hàng đã duyệt với filters
         $query = DonHang::with(['khachHang', 'chiTiet.thuoc', 'nguoiDuyet'])

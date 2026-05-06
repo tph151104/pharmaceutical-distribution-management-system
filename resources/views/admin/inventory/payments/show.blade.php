@@ -34,13 +34,27 @@
                 <div class="row mb-2">
                     <div class="col-sm-5 text-muted">Loại nghiệp vụ:</div>
                     <div class="col-sm-7 fw-semibold">
-                        {!! $thanhToan->loai_thanh_toan == 'nhap' ? '<span class="text-danger">Ngân sinh (Trả nợ NCC)</span>' : '<span class="text-success">Nguồn thu (Thu nợ KH)</span>' !!}
+                        @if($thanhToan->loai_thanh_toan == 'nhap')
+                            <span class="text-danger">Ngân sinh (Trả nợ NCC)</span>
+                        @elseif($thanhToan->loai_thanh_toan == 'xuat')
+                            <span class="text-success">Nguồn thu (Thu nợ KH)</span>
+                        @elseif($thanhToan->ma_phieu_tra_ncc)
+                            <span class="text-info">Hoàn trả (Nhận tiền từ NCC)</span>
+                        @else
+                            <span class="text-warning">Hoàn trả (Trả tiền cho KH)</span>
+                        @endif
                     </div>
                 </div>
                 <div class="row mb-2">
                     <div class="col-sm-5 text-muted">Mã chứng từ gốc:</div>
                     <div class="col-sm-7 fw-semibold">
-                        {{ $thanhToan->loai_thanh_toan == 'nhap' ? $thanhToan->ma_phieu_nhap : $thanhToan->ma_phieu_xuat }}
+                        @if($thanhToan->loai_thanh_toan == 'nhap')
+                            {{ $thanhToan->ma_phieu_nhap }}
+                        @elseif($thanhToan->loai_thanh_toan == 'xuat')
+                            {{ $thanhToan->ma_phieu_xuat }}
+                        @else
+                            {{ $thanhToan->ma_tra_hang ?: $thanhToan->ma_phieu_tra_ncc }}
+                        @endif
                     </div>
                 </div>
                 <div class="row mb-2">
@@ -48,8 +62,12 @@
                     <div class="col-sm-7 fw-bold">
                         @if($thanhToan->loai_thanh_toan == 'nhap')
                             {{ $thanhToan->phieuNhap->nhaCungCap->ten_ncc ?? 'N/A' }}
-                        @else
+                        @elseif($thanhToan->loai_thanh_toan == 'xuat')
                             {{ $thanhToan->phieuXuat->khachHang->ten_kh ?? 'N/A' }}
+                        @elseif($thanhToan->ma_phieu_tra_ncc)
+                            {{ $thanhToan->phieuTraNcc->nhaCungCap->ten_ncc ?? 'N/A' }}
+                        @else
+                            {{ $thanhToan->khachTraHang->khachHang->ten_kh ?? 'N/A' }}
                         @endif
                     </div>
                 </div>

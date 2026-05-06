@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\TonKho;
 use App\Models\DonHang;
 use App\Models\KhachTraHang;
+use App\Models\PhieuNhap;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -56,7 +57,7 @@ class DashboardController extends Controller
         // 4. Sự kiện cần xử lý
         $donHangChoDuyet = DonHang::where('trang_thai_dh', 'cho_xu_ly')->count();
         $traHangChoDuyet = KhachTraHang::where('trang_thai', 'cho_duyet')->count();
-        $phieuNhapDoiHang = \App\Models\PhieuNhap::where('trang_thai_phieu_nhap', 'doi_hang_ve')->count();
+        $phieuNhapDoiHang = PhieuNhap::where('trang_thai_phieu_nhap', 'doi_hang_ve')->count();
 
         // Biểu đồ dữ liệu (6 tháng gần nhất) - Giả lập hoặc lấy thực tế
         $chartData = $this->getChartData();
@@ -93,7 +94,7 @@ class DashboardController extends Controller
             $sales[] = $sale;
                 
             // Giá trị nhập kho
-            $import = \App\Models\PhieuNhap::whereIn('trang_thai_phieu_nhap', ['cho_nhap_kho', 'da_nhap_kho'])
+            $import = PhieuNhap::whereIn('trang_thai_phieu_nhap', ['cho_nhap_kho', 'da_nhap_kho'])
                 ->whereMonth('created_at', $month->month)
                 ->whereYear('created_at', $month->year)
                 ->sum('tong_tien');

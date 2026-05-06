@@ -261,7 +261,7 @@ class WholesaleController extends Controller
         
         $allReturned = true;
         foreach ($donHang->chiTiet as $ct) {
-            $slDaTra = \App\Models\ChiTietTraHang::whereHas('khachTraHang', function($q) use ($id) {
+            $slDaTra = ChiTietTraHang::whereHas('khachTraHang', function($q) use ($id) {
                 $q->where('ma_don_hang', $id)
                   ->where('trang_thai', '!=', 'tu_choi');
             })->where('ma_thuoc', $ct->ma_thuoc)->sum('so_luong_tra');
@@ -275,7 +275,7 @@ class WholesaleController extends Controller
         }
 
         // Lấy danh sách các yêu cầu trả hàng đã tạo
-        $traHangs = \App\Models\KhachTraHang::where('ma_don_hang', $id)->orderBy('created_at', 'desc')->get();
+        $traHangs = KhachTraHang::where('ma_don_hang', $id)->orderBy('created_at', 'desc')->get();
 
         return view('wholesale.order_detail', compact('donHang', 'cartCount', 'traHangs', 'allReturned'));
     }
@@ -452,7 +452,7 @@ class WholesaleController extends Controller
         $processedItems = [];
         $totalRefund = 0;
 
-        // 1. Validate items and calculate total FIRST
+        // 1. Kiểm tra dữ liệu (Validate) và tính tổng tiền TRƯỚC TIÊN
         foreach ($items as $ct) {
             $slTra = intval($ct['so_luong'] ?? 0);
             if ($slTra > 0) {
@@ -464,7 +464,7 @@ class WholesaleController extends Controller
                 if (!$chiTietMua) continue;
 
                 // Tính số lượng đã trả trước đó
-                $slDaTra = \App\Models\ChiTietTraHang::whereHas('khachTraHang', function($q) use ($id) {
+                $slDaTra = ChiTietTraHang::whereHas('khachTraHang', function($q) use ($id) {
                     $q->where('ma_don_hang', $id)
                       ->where('trang_thai', '!=', 'tu_choi');
                 })->where('ma_thuoc', $ct['ma_thuoc'])->sum('so_luong_tra');
@@ -493,7 +493,7 @@ class WholesaleController extends Controller
             return back()->withErrors(['error' => 'Vui lòng chọn ít nhất 1 sản phẩm cần trả và nhập số lượng lớn hơn 0.']);
         }
 
-        // 2. Start database transaction after validation passes
+        // 2. Bắt đầu giao dịch (transaction) sau khi kiểm tra dữ liệu thành công
         DB::beginTransaction();
         try {
             $maTraHang = 'TH_' . date('Ymd_His');

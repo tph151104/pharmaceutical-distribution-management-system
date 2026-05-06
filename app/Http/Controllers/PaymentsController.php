@@ -7,6 +7,7 @@ use App\Models\ThanhToan;
 use App\Models\PhieuNhap;
 use App\Models\PhieuXuat;
 use App\Models\KhachTraHang;
+use App\Models\PhieuTraNcc;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -51,8 +52,18 @@ class PaymentsController extends Controller
                 return $dth;
             });
 
+        // 4. Hoàn trả hàng cho NCC (đã duyệt, chưa nhận lại tiền đủ)
+        $traNccs = PhieuTraNcc::with('nhaCungCap')
+            ->withSum('thanhToans as so_tien_da_nhan', 'so_tien_tt')
+            ->whereIn('trang_thai', ['da_duyet', 'da_hoan_thanh'])
+            ->get()
+            ->map(function ($tn) {
+                $tn->so_tien_con_nhan = $tn->tong_tien - ($tn->so_tien_da_nhan ?? 0);
+                return $tn;
+            })->filter(fn($tn) => $tn->so_tien_con_nhan > 0.01);
+
         $activeTab = request('tab', 'supplier');
-        return view('admin.inventory.payments.index', compact('phieuNhaps', 'phieuXuats', 'donTraHangs', 'activeTab'));
+        return view('admin.inventory.payments.index', compact('phieuNhaps', 'phieuXuats', 'donTraHangs', 'traNccs', 'activeTab'));
     }
 
     /**
@@ -149,6 +160,8 @@ class PaymentsController extends Controller
             $thanhToan->load('phieuNhap.nhaCungCap');
         } elseif ($thanhToan->loai_thanh_toan == 'xuat') {
             $thanhToan->load('phieuXuat.khachHang');
+        } elseif ($thanhToan->ma_phieu_tra_ncc) {
+            $thanhToan->load('phieuTraNcc.nhaCungCap');
         } else {
             $thanhToan->load('khachTraHang.khachHang');
         }
@@ -175,7 +188,8 @@ class PaymentsController extends Controller
                   ->orWhere('ma_phieu_nhap', 'like', "%{$search}%")
                   ->orWhere('ma_phieu_xuat', 'like', "%{$search}%");
                 if ($tab === 'tra_hang') {
-                    $q->orWhere('ma_tra_hang', 'like', "%{$search}%");
+                    $q->orWhere('ma_tra_hang', 'like', "%{$search}%")
+                      ->orWhere('ma_phieu_tra_ncc', 'like', "%{$search}%");
                 }
             });
         }
@@ -191,7 +205,7 @@ class PaymentsController extends Controller
         } elseif ($tab === 'xuat') {
             $query->with('phieuXuat.khachHang');
         } else {
-            $query->with('khachTraHang.khachHang');
+            $query->with(['khachTraHang.khachHang', 'phieuTraNcc.nhaCungCap']);
         }
 
         $query->orderBy('ngay_thanh_toan', 'desc');
@@ -203,7 +217,7 @@ class PaymentsController extends Controller
             } elseif ($tab === 'xuat') {
                 $transactions = $unpaginated->groupBy('ma_phieu_xuat');
             } else {
-                $transactions = $unpaginated->groupBy('ma_tra_hang');
+                $transactions = $unpaginated->groupBy(fn($t) => $t->ma_tra_hang ?: $t->ma_phieu_tra_ncc);
             }
         } else {
             $transactions = $query->paginate(20)->withQueryString();
@@ -230,7 +244,8 @@ class PaymentsController extends Controller
                   ->orWhere('ma_phieu_nhap', 'like', "%{$search}%")
                   ->orWhere('ma_phieu_xuat', 'like', "%{$search}%");
                 if ($tab === 'tra_hang') {
-                    $q->orWhere('ma_tra_hang', 'like', "%{$search}%");
+                    $q->orWhere('ma_tra_hang', 'like', "%{$search}%")
+                      ->orWhere('ma_phieu_tra_ncc', 'like', "%{$search}%");
                 }
             });
         }
@@ -246,7 +261,7 @@ class PaymentsController extends Controller
         } elseif ($tab === 'xuat') {
             $query->with('phieuXuat.khachHang');
         } else {
-            $query->with('khachTraHang.khachHang');
+            $query->with(['khachTraHang.khachHang', 'phieuTraNcc.nhaCungCap']);
         }
 
         $transactions = $query->orderBy('ngay_thanh_toan', 'asc')->get();

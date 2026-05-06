@@ -14,6 +14,23 @@ use Illuminate\Support\Str;
 class InventoryTransferController extends Controller
 {
     /**
+     * Ma trận chuyển kho hợp lệ theo quy trình GSP
+     * Key: Kho nguồn → Value: Các kho đích được phép
+     * KV01 (Tiếp nhận) → KV02 (Biệt trữ), KV04 (Chờ xử lý)
+     * KV02 (Biệt trữ) → KV03 (Thành phẩm), KV04 (Chờ xử lý)
+     * KV03 (Thành phẩm) → KV04 (Chờ xử lý)
+     * KV04 (Chờ xử lý) → KV03 (Thành phẩm - bắt buộc lý do), KV05 (Loại bỏ)
+     * KV05 (Loại bỏ) → Không cho chuyển (Dead end)
+     */
+    const ALLOWED_TRANSFERS = [
+        'KV01_TIEP_NHAN'  => ['KV02_BIET_TRU', 'KV04_CHO_XU_LY'],
+        'KV02_BIET_TRU'   => ['KV03_THANH_PHAM', 'KV04_CHO_XU_LY'],
+        'KV03_THANH_PHAM'  => ['KV04_CHO_XU_LY'],
+        'KV04_CHO_XU_LY'   => ['KV03_THANH_PHAM', 'KV05_LOAI_BO'],
+        'KV05_LOAI_BO'     => [], // Dead end - không cho chuyển đi đâu
+    ];
+
+    /**
      * Hiển thị danh sách tồn kho theo khu vực lưu trữ
      */
     public function index(Request $request)
@@ -61,11 +78,14 @@ class InventoryTransferController extends Controller
                            ->orderBy('created_at', 'desc')
                            ->paginate(20);
 
-        return view('admin.inventory.transfers.index', compact('transfers', 'khuVucs'));
+        // Truyền ma trận chuyển kho sang view để JS lọc dropdown
+        $allowedTransfers = self::ALLOWED_TRANSFERS;
+
+        return view('admin.inventory.transfers.index', compact('transfers', 'khuVucs', 'allowedTransfers'));
     }
 
     /**
-     * Xử lý luân chuyển kho
+     * Xử lý luân chuyển kho (có kiểm tra quy tắc GSP)
      */
     public function transfer(Request $request)
     {
@@ -87,6 +107,27 @@ class InventoryTransferController extends Controller
             if ($sourceRecord->ma_khu_vuc == $request->den_khu_vuc) {
                 throw new \Exception('Kho đích không được trùng với kho nguồn.');
             }
+
+            // ══════ KIỂM TRA QUY TẮC LUÂN CHUYỂN GSP ══════
+            $allowedDestinations = self::ALLOWED_TRANSFERS[$sourceRecord->ma_khu_vuc] ?? [];
+
+            if (empty($allowedDestinations)) {
+                throw new \Exception('Khu vực ' . $sourceRecord->ma_khu_vuc . ' là kho loại bỏ (KV05), không được phép chuyển hàng đi.');
+            }
+
+            if (!in_array($request->den_khu_vuc, $allowedDestinations)) {
+                $tenNguon = KhuVucKho::find($sourceRecord->ma_khu_vuc)->ten_khu_vuc ?? $sourceRecord->ma_khu_vuc;
+                $tenDich = KhuVucKho::find($request->den_khu_vuc)->ten_khu_vuc ?? $request->den_khu_vuc;
+                throw new \Exception("Không được phép chuyển từ \"{$tenNguon}\" sang \"{$tenDich}\". Vui lòng chuyển theo đúng trình tự GSP.");
+            }
+
+            // KV04 → KV03: Bắt buộc nhập lý do
+            if ($sourceRecord->ma_khu_vuc == 'KV04_CHO_XU_LY' && $request->den_khu_vuc == 'KV03_THANH_PHAM') {
+                if (empty($request->ly_do) || trim($request->ly_do) === '') {
+                    throw new \Exception('Khi chuyển hàng từ Kho Chờ xử lý trở lại Kho Thành phẩm, bắt buộc phải nhập lý do.');
+                }
+            }
+            // ══════════════════════════════════════════════
 
             // 1. Trừ số lượng ở kho nguồn
             $sourceRecord->so_luong -= $request->so_luong_chuyen;
@@ -120,7 +161,7 @@ class InventoryTransferController extends Controller
                 'ly_do_chuyen' => $request->ly_do ?? 'Nhân viên thực hiện luân chuyển',
             ]);
 
-            // 4. Trigger auto cập nhật trạng thái lô
+            // 4. Trigger auto cập nhật trạng thái lô + tổng tồn kho
             $tonKho = TonKho::where('ma_thuoc', $sourceRecord->ma_thuoc)
                 ->where('ma_phieu_nhap', $sourceRecord->ma_phieu_nhap)
                 ->where('so_lo', $sourceRecord->so_lo)
@@ -135,9 +176,13 @@ class InventoryTransferController extends Controller
                     }
                 }
                 
-                // Nếu chuyển toàn bộ phần còn lại vào Kho Loại bỏ => ngưng bán
-                // Check xem tổng tồn kho ở các kho (ngoại trừ Loại Bỏ) còn hay không
+                // Nếu chuyển vào Kho Loại bỏ (KV05) => Trừ tổng tồn kho + check ngưng bán
                 if ($request->den_khu_vuc == 'KV05_LOAI_BO') {
+                    // Trừ tổng tồn kho (hàng vào KV05 = không còn giá trị sử dụng)
+                    $tonKho->so_luong_ton -= $request->so_luong_chuyen;
+                    if ($tonKho->so_luong_ton < 0) $tonKho->so_luong_ton = 0;
+
+                    // Check xem tổng tồn kho ở các kho (ngoại trừ Loại Bỏ) còn hay không
                     $hangReusables = TonKhoKhuVuc::where('ma_thuoc', $sourceRecord->ma_thuoc)
                         ->where('so_lo', $sourceRecord->so_lo)
                         ->where('ma_khu_vuc', '!=', 'KV05_LOAI_BO')
@@ -145,8 +190,9 @@ class InventoryTransferController extends Controller
                     
                     if ($hangReusables == 0) {
                         $tonKho->trang_thai_lo = 'ngung_ban';
-                        $tonKho->save();
                     }
+
+                    $tonKho->save();
                 }
             }
 

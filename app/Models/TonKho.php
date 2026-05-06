@@ -31,9 +31,7 @@ class TonKho extends Model
         'so_luong_da_xuat' => 'integer',
     ];
 
-    // ==========================================
-    // Relationships
-    // ==========================================
+    // Các mối quan hệ
 
     public function thuoc()
     {

@@ -17,7 +17,7 @@ class CustomerController extends Controller
     {
         $query = KhachHang::query();
 
-        // Search text
+        // Tìm kiếm theo từ khóa
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -28,12 +28,12 @@ class CustomerController extends Controller
             });
         }
 
-        // Filter Type
+        // Lọc theo loại khách hàng
         if ($request->has('loai_kh') && $request->loai_kh != '') {
             $query->where('loai_kh', $request->loai_kh);
         }
 
-        // Filter Status
+        // Lọc theo trạng thái
         if ($request->has('trang_thai_tk') && $request->trang_thai_tk != '') {
             $query->where('trang_thai_tk', $request->trang_thai_tk);
         }
@@ -65,13 +65,13 @@ class CustomerController extends Controller
         try {
             $data = $request->except(['mat_khau', 'ten_dang_nhap', 'giay_phep_hd_image', 'hinh_dai_dien', 'trang_thai_tk']);
 
-            // Update Password if provided
+            // Cập nhật mật khẩu nếu có nhập mới
             if ($request->filled('mat_khau')) {
                 $request->validate(['mat_khau' => 'string|min:6']);
                 $data['mat_khau'] = Hash::make($request->mat_khau);
             }
 
-            // Handle File Uploads
+            // Xử lý tải lên tệp tin
             if ($request->hasFile('giay_phep_hd_image')) {
                 $file = $request->file('giay_phep_hd_image');
                 $filename = time() . '_giayphep_' . $khachHang->ma_kh . '.' . $file->extension();

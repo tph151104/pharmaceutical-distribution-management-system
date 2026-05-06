@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+<?php use App\Models\TonKhoKhuVuc; ?>
+
 @section('title', 'Tồn kho chi tiết theo lô hàng')
 
 @section('content-header')
@@ -29,8 +31,8 @@
         <div class="card-body">
             <form action="{{ route('batches.index') }}" method="GET" class="row g-2 align-items-end">
                 <div class="col-12 col-md-3">
-                    <label class="form-label small text-muted mb-1">Sản phẩm</label>
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Mã hoặc tên sản phẩm" value="{{ request('search') }}">
+                    <label class="form-label small text-muted mb-1">Sản phẩm / Chứng từ</label>
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Mã/tên SP hoặc Mã phiếu nhập" value="{{ request('search') }}">
                 </div>
                 <div class="col-12 col-md-2">
                     <label class="form-label small text-muted mb-1">Số lô</label>
@@ -138,7 +140,7 @@
                             $hanDung = $ton->han_su_dung;
                             $daysLeft = $now->diffInDays($hanDung, false);
                             
-                            $locationsData = \App\Models\TonKhoKhuVuc::with('khuVuc')
+                            $locationsData = TonKhoKhuVuc::with('khuVuc')
                                 ->where('ma_thuoc', $ton->ma_thuoc)
                                 ->where('ma_phieu_nhap', $ton->ma_phieu_nhap)
                                 ->where('so_lo', $ton->so_lo)
@@ -152,8 +154,8 @@
                         @endphp
                         <tr>
                             <td>
-                                @if($ton->image1)
-                                    <img src="{{ asset($ton->image1) }}" alt="..." style="width: 40px; height: 40px; object-fit: cover;" class="rounded border">
+                                @if($ton->phieuNhap->image1)
+                                    <img src="{{ asset($ton->phieuNhap->image1) }}" alt="..." style="width: 40px; height: 40px; object-fit: cover;" class="rounded border">
                                 @else
                                     <div class="bg-light text-muted d-flex align-items-center justify-content-center border rounded" style="width: 40px; height: 40px; font-size: 10px;">No img</div>
                                 @endif
@@ -232,7 +234,7 @@
             
             @if($ton_khos->hasPages())
                 <div class="px-3 pt-3">
-                    {{ $ton_khos->links('pagination::bootstrap-5') }}
+                    {{ $ton_khos->appends(request()->query())->links('pagination::bootstrap-5') }}
                 </div>
             @endif
         </div>

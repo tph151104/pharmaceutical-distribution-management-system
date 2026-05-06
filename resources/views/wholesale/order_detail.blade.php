@@ -1,5 +1,7 @@
 @extends('layouts.wholesale')
 
+<?php use App\Models\PhieuXuat; use App\Models\ThanhToan; ?>
+
 @section('title', 'Chi tiết đơn hàng #' . $donHang->ma_don_hang)
 
 @section('content')
@@ -157,8 +159,8 @@
             @if($donHang->trang_thai_dh === 'da_hoan_thanh')
             {{-- Kiểm tra công nợ --}}
             @php
-                $phieuXuat = \App\Models\PhieuXuat::where('ma_don_hang', $donHang->ma_don_hang)->first();
-                $thanhToan = $phieuXuat ? \App\Models\ThanhToan::where('ma_phieu_xuat', $phieuXuat->ma_phieu_xuat)->where('loai_thanh_toan','xuat')->first() : null;
+                $phieuXuat = PhieuXuat::where('ma_don_hang', $donHang->ma_don_hang)->first();
+                $thanhToan = $phieuXuat ? ThanhToan::where('ma_phieu_xuat', $phieuXuat->ma_phieu_xuat)->where('loai_thanh_toan','xuat')->first() : null;
             @endphp
             <div class="card border-0 shadow-sm mt-3">
                 <div class="card-header bg-white"><h6 class="mb-0 fw-bold"><i class="bi bi-credit-card me-2"></i>Thanh toán đơn hàng</h6></div>

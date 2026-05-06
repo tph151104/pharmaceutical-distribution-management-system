@@ -36,7 +36,7 @@ class KhachHang extends Authenticatable
     }
 
     /**
-     * Override password field for Laravel Auth
+     * Ghi đè trường mật khẩu cho Laravel Auth
      */
     public function getAuthPassword()
     {

@@ -241,6 +241,7 @@
                             <option value="xuat" {{ request('loai') == 'xuat' ? 'selected' : '' }}>Phải Thu (KH)</option>
                             <option value="nhap" {{ request('loai') == 'nhap' ? 'selected' : '' }}>Phải Trả (NCC)</option>
                             <option value="hoan_tra" {{ request('loai') == 'hoan_tra' ? 'selected' : '' }}>Hoàn Trả LH (KH)</option>
+                            <option value="tra_hang_ncc" {{ request('loai') == 'tra_hang_ncc' ? 'selected' : '' }}>Hoàn Trả LH (NCC)</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -292,6 +293,9 @@
                                         @elseif($debt->loai_thanh_toan == 'xuat')
                                             <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle mb-1"><i class="bi bi-box-arrow-up me-1"></i>Phiếu Xuất</span><br>
                                             <strong class="text-dark">{{ $debt->ma_chung_tu }}</strong>
+                                        @elseif($debt->loai_thanh_toan == 'tra_hang_ncc')
+                                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle mb-1"><i class="bi bi-arrow-return-right me-1"></i>Hoàn Trả NCC</span><br>
+                                            <strong class="text-dark">{{ $debt->ma_chung_tu }}</strong>
                                         @else
                                             <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle mb-1"><i class="bi bi-arrow-return-left me-1"></i>Hoàn Trả KH</span><br>
                                             <strong class="text-dark">{{ $debt->ma_chung_tu }}</strong>
@@ -301,7 +305,7 @@
                                         {{ $debt->ngay_gd ? \Carbon\Carbon::parse($debt->ngay_gd)->format('d/m/Y') : 'N/A' }}
                                     </td>
                                     <td>
-                                        @if($debt->loai_thanh_toan == 'nhap')
+                                        @if($debt->loai_thanh_toan == 'nhap' || $debt->loai_thanh_toan == 'tra_hang_ncc')
                                             <div class="fw-semibold text-primary"><i class="bi bi-building me-1 text-muted"></i>{{ $debt->doi_tuong }}</div>
                                             <small class="text-muted">{{ $debt->sdt }}</small>
                                         @elseif($debt->loai_thanh_toan == 'xuat' || $debt->loai_thanh_toan == 'hoan_tra')
@@ -312,9 +316,22 @@
                                         @endif
                                     </td>
                                     <td class="text-end text-muted">{{ number_format($debt->tong_tien) }}đ</td>
-                                    <td class="text-end text-success">{{ number_format($debt->so_tien_da_tra ?? 0) }}đ</td>
-                                    <td class="text-end pe-4 fw-bold {{ in_array($debt->loai_thanh_toan, ['nhap', 'hoan_tra']) ? 'text-danger' : 'text-warning' }}">
-                                        {{ number_format($debt->so_tien_con_no) }}đ
+                                    <td class="text-end text-success">{{ number_format($debt->so_tien_da_tra ?? $debt->so_tien_da_nhan ?? 0) }}đ</td>
+                                    <td class="text-end pe-4">
+                                        <div class="fw-bold {{ in_array($debt->loai_thanh_toan, ['nhap', 'hoan_tra']) ? 'text-danger' : 'text-success' }}">
+                                            {{ number_format($debt->so_tien_con_no) }}đ
+                                        </div>
+                                        <div class="small mt-1 opacity-75">
+                                            @if($debt->loai_thanh_toan == 'nhap')
+                                                <span class="text-danger"><i class="bi bi-dash-circle me-1"></i>Công nợ phải trả</span>
+                                            @elseif($debt->loai_thanh_toan == 'hoan_tra')
+                                                <span class="text-danger"><i class="bi bi-dash-circle me-1"></i>Phải hoàn trả KH</span>
+                                            @elseif($debt->loai_thanh_toan == 'xuat')
+                                                <span class="text-success"><i class="bi bi-plus-circle me-1"></i>Công nợ phải thu</span>
+                                            @elseif($debt->loai_thanh_toan == 'tra_hang_ncc')
+                                                <span class="text-success"><i class="bi bi-plus-circle me-1"></i>Phải thu hồi từ NCC</span>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

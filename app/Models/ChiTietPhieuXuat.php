@@ -29,7 +29,7 @@ class ChiTietPhieuXuat extends Model
     ];
 
     /**
-     * Set the keys for a save update query.
+     * Thiết lập các khóa cho câu truy vấn cập nhật lưu (save update query).
      */
     protected function setKeysForSaveQuery($query)
     {

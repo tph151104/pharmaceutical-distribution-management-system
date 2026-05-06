@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+<?php use App\Models\TonKhoKhuVuc; ?>
+
 @section('title', 'Thống Kê Tồn Kho Theo Lô')
 
 @section('content-header')
@@ -32,9 +34,9 @@
                         <select name="trang_thai_lo" class="form-select form-select-sm">
                             <option value="">-- Tất cả --</option>
                             <option value="dang_ban" {{ request('trang_thai_lo') == 'dang_ban' ? 'selected' : '' }}>Đang bán</option>
-                            <option value="ngung_ban" {{ request('trang_thai_lo') == 'ngung_ban' ? 'selected' : '' }}>Ngừng bán</option>
+                            
                             <option value="cho_duyet" {{ request('trang_thai_lo') == 'cho_duyet' ? 'selected' : '' }}>Chờ duyệt</option>
-                            <option value="huy_bo" {{ request('trang_thai_lo') == 'huy_bo' ? 'selected' : '' }}>Hủy bỏ (Cách ly)</option>
+                            
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -112,11 +114,17 @@
                                     <td><span class="badge bg-light text-dark border border-secondary font-monospace">{{ $ton->so_lo }}</span></td>
                                     <td>
                                         @php
-                                            $khuVucs = \App\Models\TonKhoKhuVuc::with('khuVuc')
+                                            $khuVucs = TonKhoKhuVuc::with('khuVuc')
                                                 ->where('ma_thuoc', $ton->ma_thuoc)
                                                 ->where('ma_phieu_nhap', $ton->ma_phieu_nhap)
-                                                ->where('so_lo', $ton->so_lo)
-                                                ->get();
+                                                ->where('so_lo', $ton->so_lo);
+                                            
+                                            if (request('ma_khu_vuc')) {
+                                                $khuVucs->where('ma_khu_vuc', request('ma_khu_vuc'));
+                                            }
+                                            
+                                            $khuVucs = $khuVucs->get();
+                                            $tongHienThi = $khuVucs->sum('so_luong');
                                         @endphp
                                         @if($khuVucs->count() > 0)
                                             @foreach($khuVucs as $kv)
@@ -134,7 +142,9 @@
                                             <br><small class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>(Đã quá hạn)</small>
                                         @endif
                                     </td>
-                                    <td class="fw-bold px-3 text-center">{{ number_format($ton->so_luong_ton) }}</td>
+                                    <td class="fw-bold px-3 text-center">
+                                        {{ number_format(request('ma_khu_vuc') ? $tongHienThi : $ton->so_luong_ton) }}
+                                    </td>
                                     <td>
                                         @if($ton->trang_thai_lo === 'dang_ban')
                                             <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">Đang bán</span>
@@ -161,7 +171,7 @@
             </div>
             <div class="card-footer bg-white py-3">
                 <div class="d-flex justify-content-center">
-                    {{ $tonKho->links('pagination::bootstrap-5') }}
+                    {{ $tonKho->appends(request()->query())->links('pagination::bootstrap-5') }}
                 </div>
             </div>
         </div>

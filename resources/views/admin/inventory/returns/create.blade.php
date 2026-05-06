@@ -70,7 +70,7 @@
                                     <th class="text-center">SL Đã mua</th>
                                     <th class="text-end">Đơn giá</th>
                                     <th class="text-center" style="width: 140px;">SL Trả <span class="text-danger">*</span></th>
-                                    <th>Lý do chi tiết</th>
+                                    <th>Lý do tổng quát</th>
                                     <th class="text-end pe-3">Tiền hoàn</th>
                                 </tr>
                             </thead>
@@ -101,7 +101,7 @@
                     <div class="card-header bg-white"><h6 class="mb-0 fw-bold"><i class="bi bi-chat-quote me-2"></i>Lý do trả hàng</h6></div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Lý do chung <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">Lý do chi tiết <span class="text-danger">*</span></label>
                             <textarea name="ly_do_chung" class="form-control" rows="3" required placeholder="Nhập lý do trả hàng chung cho đơn này...">{{ old('ly_do_chung') }}</textarea>
                         </div>
                         <div class="mb-0">
