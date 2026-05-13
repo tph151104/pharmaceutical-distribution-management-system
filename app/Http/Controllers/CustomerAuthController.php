@@ -118,9 +118,9 @@ class CustomerAuthController extends Controller
 
             if ($customer->trang_thai_tk === 'vo_hieu_hoa') {
                 Auth::guard('customer')->logout();
-                return back()->withInput()->withErrors(['error' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.']);
+                return back()->withInput()->withErrors(['error' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ SĐT:0000000000 để giải quyết.']);
             }
-
+ 
             $request->session()->regenerate();
 
             // Đăng nhập hợp lệ, chuyển hướng sang giao diện khách hàng sỉ

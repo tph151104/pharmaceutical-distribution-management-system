@@ -167,6 +167,78 @@ class OrderController extends Controller
     }
 
     /**
+     * Giao diện chỉnh sửa đơn hàng
+     */
+    public function edit($id)
+    {
+        $donHang = DonHang::with(['chiTiet.thuoc', 'khachHang'])->findOrFail($id);
+
+        if (!in_array($donHang->trang_thai_dh, ['cho_xu_ly', 'da_duyet'])) {
+            return back()->withErrors(['error' => 'Chỉ có thể sửa đơn hàng ở trạng thái Chờ xử lý hoặc Đã duyệt.']);
+        }
+
+        return view('admin.inventory.orders.edit', compact('donHang'));
+    }
+
+    /**
+     * Cập nhật đơn hàng
+     */
+    public function update(Request $request, $id)
+    {
+        $donHang = DonHang::findOrFail($id);
+
+        if (!in_array($donHang->trang_thai_dh, ['cho_xu_ly', 'da_duyet'])) {
+            return back()->withErrors(['error' => 'Chỉ có thể sửa đơn hàng ở trạng thái Chờ xử lý hoặc Đã duyệt.']);
+        }
+
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.ma_thuoc' => 'required|exists:thuoc,ma_thuoc',
+            'items.*.so_luong' => 'required|integer|min:1',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $tongTien = 0;
+            $chiTietData = [];
+
+            foreach ($request->items as $item) {
+                $thuoc = Thuoc::find($item['ma_thuoc']);
+                if (!$thuoc || $item['so_luong'] > $thuoc->tong_ton_kho) {
+                    return back()->withErrors(['error' => 'Sản phẩm "' . ($thuoc->ten_thuoc ?? $item['ma_thuoc']) . '" hiện không đủ hàng trong kho (Thành phẩm).']);
+                }
+                
+                $donGia = $thuoc->gia_ban_de_xuat ?? 0;
+                $tongTien += $donGia * $item['so_luong'];
+
+                $chiTietData[] = [
+                    'ma_thuoc' => $item['ma_thuoc'],
+                    'so_luong' => $item['so_luong'],
+                    'don_gia' => $donGia,
+                ];
+            }
+
+            // Update order
+            $donHang->update([
+                'tong_tien' => $tongTien,
+            ]);
+
+            // Xóa chi tiết cũ và tạo mới
+            ChiTietDonHang::where('ma_don_hang', $donHang->ma_don_hang)->delete();
+
+            foreach ($chiTietData as $ct) {
+                ChiTietDonHang::create(array_merge($ct, ['ma_don_hang' => $donHang->ma_don_hang]));
+            }
+
+            DB::commit();
+            return redirect()->route('admin.orders.index')->with('success', 'Đã cập nhật đơn hàng ' . $donHang->ma_don_hang . ' thành công!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->withErrors(['error' => 'Lỗi khi cập nhật đơn hàng: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
      * Chi tiết đơn hàng (Admin)
      */
     public function show($id)

@@ -7,6 +7,9 @@ use App\Models\TonKho;
 use App\Models\TonKhoKhuVuc;
 use Carbon\Carbon;
 use App\Services\InventoryLogService;
+use App\Models\LichSuDichChuyenKho;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class CheckExpiredBatches extends Command
 {
@@ -37,6 +40,12 @@ class CheckExpiredBatches extends Command
             ->where('han_su_dung', '<=', $today)
             ->get();
 
+        if ($expiredBatches->isEmpty()) {
+            $this->info('Không có lô nào hết hạn cần cách ly.');
+            Log::info('[CheckExpiredBatches] Không có lô hết hạn.');
+            return 0;
+        }
+
         $count = 0;
 
         foreach ($expiredBatches as $batch) {
@@ -45,6 +54,8 @@ class CheckExpiredBatches extends Command
             // 1. Cập nhật trạng thái lô
             $batch->trang_thai_lo = 'het_han';
             $batch->save();
+
+            Log::warning("[CheckExpiredBatches] Lô {$batch->so_lo} - Thuốc {$batch->ma_thuoc}: {$oldStatus} → het_han (HSD: {$batch->han_su_dung})");
 
             // 2. Chuyển vị trí vật lý sang KV05_LOAI_BO
             $tkvs = TonKhoKhuVuc::where('ma_thuoc', $batch->ma_thuoc)
@@ -56,7 +67,23 @@ class CheckExpiredBatches extends Command
             $totalMoved = 0;
             foreach ($tkvs as $tkv) {
                 if ($tkv->ma_khu_vuc !== 'KV05_LOAI_BO') {
-                    $totalMoved += $tkv->so_luong;
+                    $soLuongChuyen = $tkv->so_luong;
+                    $totalMoved += $soLuongChuyen;
+
+                    // Ghi log chi tiết từng khu vực bị dời đi
+                    LichSuDichChuyenKho::create([
+                        'ma_phieu_chuyen' => 'CHCK-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(4)),
+                        'ma_thuoc' => $batch->ma_thuoc,
+                        'ma_phieu_nhap' => $batch->ma_phieu_nhap,
+                        'so_lo' => $batch->so_lo,
+                        'tu_khu_vuc' => $tkv->ma_khu_vuc,
+                        'den_khu_vuc' => 'KV05_LOAI_BO',
+                        'so_luong_chuyen' => $soLuongChuyen,
+                        'nguoi_thuc_hien' => 'SYSTEM_BOT',
+                        'ngay_chuyen' => Carbon::now(),
+                        'ly_do_chuyen' => '[Auto-Expiry] BOT tự động gom hàng hết hạn từ ' . $tkv->ma_khu_vuc . ' vào KV05.',
+                    ]);
+
                     $tkv->so_luong = 0;
                     $tkv->save();
                 }
@@ -72,6 +99,7 @@ class CheckExpiredBatches extends Command
                 if ($targetTkv) {
                     $targetTkv->so_luong += $totalMoved;
                     $targetTkv->save();
+                    
                 } else {
                     TonKhoKhuVuc::create([
                         'ma_thuoc' => $batch->ma_thuoc,
@@ -102,5 +130,6 @@ class CheckExpiredBatches extends Command
         }
 
         $this->info("Đã quét và cách ly thành công {$count} lô hàng hết hạn.");
+        Log::info("[CheckExpiredBatches] Đã quét và cách ly thành công {$count} lô hàng hết hạn.");
     }
 }

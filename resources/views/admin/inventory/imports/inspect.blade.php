@@ -77,9 +77,15 @@
                                                 </a>
                                             @endif
                                             @if($phieuNhap->tieu_lieu_lien_quan)
-                                                <a href="{{ asset($phieuNhap->tieu_lieu_lien_quan) }}" target="_blank" class="badge bg-light text-primary border text-decoration-none p-2">
-                                                    <i class="bi bi-file-earmark-text"></i> Tài liệu liên quan
-                                                </a>
+                                                @if(Str::contains($phieuNhap->tieu_lieu_lien_quan, ['/', '\\', '.']))
+                                                    <a href="{{ asset($phieuNhap->tieu_lieu_lien_quan) }}" target="_blank" class="badge bg-light text-primary border text-decoration-none p-2">
+                                                        <i class="bi bi-file-earmark-text"></i> Tài liệu liên quan
+                                                    </a>
+                                                @else
+                                                    <span class="badge bg-light text-dark border p-2" title="Ghi chú hệ thống">
+                                                        <i class="bi bi-info-circle me-1"></i> {{ $phieuNhap->tieu_lieu_lien_quan }}
+                                                    </span>
+                                                @endif
                                             @endif
                                         </div>
                                     </div>
@@ -91,8 +97,8 @@
                             <div class="text-center">
                                 @if($phieuNhap->image1)
                                     <div class="mb-2">
-                                        <a href="{{ asset($phieuNhap->image1) }}" target="_blank">
-                                            <img src="{{ asset($phieuNhap->image1) }}" class="img-thumbnail" style="max-height: 120px; object-fit: contain;" alt="Ảnh tổng lô hàng">
+                                        <a href="javascript:void(0)">
+                                            <img src="{{ asset($phieuNhap->image1) }}" class="img-thumbnail img-clickable" style="max-height: 120px; object-fit: contain;" alt="Ảnh tổng lô hàng" title="Click để phóng to">
                                         </a>
                                     </div>
                                 @endif
@@ -148,8 +154,11 @@
                                     <th width="200">Sản phẩm</th>
                                     <th>Số lượng theo CT</th>
                                     <th>Số Lô (Nội bộ)</th>
-                                    <th>SL Sản Xuất</th>
-                                    <th width="200">Ghi nhận hình ảnh</th>
+                                    <th>Số Lô SX</th>
+                                    <th>NSX/ SĐK</th>
+                                    <th width="150">Hạn Sử Dụng</th>
+                                    <th width="100">SL Thực Nhận</th>
+                                    <th width="250">Ghi nhận hình ảnh</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -183,7 +192,22 @@
                                             <input type="hidden" name="items[{{$index}}][so_dang_ky]" value="{{ $item->so_dang_ky }}">
                                         </td>
                                         <td>
-                                            <input type="date" name="items[{{$index}}][han_su_dung]" class="form-control form-control-sm text-center" value="{{ old('items.'.$index.'.han_su_dung', $item->han_su_dung ? $item->han_su_dung->format('Y-m-d') : '') }}" required>
+                                            @php
+                                                $today = date('Y-m-d');
+                                                $nsx = $item->ngay_san_xuat ? $item->ngay_san_xuat->format('Y-m-d') : $today;
+                                                $minExpiry = $nsx > $today ? $nsx : $today;
+                                                $currentHsd = $item->han_su_dung ? $item->han_su_dung->format('Y-m-d') : '';
+                                                // Kiểm tra xem lô này đã từng có hàng nhập kho chưa
+                                                $hasStock = ($tonModel && ($tonModel->so_luong_ton + $tonModel->so_luong_da_xuat > 0));
+                                            @endphp
+                                            <input type="date" name="items[{{$index}}][han_su_dung]" 
+                                                class="form-control form-control-sm text-center input-hsd" 
+                                                min="{{ $minExpiry }}"
+                                                data-original="{{ $currentHsd }}"
+                                                data-has-stock="{{ $hasStock ? 'true' : 'false' }}"
+                                                data-lo="{{ $item->so_lo }}"
+                                                value="{{ old('items.'.$index.'.han_su_dung', $currentHsd) }}" 
+                                                required>
                                         </td>
                                         <td>
                                             <!-- Số lượng thực tế màu viền khác nhau nếu bé hơn số lượng CT -->
@@ -295,7 +319,7 @@
                                         <div class="d-flex gap-1 justify-content-center">
                                             @if($tonModel && $tonModel->image1)
                                                 <div class="text-center">
-                                                    <img src="{{ asset($tonModel->image1) }}" width="60" height="60" class="rounded object-fit-cover shadow-sm border">
+                                                    <img src="{{ asset($tonModel->image1) }}" width="60" height="60" class="rounded object-fit-cover shadow-sm border img-clickable" title="Click để phóng to xem kỹ hơn">
                                                     <div class="small text-muted" style="font-size: 9px;">Ảnh chi tiết</div>
                                                 </div>
                                             @else
@@ -311,4 +335,30 @@
             </div>
         </div>
     @endif
+@push('scripts')
+<script>
+    document.querySelectorAll('.input-hsd').forEach(function(input) {
+        input.addEventListener('change', function() {
+            const hasStock = this.getAttribute('data-has-stock') === 'true';
+            const originalDate = this.getAttribute('data-original');
+            const newDate = this.value;
+            const soLo = this.getAttribute('data-lo');
+
+            if (hasStock && originalDate && newDate !== originalDate) {
+                const confirmChange = confirm(
+                    `⚠️ CẢNH BÁO QUAN TRỌNG:\n\n` +
+                    `Lô hàng [${soLo}] này đã có số lượng tồn kho từ các đợt nhập trước.\n\n` +
+                    `Việc thay đổi Hạn sử dụng sẽ áp dụng cho TOÀN BỘ sản phẩm trong lô này (bao gồm cả hàng cũ đã nhập).\n\n` +
+                    `Nếu đợt hàng mới này có hạn dùng khác, bạn nên đổi "Số Lô Nội Bộ" để quản lý tách biệt.\n\n` +
+                    `Bạn có chắc chắn vẫn muốn ghi đè hạn dùng mới cho cả lô không?`
+                );
+
+                if (!confirmChange) {
+                    this.value = originalDate;
+                }
+            }
+        });
+    });
+</script>
+@endpush
 @endsection

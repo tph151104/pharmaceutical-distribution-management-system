@@ -63,9 +63,9 @@ class DonHang extends Model
     /**
      * Yêu cầu trả hàng liên quan
      */
-    public function khachTraHang()
+    public function khachTraHangs()
     {
-        return $this->hasOne(KhachTraHang::class, 'ma_don_hang', 'ma_don_hang');
+        return $this->hasMany(KhachTraHang::class, 'ma_don_hang', 'ma_don_hang');
     }
 
     /**

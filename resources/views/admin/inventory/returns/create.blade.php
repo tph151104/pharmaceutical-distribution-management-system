@@ -34,14 +34,14 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom-0 pt-4 pb-2">
                         <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-search me-2"></i>Chọn đơn hàng</h5>
-                        <p class="text-muted small mb-0">Chỉ hiển thị đơn hàng đã hoàn thành và chưa có yêu cầu trả hàng</p>
+                        <p class="text-muted small mb-0">Hiển thị các đơn hàng đã hoàn thành và còn sản phẩm có thể trả</p>
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
                             <select name="ma_don_hang" id="selectDonHang" class="form-select form-select-lg" required>
                                 <option value="">-- Chọn đơn hàng --</option>
                                 @foreach($donHangs as $dh)
-                                    <option value="{{ $dh->ma_don_hang }}" {{ old('ma_don_hang') == $dh->ma_don_hang ? 'selected' : '' }}>
+                                    <option value="{{ $dh->ma_don_hang }}" {{ (old('ma_don_hang') == $dh->ma_don_hang || request('ma_don_hang') == $dh->ma_don_hang) ? 'selected' : '' }}>
                                         {{ $dh->ma_don_hang }} — KH: {{ $dh->khachHang->ten_kh ?? 'N/A' }}
                                         ({{ $dh->ngay_dat->format('d/m/Y') }} — {{ number_format($dh->tong_tien) }}đ)
                                     </option>
@@ -49,7 +49,7 @@
                             </select>
                             @if($donHangs->isEmpty())
                                 <div class="form-text text-danger mt-2">
-                                    <i class="bi bi-exclamation-triangle"></i> Hiện không có đơn hàng nào đủ điều kiện (đã hoàn thành và chưa có yêu cầu trả).
+                                    <i class="bi bi-exclamation-triangle"></i> Hiện không có đơn hàng nào đủ điều kiện (đã hoàn thành và còn sản phẩm có thể trả).
                                 </div>
                             @endif
                         </div>

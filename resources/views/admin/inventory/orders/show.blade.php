@@ -102,11 +102,42 @@
                 </div>
             </div>
 
+            <!-- Returns History -->
+            <div class="card border-0 shadow-sm mb-3 border-start border-warning border-4">
+                <div class="card-header bg-white"><h6 class="mb-0 fw-bold text-warning"><i class="bi bi-arrow-return-left me-2"></i>Lịch sử trả hàng</h6></div>
+                <div class="card-body p-0">
+                    @if($donHang->khachTraHangs->count() > 0)
+                        <ul class="list-group list-group-flush">
+                            @foreach($donHang->khachTraHangs as $traHang)
+                            <li class="list-group-item d-flex justify-content-between align-items-center small py-2">
+                                <div>
+                                    <a href="{{ route('admin.returns.show', $traHang->ma_tra_hang) }}" class="fw-bold text-decoration-none">{{ $traHang->ma_tra_hang }}</a>
+                                    <div class="text-muted" style="font-size: 0.75rem;">{{ $traHang->ngay_yeu_cau->format('d/m/Y') }}</div>
+                                </div>
+                                <span class="badge bg-{{ $traHang->trang_thai == 'da_duyet_nhap_kho' ? 'success' : ($traHang->trang_thai == 'tu_choi' ? 'danger' : 'warning') }}">
+                                    {{ $traHang->trang_thai == 'da_duyet_nhap_kho' ? 'Thành công' : ($traHang->trang_thai == 'tu_choi' ? 'Từ chối' : 'Chờ duyệt') }}
+                                </span>
+                            </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <div class="p-3 text-center text-muted small">
+                            <i class="bi bi-info-circle me-1"></i> Chưa có đợt trả hàng nào cho đơn này.
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             <!-- Actions -->
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white"><h6 class="mb-0 fw-bold">Thao tác</h6></div>
                 <div class="card-body d-grid gap-2">
                     @if(Auth::guard('admin')->user()->hasRole(1, 3, 5))
+                    @if(in_array($donHang->trang_thai_dh, ['cho_xu_ly', 'da_duyet']))
+                        <a href="{{ route('admin.orders.edit', $donHang->ma_don_hang) }}" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-pencil-square me-1"></i>Sửa đơn hàng
+                        </a>
+                    @endif
                     @if($donHang->trang_thai_dh == 'cho_xu_ly')
                         <form method="POST" action="{{ route('admin.orders.approve', $donHang->ma_don_hang) }}">
                             @csrf
@@ -129,6 +160,11 @@
                                 <i class="bi bi-x-circle me-1"></i>Hủy đơn hàng
                             </button>
                         </form>
+                    @endif
+                    @if($donHang->trang_thai_dh == 'da_hoan_thanh')
+                        <a href="{{ route('admin.returns.create', ['ma_don_hang' => $donHang->ma_don_hang]) }}" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-arrow-return-left me-1"></i>Tạo đơn trả hàng
+                        </a>
                     @endif
                     @else
                     <div class="alert alert-info small mb-0">

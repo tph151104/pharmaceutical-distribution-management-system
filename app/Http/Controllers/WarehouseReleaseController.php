@@ -168,6 +168,12 @@ class WarehouseReleaseController extends Controller
             return back()->withErrors(['error' => 'Đơn hàng này chưa được duyệt hoặc đã xuất kho.']);
         }
 
+        // Kiểm tra tài khoản khách hàng có bị khóa không
+        $khachHang = KhachHang::find($donHang->ma_kh);
+        if ($khachHang && $khachHang->trang_thai_tk === 'vo_hieu_hoa') {
+            return back()->withErrors(['error' => 'Không thể xuất hàng cho khách hàng "' . $khachHang->ten_kh . '" vì tài khoản đã bị khóa.']);
+        }
+
         DB::beginTransaction();
         try {
             $prefix = 'PX_' . $donHang->ma_don_hang . '_';
@@ -217,7 +223,8 @@ class WarehouseReleaseController extends Controller
         $fefoAllocation = [];
         
         if ($phieuXuat->trang_thai_phieu_xuat === 'dang_chuan_bi') {
-            foreach ($phieuXuat->donHang->chiTiet as $ctdh) {
+            // duyệt từng thuốc trong đơn hàng
+            foreach ($phieuXuat->donHang->chiTiet as $ctdh) { 
                 // Chỉ tìm các lô thuốc còn tồn ở khu vực Sẵn Sàng Bán (KV03), đang bán, còn hạn theo FEFO
                 $lots = TonKhoKhuVuc::select('ton_kho_khu_vuc.*', 'ton_kho.han_su_dung', 'ton_kho.so_luong_ton as tong_ton')
                     ->join('ton_kho', function ($join) {
@@ -230,6 +237,7 @@ class WarehouseReleaseController extends Controller
                     ->where('ton_kho.trang_thai_lo', 'dang_ban')
                     ->where('ton_kho.han_su_dung', '>=', now()->toDateString())
                     ->where('ton_kho_khu_vuc.so_luong', '>', 0)
+                    //FEFO: Ưu tiên lô hạn gần lên đầu
                     ->orderBy('ton_kho.han_su_dung', 'asc')
                     ->get();
                 
@@ -239,7 +247,8 @@ class WarehouseReleaseController extends Controller
                 foreach ($lots as $lot) {
                     if ($needed <= 0) break;
 
-                    $take = min($needed, $lot->so_luong); // Chỉ lấy số lượng có trong KV03
+                    $take = min($needed, $lot->so_luong); 
+
                     $allocatedLots[] = [
                         'so_lo' => $lot->so_lo,
                         'han_su_dung' => $lot->han_su_dung,
@@ -310,12 +319,14 @@ class WarehouseReleaseController extends Controller
                     $tonKho = TonKho::where('ma_thuoc', $maThuoc)
                         ->where('so_lo', $soLo)
                         ->where('ma_phieu_nhap', $info['ma_phieu_nhap'])
+                        ->lockForUpdate() // Khóa dòng để tránh tranh chấp khi nhiều người cùng xuất
                         ->first();
 
                     $tonKhoKhuVuc = TonKhoKhuVuc::where('ma_thuoc', $maThuoc)
                         ->where('so_lo', $soLo)
                         ->where('ma_phieu_nhap', $info['ma_phieu_nhap'])
                         ->where('ma_khu_vuc', 'KV03_THANH_PHAM')
+                        ->lockForUpdate() // Khóa dòng khu vực để đảm bảo đồng bộ
                         ->first();
 
                     // Check nếu thiếu hàng ở khu vực sẵn sàng bán

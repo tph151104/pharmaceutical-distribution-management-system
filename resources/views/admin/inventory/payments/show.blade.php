@@ -102,8 +102,8 @@
 
             @if($thanhToan->minh_chung_tt_image)
             <div class="mb-4 text-center">
-                <h6 class="fw-bold mb-3">MINH CHỨNG THANH TOÁN</h6>
-                <img src="{{ asset('storage/' . $thanhToan->minh_chung_tt_image) }}" alt="Minh chứng thanh toán" class="img-fluid border rounded shadow-sm" style="max-height: 400px; object-fit: contain;">
+                <h6 class="fw-bold mb-3">MINH CHỨNG GIAO DỊCH</h6>
+                <img src="{{ asset($thanhToan->minh_chung_tt_image) }}" alt="Minh chứng thanh toán" class="img-fluid border rounded shadow-sm img-clickable" style="max-height: 400px; object-fit: contain;" title="Click để phóng to xem kỹ hơn">
             </div>
             @endif
 

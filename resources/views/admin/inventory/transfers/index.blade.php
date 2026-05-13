@@ -151,7 +151,7 @@
                                     data-ma-pn="{{ $item->ma_phieu_nhap }}"
                                     data-khu-vuc="{{ $item->khuVuc->ten_khu_vuc ?? $item->ma_khu_vuc }}"
                                     data-so-luong="{{ $item->so_luong }}"
-                                    data-hsd="{{ ($item->tonKho && $item->tonKho->han_su_dung) ? $item->tonKho->han_su_dung->format('d/m/Y') : 'N/A' }}"
+                                    data-hsd="{{ ($item->tonKho && $item->tonKho->han_su_dung) ? $item->tonKho->han_su_dung->format('d/m/Y') : 'N/A' }}" 
                                     data-trang-thai="{{ $item->tonKho->trang_thai_lo ?? 'N/A' }}"
                                     data-locations="{{ json_encode($detailLocations->map(fn($l) => ['kv' => $l->khuVuc->ten_khu_vuc ?? $l->ma_khu_vuc, 'sl' => $l->so_luong])->toArray()) }}"
                                     data-history="{{ json_encode($detailHistory->map(fn($h) => ['ngay' => $h->ngay_chuyen ? $h->ngay_chuyen->format('d/m/Y H:i') : '', 'tu' => $h->tu_khu_vuc ? ($h->tuKhuVucKho->ten_khu_vuc ?? $h->tu_khu_vuc) : 'Nhận hàng', 'den' => $h->den_khu_vuc ? ($h->denKhuVucKho->ten_khu_vuc ?? $h->den_khu_vuc) : 'Xuất kho', 'sl' => $h->so_luong_chuyen, 'ly_do' => $h->ly_do_chuyen ?? '', 'nguoi' => $h->nguoiThucHien->ho_ten_nd ?? $h->nguoi_thuc_hien])->toArray()) }}"

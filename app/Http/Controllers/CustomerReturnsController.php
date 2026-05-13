@@ -39,19 +39,18 @@ class CustomerReturnsController extends Controller
         
         // Tìm phiếu nhập liên quan để kiểm tra điều kiện hoàn tác
         $phieuNhap = PhieuNhap::where('ma_phieu_nhap', 'LIKE', 'PN_TRA_%')
-            ->where('tieu_lieu_lien_quan', 'LIKE', '%' . $id . '%')
+            ->where('tieu_lieu_lien_quan', 'LIKE', '%' . $traHang->ma_tra_hang . '%')
             ->with('chiTiet')
             ->first();
 
-        $canUndo = false;
-        $receivedCount = 0;
+        $canUndo = false; //Để View biết có nên hiện nút "Hoàn tác" hay không.
+        $receivedCount = 0;//Để hiển thị cho người quản lý biết đã có bao nhiêu sản phẩm thực sự được nhập về kho.
         if ($phieuNhap && $traHang->trang_thai === 'da_duyet_nhap_kho') {
             $receivedCount = $phieuNhap->chiTiet->sum('so_luong_thuc_te');
             if ($receivedCount == 0) {
                 $canUndo = true;
             }
         }
-
         return view('admin.inventory.returns.show', compact('traHang', 'phieuNhap', 'canUndo', 'receivedCount'));
     }
 
@@ -123,7 +122,7 @@ class CustomerReturnsController extends Controller
                 'trang_thai_phieu_nhap' => 'doi_hang_ve', // Đợi hàng về, y như phiếu nhập thường
                 'image1' => '',
                 'giay_to_lien_quan' => '',
-                'tieu_lieu_lien_quan' => "[MA_TRA:{$traHang->ma_tra_hang}] Khách hàng trả hàng đơn " . $traHang->ma_don_hang
+                'tieu_lieu_lien_quan' => 'REF:' . $traHang->ma_tra_hang // giữ mã tham chiếu ngắn gọn
             ]);
 
             // 2. Chuyển chi tiết theo ds xuất (phân bổ số lượng trả dựa trên các lô đã xuất thực tế)
@@ -345,11 +344,24 @@ class CustomerReturnsController extends Controller
      */
     public function create()
     {
-        // Lấy đơn hàng đã hoàn thành (bao gồm cả những đơn đã từng trả hàng)
-        $donHangs = DonHang::with('khachHang')
+        // Lấy đơn hàng đã hoàn thành và còn sản phẩm có thể trả
+        $donHangs = DonHang::with(['khachHang', 'chiTiet'])
             ->where('trang_thai_dh', 'da_hoan_thanh')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->filter(function ($dh) {
+                // Kiểm tra xem đơn hàng còn sản phẩm nào chưa trả hết không
+                foreach ($dh->chiTiet as $ct) {
+                    $slDaTra = ChiTietTraHang::whereHas('khachTraHang', function($q) use ($dh) {
+                        $q->where('ma_don_hang', $dh->ma_don_hang)
+                          ->where('trang_thai', '!=', 'tu_choi');
+                    })->where('ma_thuoc', $ct->ma_thuoc)->sum('so_luong_tra');
+                    
+                    if ($ct->so_luong - $slDaTra > 0) {
+                        return true; // Còn ít nhất 1 sp có thể trả
+                    }
+                }
+                return false;
+            });
 
         $khachHangs = KhachHang::where('trang_thai_tk', 'hoat_dong')->get();
 

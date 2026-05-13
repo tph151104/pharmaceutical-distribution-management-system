@@ -41,9 +41,6 @@ class InventoryController extends Controller
         // 2. Query danh sách
         $query = TonKho::with(['thuoc', 'phieuNhap.nhaCungCap', 'chiTietPhieuNhap']);
 
-        // Không show các lô hàng nếu 100% tồn kho nằm ở kho loại bỏ KV05
-        $query->whereRaw("so_luong_ton > COALESCE((SELECT SUM(so_luong) FROM ton_kho_khu_vuc WHERE ton_kho_khu_vuc.ma_thuoc = ton_kho.ma_thuoc AND ton_kho_khu_vuc.ma_phieu_nhap = ton_kho.ma_phieu_nhap AND ton_kho_khu_vuc.so_lo = ton_kho.so_lo AND ma_khu_vuc = 'KV05_LOAI_BO'), 0)");
-
         // Xử lý tìm kiếm 
         if ($request->has('search') && $request->search != '') {
             $searchTerm = $request->search;
@@ -75,14 +72,16 @@ class InventoryController extends Controller
                 $query->where('han_su_dung', '>', $warningDate);
             } elseif ($request->tinh_trang == 'warning') {
                 $query->where('han_su_dung', '<=', $warningDate)
-                      ->where('han_su_dung', '>=', $now);
+                      ->where('han_su_dung', '>', $now);
             } elseif ($request->tinh_trang == 'expired') {
-                $query->where('han_su_dung', '<', $now);
+                $query->where('han_su_dung', '<=', $now);
             }
         }
 
-        // Ưu tiên hiển thị lô gần hết hạn lên trên, rồi đến lượt lô mới
-        $ton_khos = $query->orderBy('han_su_dung', 'asc')->paginate(15);
+        // Ưu tiên hiển thị lô gần hết hạn lên trên, nhưng đẩy các lô đã 'Hết Hạn' xuống cuối danh sách
+        $ton_khos = $query->orderByRaw("CASE WHEN trang_thai_lo = 'het_han' THEN 1 ELSE 0 END ASC")
+                          ->orderBy('han_su_dung', 'asc')
+                          ->paginate(15);
 
         return view('admin.inventory.batches.index', compact(
             'ton_khos', 

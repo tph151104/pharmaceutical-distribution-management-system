@@ -15,11 +15,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // Tự động kiểm tra và chuyển hàng hết hạn về KV05 (GSP)
-        $schedule->command('inventory:check-expired')->dailyAt('00:00');
+        // Tự động kiểm tra và chuyển hàng hết hạn về KV05 (GSP) - Chạy mỗi 12 tiếng
+        $schedule->command('inventory:check-expired')->everyTwelveHours();
 
-        // Tự động hoàn thành Đơn Hàng nếu Phiếu Xuất đã giao > 3 ngày
-        $schedule->command('order:auto-complete')->dailyAt('00:30');
+        // Tự động hoàn thành Đơn Hàng nếu Phiếu Xuất đã giao > 3 ngày - Chạy mỗi 12 tiếng
+        $schedule->command('order:auto-complete')->everyTwelveHours();
     }
 
     /**

@@ -136,6 +136,8 @@ Route::middleware('auth:admin')->group(function () {
             Route::get('/create', [OrderController::class, 'create'])->name('create');
             Route::get('/advanced-search', [OrderController::class, 'advancedSearch'])->name('advancedSearch');
             Route::post('/', [OrderController::class, 'store'])->name('store');
+            Route::get('/{id}/edit', [OrderController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [OrderController::class, 'update'])->name('update');
             Route::post('/{id}/approve', [OrderController::class, 'approve'])->name('approve');
             Route::post('/{id}/cancel', [OrderController::class, 'cancel'])->name('cancel');
             Route::post('/{id}/export-note', [OrderController::class, 'createExportNote'])->name('exportNote');

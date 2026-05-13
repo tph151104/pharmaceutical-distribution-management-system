@@ -33,7 +33,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-white small text-muted text-center">
-                    @if($user->trang_thai == 'hoat_dong')
+                    @if($user->trang_thai == 'cho_phep_hd')
                         <span class="text-success"><i class="bi bi-circle-fill small me-1"></i>Đang hoạt động</span>
                     @else
                         <span class="text-danger"><i class="bi bi-circle-fill small me-1"></i>Bị khóa</span>

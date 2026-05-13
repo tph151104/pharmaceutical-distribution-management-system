@@ -35,7 +35,7 @@ class AutoUpdateOrderCompletion extends Command
             ->where('updated_at', '<=', $threeDaysAgo)
             ->whereNotNull('ma_don_hang')
             ->get();
-
+ 
         $count = 0;
 
         foreach ($phieuXuats as $px) {
@@ -46,7 +46,7 @@ class AutoUpdateOrderCompletion extends Command
                 $count++;
             }
         }
-
+        
         $this->info("Đã tự động chốt hoàn thành {$count} đơn hàng.");
     }
 }

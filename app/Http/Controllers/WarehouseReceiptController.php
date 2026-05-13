@@ -403,10 +403,7 @@ class WarehouseReceiptController extends Controller
 
         return view('admin.inventory.imports.inspect', compact('phieuNhap', 'tonKhos'));
     }
-
-    /**
-     * Lưu tạm công tác kiểm hàng (Nhân viên kho nhập số thực tế và tải ảnh)
-     */
+    
     /**
      * Xác nhận hoàn tất nhập kho
      */
@@ -417,6 +414,22 @@ class WarehouseReceiptController extends Controller
         DB::beginTransaction();
         try {
             foreach ($request->items as $item) {
+                // Kiểm tra logic Hạn sử dụng (Phải >= Today và > Ngày sản xuất)
+                $hsd = \Carbon\Carbon::parse($item['han_su_dung']);
+                $nsxStr = $item['ngay_san_xuat'] ?? null;
+                $today = now()->startOfDay();
+
+                if ($hsd->lt($today)) {
+                    throw new \Exception("Lô {$item['original_so_lo']} có hạn sử dụng không hợp lệ (không được là ngày trong quá khứ).");
+                }
+
+                if ($nsxStr) {
+                    $nsx = \Carbon\Carbon::parse($nsxStr);
+                    if ($hsd->lte($nsx)) {
+                        throw new \Exception("Lô {$item['original_so_lo']} có hạn sử dụng không được nhỏ hơn hoặc bằng ngày sản xuất.");
+                    }
+                }
+
                 // Validate if quantity is larger than expected
                 $expectedQuantity = ChiTietPhieuNhap::where('ma_phieu_nhap', $id)
                                           ->where('ma_thuoc', $item['ma_thuoc'])
@@ -592,9 +605,11 @@ class WarehouseReceiptController extends Controller
                 $phieuNhap->save();
 
                 $msg = 'Đã chốt phiếu nhập theo số lượng thực nhận. Phần còn thiếu đã được hủy bỏ và công nợ đã được cập nhật lại.';
+
             } elseif ($isMissing) {
                 $phieuNhap->trang_thai_phieu_nhap = 'doi_hang_ve';
                 $msg = 'Đã xác nhận lô hàng. Số lượng thực tế chưa đủ, phiếu được chuyển về "Đợi hàng về".';
+                
             } else {
                 $phieuNhap->trang_thai_phieu_nhap = 'da_nhap_kho';
                 $msg = 'Đã hoàn tất quy trình nhập kho toàn bộ chứng từ!';

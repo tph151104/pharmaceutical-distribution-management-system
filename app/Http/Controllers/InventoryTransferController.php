@@ -158,7 +158,7 @@ class InventoryTransferController extends Controller
                 'so_luong_chuyen' => $request->so_luong_chuyen,
                 'nguoi_thuc_hien' => auth()->id(),
                 'ngay_chuyen' => Carbon::now(),
-                'ly_do_chuyen' => $request->ly_do ?? 'Nhân viên thực hiện luân chuyển',
+                'ly_do_chuyen' => $request->ly_do ?? 'Kiểm tra định kỳ',
             ]);
 
             // 4. Trigger auto cập nhật trạng thái lô + tổng tồn kho

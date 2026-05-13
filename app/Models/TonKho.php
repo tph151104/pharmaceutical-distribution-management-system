@@ -9,7 +9,7 @@ class TonKho extends Model
     protected $table = 'ton_kho';
     public $incrementing = false;
     protected $primaryKey = ['ma_thuoc', 'ma_phieu_nhap', 'so_lo'];
-    protected $keyType = 'string';
+    protected $keyType = 'string';//Khóa chính dạng Chuỗi/Chữ viết
 
     protected $fillable = [
         'ma_thuoc',

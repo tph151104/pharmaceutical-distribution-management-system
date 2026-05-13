@@ -9,7 +9,7 @@ class ChiTietPhieuNhap extends Model
     protected $table = 'chi_tiet_phieu_nhap';
     public $incrementing = false;
     protected $primaryKey = ['ma_phieu_nhap', 'ma_thuoc', 'so_lo'];
-    protected $keyType = 'string';
+    protected $keyType = 'string'; //Khóa chính dạng Chuỗi/Chữ viết
 
     protected $fillable = [
         'ma_phieu_nhap',

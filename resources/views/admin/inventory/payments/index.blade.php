@@ -343,7 +343,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Số tiền thanh toán <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" name="so_tien_tt" id="modal_so_tien" class="form-control form-control-lg fw-bold text-primary" required min="1" step="1">
+                                <input type="number" name="so_tien_tt" id="modal_so_tien" class="form-control form-control-lg fw-bold text-primary" required min="1000" step="1000">
                                 <span class="input-group-text fw-bold">VNĐ</span>
                             </div>
                             <div class="form-text text-danger d-none" id="error_so_tien">Số tiền không được lớn hơn dư nợ.</div>
@@ -488,8 +488,9 @@
         inputTien.max = data.con_no;
         inputTien.value = data.con_no;
 
+        // Validation: Số tiền không vượt quá dư nợ, tối thiểu 1000 VNĐ
         inputTien.oninput = function () {
-            let val = parseFloat(this.value);
+            let val = parseFloat(this.value); //lấy tiền vừa gõ
             let btn = document.getElementById('btn_submit_payment');
             let err = document.getElementById('error_so_tien');
             if (val > data.con_no) {

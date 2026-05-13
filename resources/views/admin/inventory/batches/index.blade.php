@@ -155,7 +155,7 @@
                         <tr>
                             <td>
                                 @if($ton->phieuNhap->image1)
-                                    <img src="{{ asset($ton->phieuNhap->image1) }}" alt="..." style="width: 40px; height: 40px; object-fit: cover;" class="rounded border">
+                                    <img src="{{ asset($ton->phieuNhap->image1) }}" alt="..." style="width: 40px; height: 40px; object-fit: cover;" class="rounded border img-clickable" title="Click để phóng to xem kỹ hơn">
                                 @else
                                     <div class="bg-light text-muted d-flex align-items-center justify-content-center border rounded" style="width: 40px; height: 40px; font-size: 10px;">No img</div>
                                 @endif
@@ -168,8 +168,8 @@
                             <td class="text-center">
                                 <div class="fw-semibold">{{ $ton->han_su_dung->format('d/m/Y') }}</div>
                                 <div class="small mt-1">
-                                    @if($daysLeft < 0)
-                                        <span class="badge bg-danger">Quá hạn {{ abs((int)$daysLeft) }} ngày</span>
+                                    @if($daysLeft <= 0)
+                                        <span class="badge bg-danger">Đã hết hạn sử dụng</span>
                                     @elseif($daysLeft <= 60)
                                         <span class="badge bg-warning text-dark">Còn {{ (int)$daysLeft }} ngày</span>
                                     @else
@@ -195,7 +195,7 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                @if($daysLeft < 0)
+                                @if($daysLeft <= 0)
                                     <span class="badge bg-danger">Hết hạn</span>
                                 @elseif($daysLeft <= 60)
                                     <span class="badge bg-warning">Sắp hết hạn</span>

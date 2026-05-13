@@ -23,6 +23,15 @@
             background-color: #f5f7fb;
         }
 
+        .img-clickable {
+            cursor: zoom-in;
+            transition: transform 0.2s;
+        }
+        .img-clickable:hover {
+            transform: scale(1.05);
+            filter: brightness(0.9);
+        }
+
         .sidebar {
             width: 260px;
             background: linear-gradient(180deg, #0d6efd 0%, #0050c8 100%);
@@ -536,6 +545,31 @@
 </script>
 
 @stack('scripts')
+    <!-- Global Image Preview Modal -->
+    <div class="modal fade" id="globalImageModal" tabindex="-1" aria-hidden="true" style="z-index: 9999;">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body p-0 text-center position-relative">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <img src="" id="globalImagePreview" class="img-fluid rounded shadow-lg" style="max-height: 90vh;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sự kiện cho tất cả ảnh có class img-clickable
+            document.body.addEventListener('click', function(e) {
+                if (e.target.classList.contains('img-clickable')) {
+                    const src = e.target.getAttribute('src');
+                    document.getElementById('globalImagePreview').setAttribute('src', src);
+                    const modal = new bootstrap.Modal(document.getElementById('globalImageModal'));
+                    modal.show();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
 

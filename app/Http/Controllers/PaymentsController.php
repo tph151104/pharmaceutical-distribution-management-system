@@ -74,7 +74,7 @@ class PaymentsController extends Controller
         $request->validate([
             'loai_thanh_toan' => 'required|in:nhap,xuat',
             'ma_phieu' => 'required|string',
-            'so_tien_tt' => 'required|numeric|min:1',
+            'so_tien_tt' => 'required|numeric|min:1000',
             'phuong_thuc_tt' => 'required|string',
             'minh_chung_tt_image' => 'nullable|image|max:2048',
         ]);
@@ -98,6 +98,7 @@ class PaymentsController extends Controller
             $tongTienCT = floatval($phieu->tong_tien);
             $soTienConNoHienTai = $tongTienCT - $tongDaTra;
 
+            //check thanh toán
             if ($soTienTT > $soTienConNoHienTai + 0.01) {
                 return back()->withInput()->withErrors(['error' => 'Số tiền thanh toán (' . number_format($soTienTT) . ') không được lớn hơn số tiền còn nợ (' . number_format($soTienConNoHienTai) . ').']);
             }
