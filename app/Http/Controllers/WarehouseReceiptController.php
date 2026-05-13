@@ -658,4 +658,31 @@ class WarehouseReceiptController extends Controller
             return back()->withErrors(['error' => 'Lỗi khi xoá phiếu: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * API kiểm tra trạng thái phiếu nhập (AJAX Polling)
+     * Dùng để phát hiện khi người khác đã xác nhận phiếu trước
+     */
+    public function checkStatus($id)
+    {
+        $phieuNhap = PhieuNhap::find($id);
+
+        if (!$phieuNhap) {
+            return response()->json(['trang_thai' => 'not_found'], 404);
+        }
+
+        $tenTrangThai = '';
+        switch ($phieuNhap->trang_thai_phieu_nhap) {
+            case 'doi_hang_ve': $tenTrangThai = 'Đợi hàng về'; break;
+            case 'cho_nhap_kho': $tenTrangThai = 'Chờ nhập kho'; break;
+            case 'da_nhap_kho': $tenTrangThai = 'Thành công / Đã nhập kho'; break;
+            case 'huy': $tenTrangThai = 'Đã hủy'; break;
+            default: $tenTrangThai = $phieuNhap->trang_thai_phieu_nhap; break;
+        }
+
+        return response()->json([
+            'trang_thai' => $phieuNhap->trang_thai_phieu_nhap,
+            'ten_trang_thai' => $tenTrangThai,
+        ]);
+    }
 }

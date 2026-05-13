@@ -360,5 +360,71 @@
         });
     });
 </script>
+
+@if(in_array($phieuNhap->trang_thai_phieu_nhap, ['cho_nhap_kho', 'doi_hang_ve']))
+<script>
+    // === AJAX Polling: Kiểm tra trạng thái phiếu nhập mỗi 5 giây ===
+    // Nếu người khác đã xác nhận phiếu trước, sẽ hiện cảnh báo ngay lập tức
+    (function() {
+        const maPhieuNhap = @json($phieuNhap->ma_phieu_nhap);
+        const checkUrl = "{{ route('imports.checkStatus', $phieuNhap->ma_phieu_nhap) }}";
+        const currentStatus = @json($phieuNhap->trang_thai_phieu_nhap);
+        let polling = null;
+
+        function kiemTraTrangThai() {
+            fetch(checkUrl, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Nếu trạng thái đã thay đổi
+                if (data.trang_thai !== currentStatus) {
+                    // Dừng polling
+                    clearInterval(polling);
+
+                    // Hiện banner cảnh báo nổi bật
+                    let banner = document.createElement('div');
+                    banner.className = 'alert alert-danger border-danger shadow-lg d-flex align-items-center gap-3';
+                    banner.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:9999; min-width:500px; animation: fadeInDown 0.5s;';
+                    banner.innerHTML = `
+                        <i class="bi bi-exclamation-triangle-fill fs-3"></i>
+                        <div>
+                            <strong>⚠ Phiếu này đã được cập nhật hoặc xác nhận bởi người khác!</strong><br>
+                            Trạng thái hiện tại: <span class="badge bg-danger">${data.ten_trang_thai}</span><br>
+                            <small class="text-muted">Trang sẽ tự động tải lại sau 5 giây...</small>
+                        </div>
+                    `;
+                    document.body.prepend(banner);
+
+                    // Vô hiệu hóa nút xác nhận để không cho bấm nữa
+                    let btnConfirm = document.querySelector('button[type="submit"]');
+                    if (btnConfirm) {
+                        btnConfirm.disabled = true;
+                        btnConfirm.classList.add('btn-secondary');
+                        btnConfirm.classList.remove('btn-primary', 'btn-success', 'btn-info');
+                        btnConfirm.innerHTML = '<i class="bi bi-lock me-2"></i> Đã bị khóa';
+                    }
+
+                    // Tự động tải lại trang sau 5 giây
+                    setTimeout(() => location.reload(), 5000);
+                }
+            })
+            .catch(() => {
+                // Lỗi mạng thì bỏ qua, lần sau sẽ thử lại
+            });
+        }
+
+        // Bắt đầu polling mỗi 5 giây
+        polling = setInterval(kiemTraTrangThai, 4000);
+    })();
+</script>
+
+<style>
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translate(-50%, -30px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
+    }
+</style>
+@endif
 @endpush
 @endsection

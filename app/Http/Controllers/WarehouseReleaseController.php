@@ -318,7 +318,7 @@ class WarehouseReleaseController extends Controller
 
                     $tonKho = TonKho::where('ma_thuoc', $maThuoc)
                         ->where('so_lo', $soLo)
-                        ->where('ma_phieu_nhap', $info['ma_phieu_nhap'])
+                        ->where('ma_phieu_nhap', $info['ma_phieu_nhap'])//(dùng để tìm lô trong TonKho, không lưu vào bảng này)
                         ->lockForUpdate() // Khóa dòng để tránh tranh chấp khi nhiều người cùng xuất
                         ->first();
 
@@ -636,6 +636,24 @@ class WarehouseReleaseController extends Controller
             DB::rollBack();
             return back()->withErrors(['error' => 'Lỗi khi hoàn tác: ' . $e->getMessage()]);
         }
+    }
+
+    /**
+     * API kiểm tra trạng thái phiếu xuất (AJAX Polling)
+     * Dùng để phát hiện khi người khác đã xác nhận phiếu trước
+     */
+    public function checkStatus($id)
+    {
+        $phieuXuat = PhieuXuat::find($id);
+
+        if (!$phieuXuat) {
+            return response()->json(['trang_thai' => 'not_found'], 404);
+        }
+
+        return response()->json([
+            'trang_thai' => $phieuXuat->trang_thai_phieu_xuat,
+            'ten_trang_thai' => $phieuXuat->tenTrangThai,
+        ]);
     }
 }
 

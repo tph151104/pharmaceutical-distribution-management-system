@@ -74,6 +74,7 @@ Route::middleware('auth:admin')->group(function () {
             Route::post('/{id}/arrived', [WarehouseReceiptController::class, 'markArrived'])->name('markArrived');
             Route::delete('/{id}', [WarehouseReceiptController::class, 'destroy'])->name('destroy');
             Route::get('/advanced-search', [WarehouseReceiptController::class, 'advancedSearch'])->name('advancedSearch');
+            Route::get('/{id}/check-status', [WarehouseReceiptController::class, 'checkStatus'])->name('checkStatus');
         });
 
         // Phiếu xuất kho
@@ -91,6 +92,7 @@ Route::middleware('auth:admin')->group(function () {
             Route::post('/{id}/revert', [WarehouseReleaseController::class, 'revertToPreparing'])->name('revert');
             Route::delete('/{id}', [WarehouseReleaseController::class, 'destroy'])->name('destroy');
             Route::get('/{id}/print', [WarehouseReleaseController::class, 'print'])->name('print');
+            Route::get('/{id}/check-status', [WarehouseReleaseController::class, 'checkStatus'])->name('checkStatus');
         });
 
         // Điều chuyển kho
