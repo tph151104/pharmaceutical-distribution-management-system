@@ -127,6 +127,8 @@ class InventoryTransferController extends Controller
                     throw new \Exception('Khi chuyển hàng từ Kho Chờ xử lý trở lại Kho Thành phẩm, bắt buộc phải nhập lý do.');
                 }
             }
+
+            if($sourceRecord->ma_khu_vuc == "")
             // ══════════════════════════════════════════════
 
             // 1. Trừ số lượng ở kho nguồn
